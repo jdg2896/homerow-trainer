@@ -1,0 +1,1641 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><title>Homerow Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>/* Layout: header bar, then sidebar + main column; lesson view takes over main. Keycap-blue ground, amber "go" accent. */
+:root{
+  --bg:#E8ECF2; --surface:#FFFFFF; --surface-2:#F3F5F9; --ink:#141C2F; --muted:#56627C; --line:#D2D9E5;
+  --accent:#2B57D9; --accent-soft:#DCE5FB; --accent-ink:#FFFFFF;
+  --go:#F2B705; --go-ink:#241A00; --ok:#16855A; --err:#CF3A32; --err-soft:#FBE0DD;
+  --f-pinky:#E6DCFA; --f-ring:#D4E6FA; --f-middle:#D3F0E0; --f-index:#FBE6C4; --f-thumb:#E3E1DB;
+  --key:#FFFFFF; --key-edge:#B8C1D2; --key-ink:#1B2438; --shadow:0 1px 2px rgba(20,28,47,.06),0 4px 14px rgba(20,28,47,.06);
+  --display:'Bricolage Grotesque','Avenir Next',system-ui,sans-serif;
+  --body:'Atkinson Hyperlegible',system-ui,-apple-system,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0D121C; --surface:#151C2A; --surface-2:#1B2333; --ink:#E4E9F2; --muted:#94A1BA; --line:#283247;
+  --accent:#7393FF; --accent-soft:#223060; --accent-ink:#0D121C;
+  --go:#F2B705; --go-ink:#241A00; --ok:#41C78E; --err:#FF6A60; --err-soft:#48201E;
+  --f-pinky:#342A50; --f-ring:#1F364E; --f-middle:#1D3D2F; --f-index:#47391B; --f-thumb:#2B2E37;
+  --key:#1E2637; --key-edge:#37425A; --key-ink:#E4E9F2; --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25); color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0D121C; --surface:#151C2A; --surface-2:#1B2333; --ink:#E4E9F2; --muted:#94A1BA; --line:#283247;
+  --accent:#7393FF; --accent-soft:#223060; --accent-ink:#0D121C;
+  --go:#F2B705; --go-ink:#241A00; --ok:#41C78E; --err:#FF6A60; --err-soft:#48201E;
+  --f-pinky:#342A50; --f-ring:#1F364E; --f-middle:#1D3D2F; --f-index:#47391B; --f-thumb:#2B2E37;
+  --key:#1E2637; --key-edge:#37425A; --key-ink:#E4E9F2; --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25); color-scheme:dark }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:16px}
+
+/* Header */
+.top{background:var(--surface);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-block:12px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:21px;letter-spacing:-.01em}
+.brand-mark{display:grid;grid-template-columns:repeat(3,9px);gap:3px}
+.brand-mark i{width:9px;height:9px;border-radius:2px;background:var(--line)}
+.brand-mark i.on{background:var(--go)}
+.layout-chip{display:flex;flex-direction:column;padding:4px 12px;border-left:1px solid var(--line);min-width:0}
+.layout-chip b{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+.layout-chip span{font-size:12px;color:var(--muted)}
+.stats{display:flex;gap:22px;margin-left:auto;align-items:center;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;line-height:1.2}
+.stat small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.stat b{font-family:var(--display);font-size:22px;font-variant-numeric:tabular-nums}
+.stat b em{font-style:normal;font-size:12px;color:var(--muted);margin-left:2px;font-family:var(--body)}
+.goal{display:flex;align-items:center;gap:10px}
+.goal svg{width:44px;height:44px}
+.goal .ring-bg{fill:none;stroke:var(--line);stroke-width:5}
+.goal .ring{fill:none;stroke:var(--go);stroke-width:5;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+
+/* Shell */
+.shell{display:grid;grid-template-columns:250px minmax(0,1fr);gap:24px;padding-block:22px 60px}
+.side{display:flex;flex-direction:column;gap:18px}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav button{display:flex;justify-content:space-between;align-items:center;text-align:left;border:0;background:transparent;padding:10px 12px;border-radius:8px;font-weight:700}
+.nav button:hover{background:var(--surface)}
+.nav button.on{background:var(--accent);color:var(--accent-ink)}
+.nav button span{font-weight:400;font-size:12px;opacity:.8}
+.side h4{margin:0 0 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.unitlinks{display:flex;flex-direction:column;gap:2px}
+.unitlinks a{display:flex;justify-content:space-between;color:inherit;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:14px}
+.unitlinks a:hover{background:var(--surface)}
+.unitlinks a span{color:var(--muted);font-variant-numeric:tabular-nums}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+.probkeys{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px}
+
+/* Keycap chips */
+.kc{display:inline-flex;align-items:center;justify-content:center;min-width:1.9em;height:1.9em;padding:0 .4em;border:1px solid var(--key-edge);border-bottom-width:3px;border-radius:6px;background:var(--key);color:var(--key-ink);font-family:var(--mono);font-weight:600;font-size:.86em;line-height:1}
+.kc.big{font-size:1.4em}
+.kc.warn{border-color:var(--err);color:var(--err)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 16px;font-weight:700}
+.btn:hover{border-color:var(--accent)}
+.btn.go{background:var(--go);border-color:var(--go);color:var(--go-ink)}
+.btn.go:hover{filter:brightness(1.05)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--err)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn .tri{width:0;height:0;border-left:8px solid currentColor;border-top:5px solid transparent;border-bottom:5px solid transparent}
+
+/* Lessons */
+.main{min-width:0;display:flex;flex-direction:column;gap:28px}
+.hero{display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:20px 22px}
+.hero h2{font-size:26px}
+.hero p{margin:4px 0 0;opacity:.85}
+.progress{height:10px;border-radius:5px;background:rgba(255,255,255,.25);overflow:hidden;min-width:180px;flex:1;max-width:340px}
+.progress i{display:block;height:100%;background:var(--go)}
+.unit h3{font-size:22px}
+.unit header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.unit header p{margin:2px 0 0;color:var(--muted)}
+.lessons{display:flex;flex-direction:column;gap:8px}
+.lesson{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.lesson.next{border-color:var(--go);box-shadow:var(--shadow)}
+.lesson.locked{opacity:.55}
+.lesson .num{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
+.lesson.done .num{background:var(--ok);border-color:var(--ok);color:#fff}
+.lesson .ttl{display:flex;flex-direction:column;gap:6px;min-width:0}
+.lesson .ttl b{font-size:17px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.lesson .meta{display:flex;gap:12px;align-items:center;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.badge{font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);font-weight:700}
+.segs{display:flex;gap:3px;width:140px}
+.segs i{flex:1;height:5px;border-radius:3px;background:var(--line)}
+.segs i.on{background:var(--ok)}
+.stars{display:inline-flex;gap:2px;color:var(--line);font-size:14px;letter-spacing:1px}
+.stars .on{color:var(--go)}
+
+/* Run view */
+.run{display:flex;flex-direction:column;gap:16px}
+.runbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.runbar h2{font-size:22px}
+.runbar .live{margin-left:auto;display:flex;gap:18px}
+.stagechips{display:flex;gap:6px;flex-wrap:wrap}
+.stagechips span{font-size:12px;padding:3px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.stagechips span.on{border-color:var(--accent);color:var(--accent);font-weight:700}
+.stagechips span.done{background:var(--ok);border-color:var(--ok);color:#fff}
+.newkeys{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:13px}
+.typebox{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 26px;box-shadow:var(--shadow)}
+.viewport{height:calc(3 * 1.9em);overflow:hidden;font-family:var(--mono);font-size:clamp(19px,2.5vw,27px);line-height:1.9em}
+.textline{position:relative;transition:transform .15s ease}
+.w{display:inline-block;white-space:nowrap}
+.c{position:relative;color:var(--muted);border-radius:3px}
+.c.ok{color:var(--ink);opacity:.45}
+.c.bad{color:var(--err);background:var(--err-soft);opacity:1}
+.c.fixed{color:var(--err);opacity:.6}
+.c.cur{color:var(--ink);background:var(--accent-soft);box-shadow:inset 0 -3px 0 var(--accent)}
+.c.sp.cur::after,.c.sp.bad::after{content:'·';position:absolute;left:0;right:0;text-align:center;color:var(--accent)}
+.c.kchip{display:inline-block;margin-right:.35em;padding:0 .3em;border:1px solid var(--line);border-radius:6px;font-size:.85em}
+.c.kchip.cur{border-color:var(--accent)}
+.c.kchip.ok{border-color:var(--ok);color:var(--ok);opacity:1}
+.shake{animation:shake .18s}
+@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+@media (prefers-reduced-motion:reduce){.shake{animation:none}.textline{transition:none}}
+.focusveil{position:absolute;inset:0;display:grid;place-items:center;background:color-mix(in srgb,var(--surface) 82%,transparent);border-radius:14px;font-weight:700;border:0;width:100%;color:var(--ink)}
+.hint{display:flex;gap:10px;align-items:center;flex-wrap:wrap;min-height:30px;font-size:15px}
+.hint .layer{font-size:12px;padding:3px 10px;border-radius:99px;background:var(--accent);color:var(--accent-ink);font-weight:700}
+.misfire{font-size:13px;color:var(--err)}
+.result{position:absolute;inset:0;background:var(--surface);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;text-align:center}
+.result h3{font-size:24px}
+.result .nums{display:flex;gap:28px;flex-wrap:wrap;justify-content:center}
+.result .stars{font-size:26px}
+.result .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+
+/* Keyboard */
+.kbwrap{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;overflow-x:auto}
+.kb{width:100%;min-width:560px;height:auto;display:block}
+.kb .k{fill:var(--key);stroke:var(--key-edge);stroke-width:1.2}
+.kb.fingers .k.f-pinky{fill:var(--f-pinky)} .kb.fingers .k.f-ring{fill:var(--f-ring)}
+.kb.fingers .k.f-middle{fill:var(--f-middle)} .kb.fingers .k.f-index{fill:var(--f-index)}
+.kb.fingers .k.f-thumb{fill:var(--f-thumb)}
+.kb .k.home{stroke-width:2}
+.kb .k.tgt{fill:var(--go);stroke:var(--go-ink);stroke-width:2}
+.kb .k.hold{fill:var(--accent);stroke:var(--accent)}
+.kb .k.empty{opacity:.45}
+.kb text{fill:var(--key-ink);font-family:var(--mono);font-weight:600;text-anchor:middle;dominant-baseline:central}
+.kb text.sub{fill:var(--muted);font-weight:500;font-family:var(--body)}
+.kb .tgtg text{fill:var(--go-ink)}
+.kb .holdg text{fill:var(--accent-ink)}
+.kb .bump{fill:var(--key-edge)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px;border:1px solid var(--key-edge)}
+
+/* Layout & forms */
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 14px;font-weight:700;font-size:13px}
+.tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-weight:700;font-size:14px}
+.field small{color:var(--muted)}
+textarea,select,input[type=number],input[type=text]{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{min-height:120px;font-family:var(--mono);font-size:13px}
+.check{display:flex;gap:10px;align-items:flex-start}
+.check input{margin-top:4px}
+.saved{display:flex;flex-direction:column;gap:8px}
+.saved .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);flex-wrap:wrap}
+.saved .row.on{border-color:var(--accent)}
+.msg{padding:10px 12px;border-radius:8px;font-size:14px}
+.msg.err{background:var(--err-soft);color:var(--err)}
+.msg.ok{background:var(--accent-soft)}
+.charmap{display:flex;flex-wrap:wrap;gap:5px}
+.section-title{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.section-title h2{font-size:24px}
+.ptable{width:100%;border-collapse:collapse;font-size:14px}
+.ptable td,.ptable th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+.ptable th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+.credits{padding-block:0 32px;font-size:13px;color:var(--muted)}
+.credits p{margin:0;max-width:75ch}
+.credits a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.credits a:hover{color:var(--accent)}
+
+@media (max-width:860px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .nav{flex-direction:row;flex-wrap:wrap}
+  .unitlinks,.side .card{display:none}
+  .stats{margin-left:0;gap:16px}
+  .lesson{grid-template-columns:34px minmax(0,1fr)}
+  .lesson .act{grid-column:2}
+  .runbar .live{margin-left:0}
+}
+</style>
+<div id="app"></div>
+<script>window.HOMEROW_WORDS=["the", "to", "and", "of", "in", "is", "for", "that", "you", "it", "on", "with", "this", "was", "be", "as", "are", "have", "at", "he", "not", "by", "but", "from", "my", "or", "we", "an", "your", "all", "so", "his", "they", "me", "if", "one", "can", "will", "just", "like", "about", "up", "out", "what", "has", "when", "more", "do", "no", "were", "who", "had", "their", "there", "her", "which", "time", "get", "been", "would", "she", "new", "people", "how", "some", "also", "them", "now", "other", "its", "our", "than", "good", "only", "after", "first", "him", "into", "know", "see", "two", "make", "over", "think", "any", "then", "could", "back", "these", "want", "because", "go", "well", "said", "way", "most", "much", "very", "where", "even", "should", "may", "here", "need", "really", "did", "right", "work", "year", "years", "being", "day", "too", "going", "before", "off", "why", "made", "still", "take", "got", "many", "never", "those", "life", "say", "world", "down", "great", "through", "last", "while", "best", "such", "love", "man", "home", "long", "look", "something", "use", "same", "used", "both", "every", "come", "part", "state", "three", "around", "between", "always", "better", "find", "help", "high", "little", "old", "since", "another", "does", "own", "things", "under", "during", "game", "thing", "give", "house", "place", "school", "again", "next", "each", "without", "against", "end", "found", "must", "show", "big", "feel", "sure", "team", "ever", "family", "keep", "might", "please", "put", "money", "free", "second", "someone", "away", "left", "number", "city", "days", "lot", "name", "night", "play", "until", "company", "doing", "few", "let", "real", "called", "different", "having", "set", "thought", "done", "however", "getting", "group", "looking", "public", "top", "business", "care", "start", "system", "times", "week", "already", "anything", "case", "nothing", "person", "today", "change", "enough", "full", "live", "making", "point", "read", "told", "yet", "bad", "four", "hard", "mean", "once", "support", "tell", "including", "music", "power", "seen", "states", "stop", "water", "based", "believe", "call", "head", "men", "national", "small", "took", "white", "came", "far", "job", "side", "though", "try", "went", "yes", "actually", "later", "less", "line", "order", "party", "run", "says", "service", "country", "open", "season", "thank", "children", "everyone", "general", "trying", "united", "using", "area", "black", "following", "law", "makes", "together", "whole", "car", "face", "five", "kind", "maybe", "per", "president", "story", "working", "course", "games", "health", "hope", "important", "least", "means", "news", "within", "able", "book", "early", "friends", "local", "oh", "post", "thanks", "video", "young", "ago", "others", "social", "talk", "court", "fact", "given", "guys", "half", "hand", "level", "mind", "often", "single", "become", "body", "coming", "control", "death", "food", "guy", "hours", "office", "pay", "problem", "south", "true", "almost", "history", "known", "large", "lost", "research", "room", "several", "started", "taking", "win", "wrong", "along", "anyone", "else", "girl", "matter", "pretty", "remember", "air", "bit", "friend", "hit", "needs", "nice", "playing", "probably", "saying", "york", "class", "close", "comes", "idea", "looks", "past", "possible", "wanted", "cause", "due", "happy", "human", "members", "months", "move", "question", "series", "wait", "woman", "ask", "community", "data", "late", "leave", "north", "saw", "special", "watch", "either", "future", "light", "low", "million", "morning", "police", "short", "stay", "taken", "age", "buy", "deal", "rather", "reason", "red", "report", "soon", "third", "turn", "whether", "among", "check", "form", "further", "heart", "minutes", "myself", "services", "yourself", "act", "although", "asked", "child", "fire", "fun", "living", "major", "media", "phone", "players", "art", "behind", "building", "easy", "market", "near", "non", "plan", "political", "quite", "six", "talking", "west", "works", "according", "available", "education", "final", "former", "front", "list", "ready", "sometimes", "son", "street", "bring", "college", "current", "example", "heard", "meet", "program", "type", "baby", "chance", "father", "march", "process", "song", "study", "word", "across", "action", "clear", "gave", "gets", "himself", "month", "outside", "self", "students", "words", "board", "cost", "cut", "field", "instead", "main", "moment", "mother", "road", "seems", "thinking", "town", "wants", "energy", "fight", "fine", "force", "hear", "issue", "played", "points", "price", "rest", "results", "running", "shows", "space", "summer", "term", "wife", "beautiful", "date", "goes", "land", "miss", "project", "site", "strong", "account", "eyes", "include", "june", "parents", "period", "position", "record", "similar", "total", "above", "club", "common", "died", "film", "happened", "knew", "lead", "likely", "military", "perfect", "personal", "security", "share", "won", "center", "county", "couple", "happen", "hold", "industry", "inside", "issues", "player", "private", "problems", "return", "rights", "sense", "star", "test", "view", "weeks", "break", "companies", "event", "higher", "hour", "member", "middle", "needed", "present", "result", "sorry", "takes", "training", "wish", "answer", "boy", "design", "finally", "girls", "gold", "gone", "guess", "interest", "king", "learn", "policy", "society", "added", "alone", "average", "bank", "brought", "certain", "church", "east", "hands", "hot", "longer", "medical", "movie", "original", "park", "press", "received", "role", "sent", "tried", "worked", "worth", "areas", "books", "cool", "director", "exactly", "giving", "ground", "meeting", "provide", "questions", "sound", "source", "usually", "value", "evidence", "follow", "lives", "official", "rate", "reading", "round", "save", "stand", "stuff", "tax", "whatever", "amount", "blue", "countries", "drive", "eat", "fall", "fast", "federal", "feeling", "felt", "green", "league", "match", "model", "picture", "size", "step", "trust", "central", "changes", "forward", "groups", "key", "page", "range", "review", "science", "trade", "upon", "various", "attention", "brother", "cannot", "character", "chief", "cup", "football", "led", "looked", "lower", "natural", "property", "quality", "send", "style", "vote", "amazing", "august", "china", "complete", "dog", "economic", "involved", "itself", "language", "lord", "oil", "related", "serious", "stage", "terms", "title", "add", "article", "attack", "born", "decided", "decision", "enjoy", "entire", "met", "perhaps", "poor", "release", "situation", "turned", "written", "choice", "code", "continue", "council", "cover", "currently", "door", "election", "events", "financial", "foreign", "hair", "increase", "legal", "lose", "pick", "race", "seem", "seven", "sign", "simple", "simply", "staff", "super", "union", "walk", "bed", "built", "career", "changed", "crazy", "daily", "daughter", "difficult", "figure", "hospital", "knows", "loss", "modern", "ones", "paper", "parts", "popular", "published", "safe", "starting", "systems", "version", "voice", "whose", "writing", "army", "earth", "forget", "goal", "huge", "listen", "practice", "rules", "sea", "sir", "success", "towards", "waiting", "ways", "access", "base", "below", "created", "deep", "followed", "mark", "missing", "offer", "pass", "released", "risk", "schools", "sleep", "table", "ten", "truth", "ball", "build", "card", "cases", "dark", "district", "mine", "minister", "note", "percent", "piece", "products", "recent", "seeing", "straight", "visit", "wall", "wrote", "allowed", "boys", "culture", "fans", "gives", "growth", "included", "married", "officer", "pain", "places", "respect", "response", "river", "rock", "shall", "speak", "specific", "standard", "tonight", "write", "album", "century", "charge", "cold", "create", "effect", "eight", "except", "eye", "funny", "limited", "moving", "network", "peace", "provided", "recently", "required", "sales", "spent", "store", "student", "tomorrow", "track", "via", "watching", "weight", "addition", "ahead", "allow", "anti", "beat", "brown", "capital", "committee", "double", "expect", "gas", "island", "moved", "normal", "plans", "potential", "pressure", "radio", "station", "text", "treatment", "western", "beginning", "campaign", "certainly", "content", "credit", "cross", "described", "despite", "female", "focus", "hi", "husband", "ice", "join", "kept", "leading", "loved", "message", "nearly", "previous", "quickly", "region", "reported", "section", "sort", "speed", "travel", "consider", "contact", "drop", "fair", "kid", "link", "positive", "sale", "tour", "welcome", "beyond", "extra", "forces", "jobs", "leaving", "minute", "nature", "numbers", "quick", "sell", "studies", "unless", "winning", "agree", "canada", "clean", "computer", "episode", "favorite", "income", "justice", "levels", "manager", "movement", "photo", "posted", "safety", "scene", "sold", "sounds", "spend", "statement", "sun", "teams", "ability", "announced", "asking", "calling", "coach", "continued", "costs", "designed", "expected", "happens", "heavy", "includes", "knowledge", "search", "subject", "train", "wide", "wow", "author", "claim", "dad", "developed", "fear", "fit", "generally", "german", "global", "goals", "hotel", "judge", "lady", "leader", "letter", "lines", "material", "named", "nobody", "plus", "product", "regular", "secretary", "sister", "stories", "unit", "workers", "annual", "bar", "battle", "brain", "contract", "degree", "families", "features", "finished", "floor", "growing", "hurt", "image", "insurance", "majority", "meant", "opening", "opinion", "physical", "pro", "reach", "rule", "seriously", "sports", "active", "approach", "biggest", "cancer", "civil", "dance", "defense", "direction", "master", "none", "reasons", "russia", "ship", "stock", "trump", "weekend", "wonder", "worst", "awesome", "band", "beach", "cash", "clearly", "compared", "effort", "ended", "fan", "fighting", "imagine", "impact", "lack", "latest", "learning", "multiple", "older", "operation", "passed", "pictures", "protect", "secret", "senior", "spring", "telling", "wear", "address", "anyway", "bought", "calls", "choose", "color", "details", "direct", "dream", "easily", "finish", "grand", "increased", "literally", "luck", "marriage", "names", "necessary", "patients", "resources", "rich", "skin", "speaking", "supposed", "sweet", "thus", "touch", "yesterday", "caught", "closed", "congress", "damage", "directly", "disease", "doctor", "doubt", "drink", "driving", "feels", "fish", "glad", "greater", "grow", "machine", "notice", "overall", "professor", "programs", "records", "reports", "shown", "sit", "trip", "basic", "captain", "carry", "cars", "crime", "effective", "effects", "explain", "fully", "highly", "holding", "japan", "laws", "male", "parties", "plant", "reality", "smith", "spot", "winter", "worse", "advice", "agreement", "award", "block", "broken", "caused", "challenge", "comment", "equipment", "helped", "holy", "lived", "lots", "nation", "otherwise", "peter", "prices", "primary", "purpose", "rates", "shop", "showing", "sick", "teacher", "theory", "uses", "agency", "avoid", "camera", "catch", "cell", "coast", "comments", "economy", "executive", "foot", "hall", "mass", "meaning", "mission", "nine", "officers", "politics", "pop", "produced", "ran", "status", "therefore", "trial", "truly", "weather", "activity", "claims", "coffee", "complex", "condition", "division", "evening", "flight", "freedom", "heat", "highest", "interview", "library", "located", "location", "offered", "putting", "queen", "seconds", "showed", "sitting", "standing", "stars", "walking", "accept", "actual", "appear", "attempt", "broke", "channel", "distance", "eating", "exchange", "fell", "finding", "glass", "learned", "losing", "mobile", "northern", "opened", "placed", "powerful", "prior", "reached", "receive", "religious", "ride", "royal", "screen", "serve", "signed", "slow", "species", "speech", "traffic", "tree", "types", "wearing", "whom", "wonderful", "agreed", "airport", "animals", "appears", "begin", "benefits", "bottom", "cities", "demand", "engine", "everybody", "famous", "ideas", "keeping", "lie", "notes", "partner", "plays", "raised", "runs", "sad", "solution", "songs", "sources", "southern", "square", "stopped", "structure", "twice", "wind", "worry", "appeared", "becomes", "brand", "bus", "cent", "count", "covered", "critical", "digital", "forced", "fourth", "fresh", "lake", "mental", "mentioned", "missed", "mostly", "mouth", "owner", "photos", "realize", "remain", "scale", "score", "separate", "smart", "starts", "surface", "throw", "totally", "twitter", "views", "wedding", "acting", "actions", "arms", "benefit", "budget", "click", "estate", "failed", "faith", "fashion", "feature", "fund", "hearing", "hill", "metal", "mid", "profile", "pull", "push", "returned", "rose", "seat", "seemed", "sexual", "target", "village", "agent", "animal", "apply", "authority", "basis", "becoming", "draw", "dude", "employees", "enter", "ex", "follows", "gain", "leaders", "memory", "prime", "projects", "ring", "rise", "selling", "served", "silver", "soul", "spread", "supply", "waste", "weird", "adult", "artist", "chairman", "edition", "grade", "happening", "healthy", "institute", "method", "mike", "nations", "obviously", "option", "prison", "provides", "remains", "senate", "smaller", "somebody", "stone", "strength", "users", "wild", "window", "winner", "arrived", "bag", "bet", "camp", "cast", "continues", "correct", "dangerous", "extremely", "firm", "greatest", "handle", "improve", "indeed", "leaves", "movies", "negative", "prevent", "removed", "spirit", "till", "trouble", "videos", "advantage", "apart", "aware", "cat", "customers", "decide", "dinner", "dollars", "eastern", "fifth", "function", "gift", "helping", "herself", "influence", "items", "marketing", "materials", "nor", "produce", "progress", "require", "shooting", "shut", "standards", "tells", "thinks", "wood", "birth", "bridge", "carried", "classes", "completed", "concept", "copy", "dear", "dogs", "efforts", "garden", "host", "housing", "journal", "labor", "length", "lucky", "neither", "onto", "patient", "possibly", "prove", "rare", "setting", "software", "thousands", "tough", "units", "ad", "alive", "apple", "balance", "birthday", "boss", "cards", "changing", "dress", "easier", "fellow", "horse", "knowing", "liked", "magic", "managed", "map", "net", "owned", "request", "stick", "turns", "vehicle", "volume", "wake", "aid", "beauty", "believed", "billion", "busy", "buying", "cells", "concerned", "corner", "criminal", "cultural", "develop", "driver", "ends", "existing", "farm", "file", "fix", "fly", "frank", "guide", "images", "operating", "paying", "presented", "raise", "roll", "slightly", "suggest", "surprise", "technical", "thoughts", "treat", "unique", "variety", "violence", "weapons", "yours", "youth", "bigger", "breaking", "dry", "edge", "evil", "excited", "forever", "funds", "helps", "henry", "injury", "iron", "lovely", "mad", "magazine", "martin", "models", "offers", "ordered", "prepared", "reference", "religion", "sites", "somewhere", "stated", "strategy", "teachers", "web", "wine", "accounts", "angeles", "arm", "audience", "bay", "closer", "core", "excellent", "exist", "figures", "forms", "guard", "honest", "issued", "joined", "lee", "lies", "likes", "medicine", "mention", "mountain", "nuclear", "orders", "port", "presence", "reaction", "reduce", "shoot", "sides", "solid", "sport", "steps", "stress", "taste", "tea", "victory", "afternoon", "assistant", "citizens", "classic", "clothes", "decisions", "electric", "emergency", "entered", "entirely", "facts", "failure", "festival", "flat", "fuel", "harry", "hello", "houses", "ill", "initial", "kick", "links", "mail", "massive", "matters", "pair", "picked", "pieces", "plane", "plenty", "prince", "proper", "providing", "quarter", "regional", "session", "shape", "sky", "teaching", "toward", "transfer", "upper", "useful", "valley", "watched", "willing", "windows", "zone", "accident", "advanced", "anywhere", "articles", "awards", "bear", "boat", "bringing", "capacity", "cheap", "climate", "drinking", "duty", "fantastic", "feelings", "flying", "governor", "hundred", "joint", "mix", "museum", "options", "path", "plants", "policies", "promise", "proposed", "purchase", "rain", "remove", "signs", "spending", "steel", "terrible", "tired", "treated", "turning", "vice", "warm", "afraid", "arts", "beer", "border", "command", "crew", "crowd", "dating", "elements", "enemy", "ensure", "filled", "fixed", "forest", "intended", "labour", "limit", "moon", "ocean", "powers", "profit", "proof", "soldiers", "suit", "wins", "attorney", "banks", "behavior", "bodies", "brothers", "buildings", "chair", "creating", "debt", "domestic", "expensive", "grew", "homes", "honestly", "honor", "jump", "launch", "listed", "minimum", "native", "noted", "sets", "suddenly", "supreme", "survey", "tech", "trees", "update", "user", "writer", "yellow", "younger", "ancient", "attacks", "charges", "combined", "connected", "contains", "ending", "exercise", "express", "flow", "formed", "hero", "illegal", "joke", "loan", "methods", "officials", "performed", "planet", "selected", "shared", "shopping", "soft", "stuck", "sugar", "suggested", "supported", "surprised", "taught", "transport", "accepted", "adding", "affairs", "allows", "appeal", "applied", "artists", "boston", "ca", "confirmed", "device", "drama", "entry", "era", "factor", "feed", "golden", "grant", "grown", "heads", "hoping", "keeps", "lawyer", "legs", "lying", "measures", "mistake", "platform", "pool", "pulled", "regarding", "relations", "requires", "route", "saved", "schedule", "shoes", "smoke", "squad", "teach", "testing", "tests", "values", "walked", "abuse", "angry", "candidate", "concern", "discuss", "elections", "emotional", "falling", "fox", "hole", "holiday", "interests", "internal", "jersey", "laugh", "leg", "letters", "liberal", "listening", "loves", "lunch", "milk", "pack", "payment", "perform", "recorded", "sector", "sharing", "snow", "storm", "streets", "strike", "studio", "sub", "weak", "actor", "advance", "apartment", "chain", "chapter", "cook", "cute", "equal", "fake", "finance", "focused", "hits", "identity", "journey", "kitchen", "maintain", "measure", "numerous", "owners", "posts", "quiet", "revealed", "split", "task", "taxes", "twenty", "urban", "affected", "aircraft", "approved", "argument", "arrested", "claimed", "conflict", "corporate", "debate", "documents", "escape", "extended", "factors", "faster", "fault", "fill", "films", "flowers", "friendly", "ladies", "lay", "lights", "millions", "mixed", "phase", "properly", "pure", "reduced", "residents", "revenue", "sam", "sat", "secure", "smile", "strange", "talent", "thousand", "tony", "troops", "truck", "votes", "ah", "basically", "besides", "bird", "blame", "bowl", "causes", "chicken", "collected", "context", "coverage", "determine", "display", "dying", "elected", "examples", "falls", "false", "fired", "forgot", "funding", "inspired", "launched", "ma", "meat", "ministry", "mode", "neck", "noticed", "novel", "obvious", "passing", "positions", "remaining", "scored", "shirt", "shots", "slowly", "stadium", "stores", "surgery", "trading", "vision", "whenever", "worried", "zero", "allowing", "begins", "champion", "charged", "cream", "crisis", "delivered", "editor", "estimated", "eu", "giant", "jail", "kingdom", "mayor", "minor", "moments", "opposite", "orange", "ourselves", "pages", "remained", "selection", "serving", "signal", "stream", "struggle", "talked", "theme", "tiny", "typically", "un", "usual", "vehicles", "voted", "voting", "walls", "wave", "alcohol", "assembly", "breakfast", "bright", "brings", "capable", "carrying", "chosen", "customer", "cutting", "desire", "destroyed", "draft", "essential", "fail", "familiar", "finds", "granted", "guilty", "humans", "hundreds", "improved", "largely", "laughing", "markets", "medium", "papers", "perfectly", "recommend", "relevant", "seek", "sending", "solo", "spoke", "stands", "talks", "ticket", "unable", "upset", "wing", "answers", "birds", "creative", "cycle", "dealing", "directed", "don", "extreme", "facility", "fields", "goods", "holds", "mainly", "maximum", "newspaper", "offering", "painting", "republic", "reserve", "returns", "row", "salt", "scared", "shares", "switch", "territory", "threat", "tickets", "wales", "adults", "affect", "appointed", "armed", "aside", "bell", "blow", "bond", "careful", "concerns", "cry", "danger", "deals", "delivery", "deserve", "devices", "dollar", "dreams", "empty", "enjoyed", "explained", "faces", "folks", "gender", "instance", "kim", "matches", "mile", "motion", "moves", "nick", "pacific", "prize", "realized", "receiving", "register", "rural", "saving", "sees", "singing", "tools", "typical", "universe", "warning", "wars", "admit", "attitude", "branch", "brazil", "conducted", "decades", "dedicated", "drawing", "favor", "flag", "frame", "guest", "ha", "heaven", "kiss", "load", "plot", "random", "recovery", "rent", "replace", "represent", "reviews", "scenes", "seeking", "senator", "sentence", "teeth", "tips", "trained", "academic", "academy", "accurate", "achieve", "afford", "assume", "bottle", "bunch", "category", "chat", "cheese", "chemical", "detail", "diet", "em", "fruit", "harder", "index", "item", "lane", "mess", "navy", "normally", "parent", "permanent", "pleasure", "prefer", "scheme", "shift", "stood", "storage", "tank", "tend", "tight", "unlike", "weekly", "yard", "anybody", "assets", "button", "combat", "consumer", "counter", "creation", "crown", "crying", "defined", "depending", "describe", "drivers", "exclusive", "excuse", "expert", "golf", "grace", "hopefully", "identify", "laid", "latter", "mining", "object", "partners", "pattern", "personnel", "pregnant", "premier", "promote", "rooms", "severe", "sleeping", "suppose", "tool", "turkey", "victim", "victims", "agents", "arrest", "attend", "ban", "brilliant", "carbon", "catholic", "chose", "circle", "concert", "crash", "declared", "deliver", "depth", "deputy", "dirty", "doctors", "earned", "error", "existence", "factory", "headed", "interior", "joy", "manner", "mate", "nearby", "noise", "origin", "women", "kids", "held", "paid", "box", "feet", "miles", "became", "began", "online", "email", "download", "larger", "largest", "planning", "planned", "proud", "dropped", "hang", "leads", "acts", "committed", "referred", "earlier"];window.HOMEROW_DEFAULT_LAYOUT={"version":1,"keyboard":"go60","firmware_api_version":"1","locale":"en-US","uuid":"bcbba205-ff1e-4254-9bda-d85cfbac68ff","parent_uuid":"d610b6c7-63ae-4652-a871-66d521f19abd","unlisted":false,"date":1752749568,"creator":"MoErgo","title":"Miryoku (macOS)","notes":"Adaption of the Miryoku layout (https://github.com/manna-harbour/miryoku/tree/master/docs/reference) to Go60. This variant is optimized for macOS.\n\nThis layout uses the Hold-Taps definitions introduced by Tailor Key Zero.\n\nRight Trackpad mouse movement is accelerated 3 times the normal speed in the Navigation Layer (i.e. with LH T1 held).\n","tags":["miryoku","colemak","homerow-mods","mac"],"custom_defined_behaviors":"","custom_devicetree":"","config_parameters":[],"layout_parameters":{},"layer_names":["Base","Navigation","Mouse","Symbols","Numbers","Function","Magic","Factory"],"layers":[[{"value":"&kp","params":[{"value":"EQUAL"}]},{"value":"&kp","params":[{"value":"N1"}]},{"value":"&kp","params":[{"value":"N2"}]},{"value":"&kp","params":[{"value":"N3"}]},{"value":"&kp","params":[{"value":"N4"}]},{"value":"&kp","params":[{"value":"N5"}]},{"value":"&kp","params":[{"value":"N6"}]},{"value":"&kp","params":[{"value":"N7"}]},{"value":"&kp","params":[{"value":"N8"}]},{"value":"&kp","params":[{"value":"N9"}]},{"value":"&kp","params":[{"value":"N0"}]},{"value":"&kp","params":[{"value":"MINUS"}]},{"value":"&kp","params":[{"value":"GRAVE"}]},{"value":"&kp","params":[{"value":"Q"}]},{"value":"&HRM_left_ring_v1_TKZ","params":[{"value":"RALT"},{"value":"W"}]},{"value":"&kp","params":[{"value":"F"}]},{"value":"&kp","params":[{"value":"P"}]},{"value":"&kp","params":[{"value":"G"}]},{"value":"&kp","params":[{"value":"J"}]},{"value":"&kp","params":[{"value":"L"}]},{"value":"&kp","params":[{"value":"U"}]},{"value":"&HRM_right_ring_v1_TKZ","params":[{"value":"RALT"},{"value":"Y"}]},{"value":"&kp","params":[{"value":"SEMI"}]},{"value":"&kp","params":[{"value":"LC","params":[{"value":"LA","params":[{"value":"LSHFT"}]}]}]},{"value":"&kp","params":[{"value":"ESC"}]},{"value":"&HRM_left_pinky_v1_TKZ","params":[{"value":"LCTRL"},{"value":"A"}]},{"value":"&HRM_left_ring_v1_TKZ","params":[{"value":"LALT"},{"value":"R"}]},{"value":"&HRM_left_middy_v1_TKZ","params":[{"value":"LGUI"},{"value":"S"}]},{"value":"&HRM_left_index_v1_TKZ","params":[{"value":"LSHFT"},{"value":"T"}]},{"value":"&kp","params":[{"value":"D"}]},{"value":"&kp","params":[{"value":"H"}]},{"value":"&HRM_right_index_v1_TKZ","params":[{"value":"RSHFT"},{"value":"N"}]},{"value":"&HRM_right_middy_v1_TKZ","params":[{"value":"RGUI"},{"value":"E"}]},{"value":"&HRM_right_ring_v1_TKZ","params":[{"value":"LALT"},{"value":"I"}]},{"value":"&HRM_right_pinky_v1_TKZ","params":[{"value":"RCTRL"},{"value":"O"}]},{"value":"&kp","params":[{"value":"SQT"}]},{"value":"&magic"},{"value":"&kp","params":[{"value":"Z"}]},{"value":"&kp","params":[{"value":"X"}]},{"value":"&kp","params":[{"value":"C"}]},{"value":"&kp","params":[{"value":"V"}]},{"value":"&kp","params":[{"value":"B"}]},{"value":"&kp","params":[{"value":"K"}]},{"value":"&kp","params":[{"value":"M"}]},{"value":"&kp","params":[{"value":"COMMA"}]},{"value":"&kp","params":[{"value":"DOT"}]},{"value":"&kp","params":[{"value":"LBKT"}]},{"value":"&kp","params":[{"value":"RBKT"}]},{"value":"&kp","params":[{"value":"BSLH"}]},{"value":"&kp","params":[{"value":"LEFT"}]},{"value":"&kp","params":[{"value":"RIGHT"}]},{"value":"&kp","params":[{"value":"DOWN"}]},{"value":"&kp","params":[{"value":"UP"}]},{"value":"&kp","params":[{"value":"FSLH"}]},{"value":"&thumb_v2_TKZ","params":[{"value":1},{"value":"SPACE"}]},{"value":"&thumb_v2_TKZ","params":[{"value":2},{"value":"DEL"}]},{"value":"&thumb_v2_TKZ","params":[{"value":3},{"value":"RET"}]},{"value":"&thumb_v2_TKZ","params":[{"value":"4"},{"value":"TAB"}]},{"value":"&thumb_v2_TKZ","params":[{"value":3},{"value":"RET"}]},{"value":"&thumb_v2_TKZ","params":[{"value":"5"},{"value":"BSPC"}]}],[{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"LC","params":[{"value":"Z"}]}]},{"value":"&kp","params":[{"value":"LC","params":[{"value":"X"}]}]},{"value":"&kp","params":[{"value":"LC","params":[{"value":"C"}]}]},{"value":"&kp","params":[{"value":"LC","params":[{"value":"V"}]}]},{"value":"&kp","params":[{"value":"LC","params":[{"value":"LS","params":[{"value":"Z"}]}]}]},{"value":"&kp","params":[{"value":"K_REDO"}]},{"value":"&kp","params":[{"value":"K_PASTE"}]},{"value":"&kp","params":[{"value":"K_COPY"}]},{"value":"&kp","params":[{"value":"K_CUT"}]},{"value":"&kp","params":[{"value":"K_UNDO"}]},{"value":"&none"},{"value":"&kp","params":[{"value":"K_APP"}]},{"value":"&kp","params":[{"value":"LCTRL"}]},{"value":"&kp","params":[{"value":"LALT"}]},{"value":"&kp","params":[{"value":"LGUI"}]},{"value":"&kp","params":[{"value":"LSHFT"}]},{"value":"&none"},{"value":"&kp","params":[{"value":"LEFT"}]},{"value":"&kp","params":[{"value":"DOWN"}]},{"value":"&kp","params":[{"value":"UP"}]},{"value":"&kp","params":[{"value":"RIGHT"}]},{"value":"&kp","params":[{"value":"CAPS"}]},{"value":"&kp","params":[{"value":"K_APP"}]},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"LA","params":[{"value":"F4"}]}]},{"value":"&kp","params":[{"value":"LC","params":[{"value":"F4"}]}]},{"value":"&kp","params":[{"value":"ESC"}]},{"value":"&none"},{"value":"&kp","params":[{"value":"HOME"}]},{"value":"&kp","params":[{"value":"PG_DN"}]},{"value":"&kp","params":[{"value":"PG_UP"}]},{"value":"&kp","params":[{"value":"END"}]},{"value":"&kp","params":[{"value":"INS"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"TAB"}]},{"value":"&kp","params":[{"value":"DEL"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"SPACE"}]},{"value":"&kp","params":[{"value":"RET"}]},{"value":"&kp","params":[{"value":"BSPC"}]}],[{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"RALT"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"K_REDO"}]},{"value":"&kp","params":[{"value":"K_PASTE"}]},{"value":"&kp","params":[{"value":"K_COPY"}]},{"value":"&kp","params":[{"value":"K_CUT"}]},{"value":"&kp","params":[{"value":"K_UNDO"}]},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"LCTRL"}]},{"value":"&kp","params":[{"value":"LALT"}]},{"value":"&kp","params":[{"value":"LGUI"}]},{"value":"&kp","params":[{"value":"LSHFT"}]},{"value":"&none"},{"value":"&mmv","params":[{"value":"MOVE_LEFT"}]},{"value":"&mmv","params":[{"value":"MOVE_DOWN"}]},{"value":"&mmv","params":[{"value":"MOVE_UP"}]},{"value":"&mmv","params":[{"value":"MOVE_RIGHT"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&msc","params":[{"value":"SCRL_RIGHT"}]},{"value":"&msc","params":[{"value":"SCRL_UP"}]},{"value":"&msc","params":[{"value":"SCRL_DOWN"}]},{"value":"&msc","params":[{"value":"SCRL_LEFT"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&mkp","params":[{"value":"MCLK"}]},{"value":"&mkp","params":[{"value":"RCLK"}]},{"value":"&mkp","params":[{"value":"LCLK"}]}],[{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"LS","params":[{"value":"LBKT"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"N7"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"N8"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"N9"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"RBKT"}]}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"RALT"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"LS","params":[{"value":"SEMI"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"N4"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"N5"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"N6"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"EQUAL"}]}]},{"value":"&none"},{"value":"&kp","params":[{"value":"RSHFT"}]},{"value":"&kp","params":[{"value":"RGUI"}]},{"value":"&kp","params":[{"value":"LALT"}]},{"value":"&kp","params":[{"value":"RCTRL"}]},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"LS","params":[{"value":"NON_US_HASH"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"N1"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"N2"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"N3"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"BSLH"}]}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"LS","params":[{"value":"N9"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"N0"}]}]},{"value":"&kp","params":[{"value":"LS","params":[{"value":"MINUS"}]}]},{"value":"&none"},{"value":"&none"},{"value":"&none"}],[{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"LBKT"}]},{"value":"&kp","params":[{"value":"N7"}]},{"value":"&kp","params":[{"value":"N8"}]},{"value":"&kp","params":[{"value":"N9"}]},{"value":"&kp","params":[{"value":"RBKT"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"RALT"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"SEMI"}]},{"value":"&kp","params":[{"value":"N4"}]},{"value":"&kp","params":[{"value":"N5"}]},{"value":"&kp","params":[{"value":"N6"}]},{"value":"&kp","params":[{"value":"EQUAL"}]},{"value":"&none"},{"value":"&kp","params":[{"value":"RSHFT"}]},{"value":"&kp","params":[{"value":"RGUI"}]},{"value":"&kp","params":[{"value":"LALT"}]},{"value":"&kp","params":[{"value":"RCTRL"}]},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"GRAVE"}]},{"value":"&kp","params":[{"value":"N1"}]},{"value":"&kp","params":[{"value":"N2"}]},{"value":"&kp","params":[{"value":"N3"}]},{"value":"&kp","params":[{"value":"BSLH"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"DOT"}]},{"value":"&kp","params":[{"value":"N0"}]},{"value":"&kp","params":[{"value":"MINUS"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"}],[{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"F12"}]},{"value":"&kp","params":[{"value":"F7"}]},{"value":"&kp","params":[{"value":"F8"}]},{"value":"&kp","params":[{"value":"F9"}]},{"value":"&kp","params":[{"value":"PSCRN"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"RALT"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"F11"}]},{"value":"&kp","params":[{"value":"F4"}]},{"value":"&kp","params":[{"value":"F5"}]},{"value":"&kp","params":[{"value":"F6"}]},{"value":"&kp","params":[{"value":"SLCK"}]},{"value":"&none"},{"value":"&kp","params":[{"value":"RSHFT"}]},{"value":"&kp","params":[{"value":"RGUI"}]},{"value":"&kp","params":[{"value":"LALT"}]},{"value":"&kp","params":[{"value":"RCTRL"}]},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"F10"}]},{"value":"&kp","params":[{"value":"F1"}]},{"value":"&kp","params":[{"value":"F2"}]},{"value":"&kp","params":[{"value":"F3"}]},{"value":"&kp","params":[{"value":"K_PP"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&kp","params":[{"value":"K_APP"}]},{"value":"&kp","params":[{"value":"BSPC"}]},{"value":"&kp","params":[{"value":"DEL"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"}],[{"value":"&bt","params":[{"value":"BT_CLR"}]},{"value":"&kp","params":[{"value":"C_BRI_DN"}]},{"value":"&kp","params":[{"value":"C_BRI_UP"}]},{"value":"&kp","params":[{"value":"C_PREV"}]},{"value":"&kp","params":[{"value":"C_NEXT"}]},{"value":"&kp","params":[{"value":"C_PP"}]},{"value":"&kp","params":[{"value":"C_MUTE"}]},{"value":"&kp","params":[{"value":"C_VOL_DN"}]},{"value":"&kp","params":[{"value":"C_VOL_UP"}]},{"value":"&none"},{"value":"&none"},{"value":"&bt","params":[{"value":"BT_CLR_ALL"}]},{"value":"&bootloader"},{"value":"&rgb_ug","params":[{"value":"RGB_SPI"}]},{"value":"&rgb_ug","params":[{"value":"RGB_SAI"}]},{"value":"&rgb_ug","params":[{"value":"RGB_HUI"}]},{"value":"&rgb_ug","params":[{"value":"RGB_BRI"}]},{"value":"&rgb_ug","params":[{"value":"RGB_TOG"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&bootloader"},{"value":"&reset"},{"value":"&rgb_ug","params":[{"value":"RGB_SPD"}]},{"value":"&rgb_ug","params":[{"value":"RGB_SAD"}]},{"value":"&rgb_ug","params":[{"value":"RGB_HUD"}]},{"value":"&rgb_ug","params":[{"value":"RGB_BRD"}]},{"value":"&rgb_ug","params":[{"value":"RGB_EFF"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&reset"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&to","params":[{"value":7}]},{"value":"&none"},{"value":"&bt_3"},{"value":"&bt_2"},{"value":"&none"},{"value":"&none"},{"value":"&none"},{"value":"&bt_0"},{"value":"&bt_1"},{"value":"&out","params":[{"value":"OUT_USB"}]},{"value":"&none"},{"value":"&none"},{"value":"&none"}],[{"value":"&kp","params":[{"value":"N0"}]},{"value":"&kp","params":[{"value":"N4"}]},{"value":"&kp","params":[{"value":"N8"}]},{"value":"&kp","params":[{"value":"N3"}]},{"value":"&kp","params":[{"value":"N8"}]},{"value":"&kp","params":[{"value":"N3"}]},{"value":"&kp","params":[{"value":"N3"}]},{"value":"&kp","params":[{"value":"N8"}]},{"value":"&kp","params":[{"value":"N3"}]},{"value":"&kp","params":[{"value":"N8"}]},{"value":"&kp","params":[{"value":"N4"}]},{"value":"&kp","params":[{"value":"N0"}]},{"value":"&kp","params":[{"value":"N1"}]},{"value":"&kp","params":[{"value":"N5"}]},{"value":"&kp","params":[{"value":"N9"}]},{"value":"&kp","params":[{"value":"N4"}]},{"value":"&kp","params":[{"value":"N9"}]},{"value":"&kp","params":[{"value":"N4"}]},{"value":"&kp","params":[{"value":"N4"}]},{"value":"&kp","params":[{"value":"N9"}]},{"value":"&kp","params":[{"value":"N4"}]},{"value":"&kp","params":[{"value":"N9"}]},{"value":"&kp","params":[{"value":"N5"}]},{"value":"&kp","params":[{"value":"N1"}]},{"value":"&kp","params":[{"value":"N2"}]},{"value":"&kp","params":[{"value":"N6"}]},{"value":"&kp","params":[{"value":"N0"}]},{"value":"&kp","params":[{"value":"N5"}]},{"value":"&kp","params":[{"value":"N0"}]},{"value":"&kp","params":[{"value":"N5"}]},{"value":"&kp","params":[{"value":"N5"}]},{"value":"&kp","params":[{"value":"N0"}]},{"value":"&kp","params":[{"value":"N5"}]},{"value":"&kp","params":[{"value":"N0"}]},{"value":"&kp","params":[{"value":"N6"}]},{"value":"&kp","params":[{"value":"N2"}]},{"value":"&kp","params":[{"value":"N3"}]},{"value":"&kp","params":[{"value":"N7"}]},{"value":"&kp","params":[{"value":"N1"}]},{"value":"&kp","params":[{"value":"N6"}]},{"value":"&kp","params":[{"value":"N1"}]},{"value":"&kp","params":[{"value":"N6"}]},{"value":"&kp","params":[{"value":"N6"}]},{"value":"&kp","params":[{"value":"N1"}]},{"value":"&kp","params":[{"value":"N6"}]},{"value":"&kp","params":[{"value":"N1"}]},{"value":"&kp","params":[{"value":"N7"}]},{"value":"&kp","params":[{"value":"N3"}]},{"value":"&kp","params":[{"value":"N2"}]},{"value":"&kp","params":[{"value":"N7"}]},{"value":"&kp","params":[{"value":"N2"}]},{"value":"&kp","params":[{"value":"N2"}]},{"value":"&kp","params":[{"value":"N7"}]},{"value":"&kp","params":[{"value":"N2"}]},{"value":"&kp","params":[{"value":"N7"}]},{"value":"&kp","params":[{"value":"N8"}]},{"value":"&kp","params":[{"value":"N9"}]},{"value":"&kp","params":[{"value":"N9"}]},{"value":"&kp","params":[{"value":"N8"}]},{"value":"&kp","params":[{"value":"N7"}]}]],"macros":[],"inputListeners":[{"code":"&cirque_lh_listener","inputProcessors":[{"code":"&zip_xy_scaler","params":[11,12]},{"code":"&zip_xy_to_scroll_mapper","params":[]},{"code":"&zip_click_to_right_click_mapper","params":[]}]},{"code":"&cirque_rh_listener","inputProcessors":[{"code":"&zip_xy_scaler","params":[3,1]}],"nodes":[{"code":"layer_1","layers":[1],"inputProcessors":[{"code":"&zip_xy_scaler","params":[9,1]}]}]}],"holdTaps":[{"name":"&HRM_left_index_v1_TKZ","description":"Homerow Mod for the left index finger - TailorKey.\nFor advanced tuning of HRM values, see: https://docs.google.com/spreadsheets/d/1ESgObQelyz4lnKlfwLYsmofLJulOMK5RdGBsopLe2o8","bindings":["&kp","&kp"],"tappingTermMs":190,"flavor":"tap-preferred","quickTapMs":300,"requirePriorIdleMs":100,"holdTriggerOnRelease":true,"holdTriggerKeyPositions":[54,55,56,6,7,8,9,10,18,19,20,21,22,30,31,32,33,34,42,43,44,45,46,57,58,59,11,23,35,47,52,53,51]},{"name":"&HRM_left_middy_v1_TKZ","description":"Homerow Mod for the left middle finger - TailorKey","bindings":["&kp","&kp"],"tappingTermMs":210,"flavor":"tap-preferred","quickTapMs":300,"requirePriorIdleMs":150,"holdTriggerOnRelease":true,"holdTriggerKeyPositions":[54,55,56,6,7,8,9,10,18,19,20,21,22,30,31,32,33,34,42,43,44,45,46,57,58,59,11,23,35,47,51,52,53]},{"name":"&HRM_left_pinky_v1_TKZ","description":"Homerow Mod for the left pinky - TailorKey","bindings":["&kp","&kp"],"tappingTermMs":260,"flavor":"tap-preferred","quickTapMs":300,"requirePriorIdleMs":150,"holdTriggerOnRelease":true,"holdTriggerKeyPositions":[54,55,56,6,7,8,9,10,11,19,20,21,22,23,32,33,34,35,44,45,46,47,18,30,31,42,43,57,58,59,51,52,53]},{"name":"&HRM_left_ring_v1_TKZ","description":"Homerow Mod for the left ring finger 1 - TailorKey","bindings":["&kp","&kp"],"tappingTermMs":240,"flavor":"tap-preferred","quickTapMs":300,"requirePriorIdleMs":150,"holdTriggerOnRelease":true,"holdTriggerKeyPositions":[54,55,56,6,7,8,9,10,18,19,20,21,22,30,31,32,33,34,42,43,44,45,46,57,58,59,11,23,35,47,51,52,53]},{"name":"&HRM_right_index_v1_TKZ","description":"Homerow Mod for the right index finger - TailorKey","bindings":["&kp","&kp"],"tappingTermMs":190,"flavor":"tap-preferred","quickTapMs":300,"requirePriorIdleMs":100,"holdTriggerOnRelease":true,"holdTriggerKeyPositions":[53,52,51,0,1,2,3,4,12,13,14,15,16,17,24,25,26,27,28,29,36,37,38,39,40,41,48,49,50,5,54,55,56]},{"name":"&HRM_right_middy_v1_TKZ","description":"Homerow Mod for the right middle finger - TailorKey","bindings":["&kp","&kp"],"tappingTermMs":210,"flavor":"tap-preferred","quickTapMs":300,"requirePriorIdleMs":150,"holdTriggerOnRelease":true,"holdTriggerKeyPositions":[53,52,51,0,1,2,3,4,12,13,14,15,16,17,24,25,26,27,28,29,36,37,38,39,40,41,48,49,50,5,54,55,56]},{"name":"&HRM_right_pinky_v1_TKZ","description":"Homerow Mod for the right pinky - TailorKey","bindings":["&kp","&kp"],"tappingTermMs":260,"flavor":"tap-preferred","quickTapMs":300,"requirePriorIdleMs":150,"holdTriggerOnRelease":true,"holdTriggerKeyPositions":[53,52,51,0,1,2,3,4,12,13,14,15,16,17,24,25,26,27,28,29,36,37,38,39,40,41,48,49,50,5,54,55,56]},{"name":"&HRM_right_ring_v1_TKZ","description":"Homerow Mod for the right ring 1 - TailorKey\n","bindings":["&kp","&kp"],"tappingTermMs":240,"flavor":"tap-preferred","quickTapMs":300,"requirePriorIdleMs":150,"holdTriggerOnRelease":true,"holdTriggerKeyPositions":[53,52,51,0,1,2,3,4,12,13,14,15,16,17,24,25,26,27,28,29,36,37,38,39,40,41,48,49,50,5,54,55,56]},{"name":"&space_v3_TKZ","description":"space_layer_access - TailorKey","bindings":["&mo","&kp"],"tappingTermMs":200,"flavor":"balanced","quickTapMs":150},{"name":"&thumb_v2_TKZ","description":"thumb_layer_access - TailorKey","bindings":["&mo","&kp"],"tappingTermMs":200,"flavor":"balanced","quickTapMs":300}],"combos":[]};</script>
+<script>/* ============================================================
+   Homerow engine: layout parsing, routing, curriculum, drills.
+   Pure functions, no DOM. Testable in node.
+   ============================================================ */
+
+/* ---------- Keycode tables (US ANSI host layout) ---------- */
+const MODS = {
+  LSHFT:'shift',RSHFT:'shift',LSHIFT:'shift',RSHIFT:'shift',LS:'shift',RS:'shift',
+  LCTRL:'ctrl',RCTRL:'ctrl',LCTL:'ctrl',RCTL:'ctrl',LC:'ctrl',RC:'ctrl',LCONTROL:'ctrl',RCONTROL:'ctrl',
+  LALT:'alt',RALT:'alt',LA:'alt',RA:'alt',LOPT:'alt',ROPT:'alt',
+  LGUI:'meta',RGUI:'meta',LG:'meta',RG:'meta',LCMD:'meta',RCMD:'meta',LWIN:'meta',RWIN:'meta',LMETA:'meta',RMETA:'meta'
+};
+const WRAP = {LS:'shift',RS:'shift',LC:'ctrl',RC:'ctrl',LA:'alt',RA:'alt',LG:'meta',RG:'meta'};
+const MOD_SYM = {ctrl:'⌃',alt:'⌥',shift:'⇧',meta:'⌘'};
+const MOD_NAME = {ctrl:'Control',alt:'Option',shift:'Shift',meta:'Command'};
+const MOD_ORDER = ['ctrl','alt','shift','meta'];
+
+const CH = {};
+function addCh(names, a, b){ names.split(' ').forEach(n => { CH[n] = [a, b]; }); }
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(L => addCh(L, L.toLowerCase(), L));
+(function(){
+  const sh = ')!@#$%^&*(';
+  for (let i = 0; i < 10; i++) {
+    addCh(`N${i} NUMBER_${i}`, String(i), sh[i]);
+    addCh(`KP_N${i} KP_NUMBER_${i}`, String(i), String(i));
+  }
+})();
+addCh('SPACE SPC', ' ', ' ');
+addCh('MINUS', '-', '_'); addCh('EQUAL', '=', '+');
+addCh('LBKT LEFT_BRACKET', '[', '{'); addCh('RBKT RIGHT_BRACKET', ']', '}');
+addCh('BSLH BACKSLASH NON_US_BSLH NON_US_BACKSLASH NON_US_HASH', '\\', '|');
+addCh('SEMI SEMICOLON', ';', ':'); addCh('SQT APOS APOSTROPHE SINGLE_QUOTE', "'", '"');
+addCh('GRAVE', '`', '~'); addCh('COMMA', ',', '<'); addCh('DOT PERIOD', '.', '>');
+addCh('FSLH SLASH', '/', '?');
+addCh('KP_DOT', '.', '.'); addCh('KP_PLUS', '+', '+'); addCh('KP_MINUS', '-', '-');
+addCh('KP_MULTIPLY KP_ASTERISK', '*', '*'); addCh('KP_DIVIDE KP_SLASH', '/', '/');
+addCh('KP_EQUAL', '=', '='); addCh('KP_COMMA', ',', ',');
+const SHIFTED = {EXCL:'!',EXCLAMATION:'!',AT:'@',AT_SIGN:'@',HASH:'#',POUND:'#',DLLR:'$',DOLLAR:'$',
+  PRCNT:'%',PERCENT:'%',CARET:'^',AMPS:'&',AMPERSAND:'&',STAR:'*',ASTRK:'*',ASTERISK:'*',
+  LPAR:'(',LEFT_PARENTHESIS:'(',RPAR:')',RIGHT_PARENTHESIS:')',UNDER:'_',UNDERSCORE:'_',PLUS:'+',
+  LBRC:'{',LEFT_BRACE:'{',RBRC:'}',RIGHT_BRACE:'}',PIPE:'|',TILDE:'~',COLON:':',DQT:'"',DOUBLE_QUOTES:'"',
+  LT:'<',LESS_THAN:'<',GT:'>',GREATER_THAN:'>',QMARK:'?',QUESTION:'?'};
+/* Codes whose output depends on the host OS layout: route them last. */
+const AMBIGUOUS = new Set(['NON_US_HASH','NON_US_BSLH','NON_US_BACKSLASH']);
+
+const NAMED = {
+  LEFT:['ArrowLeft','←'],LEFT_ARROW:['ArrowLeft','←'],RIGHT:['ArrowRight','→'],RIGHT_ARROW:['ArrowRight','→'],
+  UP:['ArrowUp','↑'],UP_ARROW:['ArrowUp','↑'],DOWN:['ArrowDown','↓'],DOWN_ARROW:['ArrowDown','↓'],
+  HOME:['Home','Home'],END:['End','End'],PG_UP:['PageUp','PgUp'],PAGE_UP:['PageUp','PgUp'],
+  PG_DN:['PageDown','PgDn'],PAGE_DOWN:['PageDown','PgDn'],
+  RET:['Enter','Enter'],ENTER:['Enter','Enter'],RETURN:['Enter','Enter'],TAB:['Tab','Tab'],
+  BSPC:['Backspace','Bksp'],BACKSPACE:['Backspace','Bksp'],DEL:['Delete','Del'],DELETE:['Delete','Del'],
+  ESC:['Escape','Esc'],ESCAPE:['Escape','Esc'],INS:['Insert','Ins'],INSERT:['Insert','Ins'],
+  CAPS:['CapsLock','Caps'],CAPSLOCK:['CapsLock','Caps']
+};
+const PRETTY = {K_UNDO:'Undo',K_REDO:'Redo',K_COPY:'Copy',K_PASTE:'Paste',K_CUT:'Cut',K_APP:'Menu',
+  PSCRN:'PrtSc',SLCK:'ScrLk',K_PP:'Play',C_PP:'Play',C_MUTE:'Mute',C_VOL_UP:'Vol+',C_VOL_DN:'Vol−',
+  C_PREV:'Prev',C_NEXT:'Next',C_BRI_UP:'Bri+',C_BRI_DN:'Bri−',PAUSE_BREAK:'Pause'};
+
+function modsLabel(mods){ return MOD_ORDER.filter(m => mods.has(m)).map(m => MOD_SYM[m]).join(''); }
+
+function parseParam(p){
+  const mods = []; let cur = p;
+  while (cur && WRAP[cur.value] && cur.params && cur.params.length) { mods.push(WRAP[cur.value]); cur = cur.params[0]; }
+  return { code: cur ? String(cur.value) : '', mods };
+}
+
+function tapInfo(t){
+  if (!t || !t.code) return null;
+  const code = t.code.toUpperCase();
+  const mods = new Set(t.mods);
+  let ch = null, key = null, label = null, mod = null;
+  if (SHIFTED[code]) { ch = SHIFTED[code]; mods.delete('shift'); }
+  else if (CH[code]) { ch = CH[code][mods.has('shift') ? 1 : 0]; mods.delete('shift'); }
+  if (ch && (mods.has('ctrl') || mods.has('meta') || mods.has('alt'))) {
+    const sh = ch !== ch.toLowerCase();
+    const m = new Set(mods); if (sh) m.add('shift');
+    key = { key: ch.toLowerCase(), mods: [...m].sort() };
+    label = modsLabel(m) + ch.toUpperCase(); ch = null;
+  } else if (!ch && NAMED[code]) {
+    key = { key: NAMED[code][0], mods: [...mods].sort() };
+    label = modsLabel(mods) + NAMED[code][1];
+  } else if (!ch && MODS[code]) {
+    mod = MODS[code];
+    const all = new Set([...mods, mod]);
+    label = all.size >= 3 ? 'Hyper' : modsLabel(all);
+  } else if (!ch) {
+    label = modsLabel(mods) + (PRETTY[code] || code.replace(/^(C_|K_)/, '').replace(/_/g, ' '));
+  }
+  if (ch) label = ch === ' ' ? 'Space' : (/[a-z]/.test(ch) ? ch.toUpperCase() : ch);
+  return { code, ch, key, mod, label, ambiguous: AMBIGUOUS.has(code) };
+}
+
+function isNum(p){ return p != null && /^\d+$/.test(String(p.value)); }
+
+function parseBinding(b, ht){
+  const v = b && b.value ? String(b.value) : '&none';
+  const P = (b && b.params) || [];
+  const k = { beh: v, tap: null, hold: null, label: '' };
+  if (v === '&kp') k.tap = tapInfo(parseParam(P[0]));
+  else if (v === '&mt') { const m = MODS[parseParam(P[0]).code]; if (m) k.hold = { mod: m }; k.tap = tapInfo(parseParam(P[1])); }
+  else if (v === '&lt') { k.hold = { layer: +P[0].value }; k.tap = tapInfo(parseParam(P[1])); }
+  else if (v === '&mo') { k.hold = { layer: +P[0].value }; }
+  else if (v === '&sk') { const m = MODS[parseParam(P[0]).code]; if (m) k.hold = { mod: m, sticky: true }; k.label = m ? 'Sticky ' + MOD_SYM[m] : 'Sticky'; }
+  else if (v === '&trans') k.trans = true;
+  else if (v === '&none') k.none = true;
+  else if (P.length === 2) {
+    const def = ht[v];
+    const first = def && def.bindings ? def.bindings[0] : null;
+    if (first === '&mo' || first === '&lt' || (!first && isNum(P[0]))) k.hold = { layer: +P[0].value };
+    else { const m = MODS[parseParam(P[0]).code]; if (m) k.hold = { mod: m }; }
+    k.tap = tapInfo(parseParam(P[1]));
+  } else if (v === '&tog' || v === '&to' || v === '&tl') {
+    k.label = (v === '&tog' ? 'Toggle ' : 'To ') + (P[0] ? P[0].value : '');
+  } else {
+    k.label = v.replace(/^&/, '').replace(/_/g, ' ') + (P[0] ? ' ' + String(P[0].value).replace(/_/g, ' ') : '');
+  }
+  return k;
+}
+
+/* ---------- ZMK .keymap text parsing ---------- */
+function parseDtsParams(str){
+  // "LS(N1)" -> {value:'LS', params:[{value:'N1'}]}
+  str = str.trim();
+  const m = str.match(/^([A-Za-z0-9_]+)\((.*)\)$/);
+  if (m) return { value: m[1], params: [parseDtsParams(m[2])] };
+  return { value: /^\d+$/.test(str) ? +str : str };
+}
+function tokenizeBindings(body){
+  const out = [];
+  const parts = body.split('&').map(s => s.trim()).filter(Boolean);
+  for (const part of parts) {
+    const toks = []; let depth = 0, cur = '';
+    for (const c of part) {
+      if (c === '(') depth++;
+      if (c === ')') depth--;
+      if (/\s/.test(c) && depth === 0) { if (cur) toks.push(cur); cur = ''; } else cur += c;
+    }
+    if (cur) toks.push(cur);
+    out.push({ value: '&' + toks[0], params: toks.slice(1).map(parseDtsParams) });
+  }
+  return out;
+}
+function parseZmkKeymap(text){
+  const clean = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  const holdTaps = [];
+  const htRe = /(\w+)\s*:\s*[\w-]+\s*\{[^{}]*?compatible\s*=\s*"zmk,behavior-hold-tap"[^{}]*?bindings\s*=\s*<\s*(&\w+)[^>]*>\s*,\s*<\s*(&\w+)/g;
+  let m;
+  while ((m = htRe.exec(clean))) holdTaps.push({ name: '&' + m[1], bindings: [m[2], m[3]] });
+  const kmStart = clean.search(/keymap\s*\{/);
+  if (kmStart < 0) throw new Error('No keymap { … } block found in this file.');
+  const km = clean.slice(kmStart);
+  const layerRe = /([\w-]+)\s*\{([^{}]*?)bindings\s*=\s*<([\s\S]*?)>\s*;/g;
+  const layers = [], names = [];
+  while ((m = layerRe.exec(km))) {
+    const dn = m[2].match(/(?:display-name|label)\s*=\s*"([^"]*)"/);
+    names.push(dn ? dn[1] : m[1].replace(/_layer$/, ''));
+    layers.push(tokenizeBindings(m[3]));
+  }
+  if (!layers.length) throw new Error('Found a keymap block but no layer bindings in it.');
+  return { title: 'ZMK keymap', keyboard: '', layer_names: names, layers, holdTaps };
+}
+
+/* ---------- Geometry ---------- */
+const FINGERS = ['pinky','ring','middle','index','thumb'];
+function halfFingers(w){
+  if (w >= 7) return ['pinky','pinky','ring','middle','index','index','index'];
+  if (w === 6) return ['pinky','pinky','ring','middle','index','index'];
+  if (w === 5) return ['pinky','ring','middle','index','index'];
+  return ['pinky','ring','middle','index'].slice(4 - w);
+}
+const STAGGER6 = [0.38, 0.38, 0.12, 0, 0.14, 0.26];
+
+function gridKey(pos, row, col, cols, gap, extraY){
+  const half = cols / 2, left = col < half;
+  const hc = left ? col : cols - 1 - col;           // distance from outer edge
+  const fingers = halfFingers(half);
+  const st = half === 6 ? STAGGER6[hc] : (half === 5 ? STAGGER6[hc + 1] : 0);
+  return {
+    pos, row, col, hand: left ? 'L' : 'R', finger: fingers[hc],
+    stretch: half === 6 ? (hc === 0 || hc === 5) : (half === 5 ? hc === 4 : false),
+    x: left ? col : col + gap, y: row + st + (extraY || 0), r: 0
+  };
+}
+function thumbArc(posList, hand, startX, y0, step, mirrorW){
+  return posList.map((pos, i) => {
+    const xL = startX + i * 1.08, yy = y0 + i * step, rot = 8 + i * 7;
+    const g = { pos, row: 99, col: -1, hand, finger: 'thumb', stretch: false, x: xL, y: yy, r: rot, thumb: true };
+    if (hand === 'R') { g.x = mirrorW - xL - 1; g.r = -rot; }
+    return g;
+  });
+}
+
+function buildGeometry(keyboard, n){
+  const G = [];
+  if (keyboard === 'go60' && n === 60) {
+    const gap = 2.4;
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 12; c++) G.push(gridKey(r * 12 + c, r, c, 12, gap));
+    [1, 2, 3].forEach((c, i) => G.push(gridKey(48 + i, 4, c, 12, gap)));
+    [8, 9, 10].forEach((c, i) => G.push(gridKey(51 + i, 4, c, 12, gap)));
+    const W = 12 + gap;
+    G.push(...thumbArc([54, 55, 56], 'L', 3.7, 5.3, 0.22, W));
+    G.push(...thumbArc([57, 58, 59], 'R', 3.7, 5.3, 0.22, W).reverse());
+    G.sort((a, b) => a.pos - b.pos);
+    return { keys: G, homeRow: 2, numRow: 0, width: W, height: 7.1, name: 'Go60' };
+  }
+  if (keyboard === 'glove80' && n === 80) {
+    const gap = 5.2, W = 12 + gap;
+    for (let i = 0; i < 5; i++) { G.push(gridKey(i, 0, i, 12, gap)); G.push(gridKey(5 + i, 0, 7 + i, 12, gap)); }
+    for (let r = 1; r <= 4; r++) for (let c = 0; c < 12; c++) {
+      const pos = r < 4 ? 10 + (r - 1) * 12 + c : (c < 6 ? 46 + c : 58 + (c - 6));
+      G.push(gridKey(pos, r, c, 12, gap));
+    }
+    for (let i = 0; i < 5; i++) { G.push(gridKey(64 + i, 5, i, 12, gap)); G.push(gridKey(75 + i, 5, 7 + i, 12, gap)); }
+    G.push(...thumbArc([52, 53, 54], 'L', 6.0, 5.0, 0.3, W));
+    G.push(...thumbArc([55, 56, 57], 'R', 6.0, 5.0, 0.3, W).reverse());
+    G.push(...thumbArc([69, 70, 71], 'L', 6.0, 6.15, 0.3, W));
+    G.push(...thumbArc([72, 73, 74], 'R', 6.0, 6.15, 0.3, W).reverse());
+    G.sort((a, b) => a.pos - b.pos);
+    return { keys: G, homeRow: 3, numRow: 1, width: W, height: 8.4, name: 'Glove80' };
+  }
+  // Generic grid: rows of 10 or 12 plus thumbs
+  let cols = 12, rows;
+  if (n === 34 || n === 36 || n === 40) cols = 10;
+  if (n % 12 === 0 && n >= 48) rows = n / 12;
+  else rows = Math.min(Math.floor(n / cols), 4) || 1;
+  const gap = 2;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const pos = r * cols + c; if (pos < n) G.push(gridKey(pos, r, c, cols, gap));
+  }
+  const rest = [];
+  for (let p = rows * cols; p < n; p++) rest.push(p);
+  const W = cols + gap, hl = Math.ceil(rest.length / 2);
+  const startX = cols / 2 - Math.min(hl, 4) * 1.08 + 0.4;
+  G.push(...thumbArc(rest.slice(0, hl), 'L', Math.max(startX, 0), rows + 0.4, 0.15, W));
+  G.push(...thumbArc(rest.slice(hl), 'R', Math.max(startX, 0), rows + 0.4, 0.15, W).reverse());
+  G.sort((a, b) => a.pos - b.pos);
+  return { keys: G, homeRow: -1, numRow: -1, width: W, height: rows + 1.9 + rest.length * 0.05, name: `${n}-key grid` };
+}
+
+/* ---------- Layout model ---------- */
+function detectFormat(text){
+  const t = text.trim();
+  if (t.startsWith('{')) return 'moergo';
+  if (/keymap\s*\{/.test(t)) return 'zmk';
+  throw new Error('Unrecognised file. Load a MoErgo layout .json or a ZMK .keymap file.');
+}
+
+function buildLayout(text, opts){
+  opts = opts || {};
+  const fmt = detectFormat(text);
+  let raw;
+  if (fmt === 'moergo') {
+    try { raw = JSON.parse(text); } catch (e) { throw new Error('This JSON file could not be parsed: ' + e.message); }
+    if (!Array.isArray(raw.layers) || !raw.layers.length) throw new Error('The JSON has no "layers" array. Export the layout from the MoErgo Layout Editor.');
+  } else raw = parseZmkKeymap(text);
+  const n = Math.max(...raw.layers.map(l => l.length));
+  let keyboard = String(raw.keyboard || '').toLowerCase();
+  if (!keyboard) keyboard = n === 80 ? 'glove80' : n === 60 ? 'go60' : '';
+  const ht = {};
+  (raw.holdTaps || []).forEach(h => { ht[h.name] = h; });
+  const layers = raw.layers.map(l => l.map(b => parseBinding(b, ht)));
+  // resolve &trans to base
+  layers.forEach((l, li) => { if (li) l.forEach((k, p) => { if (k.trans) l[p] = Object.assign({}, layers[0][p], { inherited: true }); }); });
+  const geo = buildGeometry(keyboard, n);
+  const keys = geo.keys;
+  // home row: row with most hold-mods; fallback row containing 'a'
+  let home = geo.homeRow;
+  if (home < 0) {
+    const score = {};
+    layers[0].forEach((k, p) => { const g = keys[p]; if (!g || g.thumb) return; if (k.hold && k.hold.mod) score[g.row] = (score[g.row] || 0) + 2; if (k.tap && k.tap.ch === 'a') score[g.row] = (score[g.row] || 0) + 3; });
+    home = +Object.keys(score).sort((a, b) => score[b] - score[a])[0];
+    if (isNaN(home)) home = 1;
+  }
+  keys.forEach(g => {
+    if (g.thumb) g.role = 'thumb';
+    else {
+      const d = g.row - home;
+      g.role = d === 0 ? 'home' : d === -1 ? 'top' : d === 1 ? 'bottom' : d === -2 ? 'num' : d < -2 ? 'fn' : 'extra';
+    }
+  });
+  const layerNames = (raw.layer_names && raw.layer_names.length ? raw.layer_names : layers.map((_, i) => i ? 'Layer ' + i : 'Base')).slice(0, layers.length);
+  while (layerNames.length < layers.length) layerNames.push('Layer ' + layerNames.length);
+  return {
+    id: String(raw.uuid || opts.id || hashStr(text)),
+    title: raw.title || opts.name || 'Untitled layout',
+    keyboard: keyboard || 'generic', geo, keys, layers, layerNames, format: fmt, n
+  };
+}
+
+function hashStr(s){ let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return 'L' + (h >>> 0).toString(36); }
+
+/* ---------- Routing: how to produce each character ---------- */
+const ROLE_COST = { home: 0, top: 0.3, bottom: 0.35, thumb: 0.1, num: 0.9, extra: 1, fn: 5 };
+const FINGER_RANK = { index: 0, middle: 1, ring: 2, pinky: 3, thumb: 4 };
+
+function keyCost(L, p, pref){
+  const g = L.keys[p]; if (!g) return 99;
+  let c = 1 + (ROLE_COST[g.role] || 0);
+  if (pref === 'layers' && (g.role === 'num' || g.role === 'extra')) c += 2.6;
+  if (g.stretch) c += 0.4;
+  if (g.finger === 'pinky') c += 0.15;
+  return c;
+}
+
+function pickHolder(L, list, p, pref){
+  const g = L.keys[p]; let best = null, bc = 1e9;
+  for (const h of list) {
+    if (h === p) continue;
+    const hg = L.keys[h]; if (!hg) continue;
+    let c = keyCost(L, h, pref);
+    if (g && hg.hand === g.hand) c += g.thumb ? 0.5 : 3;
+    if (hg.thumb) c -= 0.3;
+    if (c < bc) { bc = c; best = h; }
+  }
+  return best == null ? null : { pos: best, cost: bc };
+}
+
+function buildRoutes(L, pref){
+  const base = L.layers[0];
+  const shiftHolders = [], modHolders = { ctrl: [], alt: [], meta: [], shift: shiftHolders }, layerActs = {};
+  base.forEach((k, p) => {
+    if (k.hold && k.hold.mod && modHolders[k.hold.mod]) modHolders[k.hold.mod].push(p);
+    if (k.hold && k.hold.layer != null) (layerActs[k.hold.layer] = layerActs[k.hold.layer] || []).push(p);
+  });
+  const chars = {}, keys = {};
+  const consider = (map, id, r) => { if (!map[id] || map[id].cost > r.cost) map[id] = r; };
+  L.layers.forEach((layer, li) => {
+    layer.forEach((k, p) => {
+      if (!k || !k.tap || k.inherited) return;
+      const t = k.tap;
+      let c = keyCost(L, p, pref) + (t.ambiguous ? 1.5 : 0), holds = [];
+      if (li > 0) {
+        const a = pickHolder(L, layerActs[li] || [], p, pref);
+        if (!a) return;
+        holds = [{ pos: a.pos, kind: 'layer', layer: li }];
+        c += 1;
+      }
+      const r = { layer: li, pos: p, holds, cost: c };
+      if (t.ch) {
+        consider(chars, t.ch, r);
+        if (li === 0) {
+          const sh = CH[t.code] && CH[t.code][1];
+          if (sh && sh !== t.ch) {
+            const s = pickHolder(L, shiftHolders, p, pref);
+            if (s) consider(chars, sh, { layer: 0, pos: p, holds: [{ pos: s.pos, kind: 'mod', mod: 'shift' }], cost: c + 1.2 + (L.keys[s.pos].hand === L.keys[p].hand ? 1 : 0) });
+          }
+        }
+      }
+      if (t.key) consider(keys, keyId(t.key), Object.assign({ key: t.key, label: t.label }, r));
+    });
+  });
+  return { chars, keys, modHolders, layerActs };
+}
+function keyId(k){ return (k.mods || []).slice().sort().join('+') + (k.mods && k.mods.length ? '+' : '') + k.key; }
+
+/* chord route: mods held on the opposite hand + base key for the letter */
+function chordRoute(L, R, mods, letter, pref){
+  const r = R.chars[letter];
+  if (!r || r.layer !== 0 || r.holds.length) return null;
+  const holds = [];
+  for (const m of mods) {
+    const h = pickHolder(L, R.modHolders[m] || [], r.pos, pref);
+    if (!h) return null;
+    holds.push({ pos: h.pos, kind: 'mod', mod: m });
+  }
+  return { layer: 0, pos: r.pos, holds, cost: r.cost + mods.length };
+}
+
+/* ---------- Curriculum ---------- */
+function charName(c){
+  if (c === ' ') return 'Space';
+  if (/[a-z]/.test(c)) return c.toUpperCase();
+  return c;
+}
+function listTitle(arr){
+  const n = arr.map(charName);
+  if (n.length <= 1) return n.join('');
+  if (arr.some(c => !/[a-z0-9 ]/i.test(c))) return n.join('  ');
+  return n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1];
+}
+function sortSlots(L, items, routeOf){
+  return items.slice().sort((a, b) => {
+    const ga = L.keys[routeOf(a).pos], gb = L.keys[routeOf(b).pos];
+    const ra = (FINGER_RANK[ga.finger] || 0) + (ga.stretch ? 5 : 0), rb = (FINGER_RANK[gb.finger] || 0) + (gb.stretch ? 5 : 0);
+    if (ra !== rb) return ra - rb;
+    if (ga.hand !== gb.hand) return ga.hand === 'L' ? -1 : 1;
+    return ga.x - gb.x;
+  });
+}
+function chunk(items, size){
+  const out = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  if (out.length > 1 && out[out.length - 1].length === 1) out[out.length - 2].push(...out.pop());
+  return out;
+}
+
+const CHORD_SETS = [
+  { title: 'Copy, paste, cut', mods: ['meta'], letters: ['c', 'v', 'x'] },
+  { title: 'Undo, select all, save', mods: ['meta'], letters: ['z', 'a', 's'] },
+  { title: 'Redo and formatting', mods: ['meta'], letters: ['b', 'i', 'k'], extra: [{ mods: ['meta', 'shift'], letter: 'z' }] },
+  { title: 'Control line editing', mods: ['ctrl'], letters: ['a', 'e', 'k'] }
+];
+
+function buildCurriculum(L, pref){
+  const R = buildRoutes(L, pref);
+  const units = [];
+  const used = new Set();
+  const rOf = c => R.chars[c];
+  const isLetter = c => /^[a-z]$/.test(c);
+  const allChars = Object.keys(R.chars).filter(c => c !== ' ' && c.length === 1);
+
+  function addUnit(id, title, blurb, groups, kind, reviewEvery){
+    if (!groups.length) return;
+    const lessons = [];
+    let since = 0, unitNew = [];
+    groups.forEach((g, i) => {
+      lessons.push({ id: id + ':' + g.join(''), title: g.title || listTitle(g), kind, items: g.slice() });
+      unitNew.push(...g); since++;
+      const last = i === groups.length - 1;
+      if ((since >= (reviewEvery || 4) && !last) || (last && groups.length > 1)) {
+        lessons.push({ id: id + ':review' + lessons.length, title: last ? title + ' review' : 'Review', kind: 'review', reviewKind: kind, items: unitNew.slice() });
+        since = 0;
+      }
+    });
+    units.push({ id, title, blurb, lessons });
+  }
+
+  // Base rows (unshifted, layer 0, no holds)
+  const baseRole = role => allChars.filter(c => { const r = rOf(c); return r.layer === 0 && !r.holds.length && L.keys[r.pos].role === role; });
+  const roleTitles = { home: ['Home row', 'Your resting keys. Learn them before anything else.'],
+    top: ['Top row', 'Reach up from the home row and come back.'],
+    bottom: ['Bottom row', 'Curl down from the home row.'] };
+  ['home', 'top', 'bottom'].forEach(role => {
+    const cs = baseRole(role).filter(c => !used.has(c));
+    const letters = sortSlots(L, cs.filter(isLetter), rOf), other = sortSlots(L, cs.filter(c => !isLetter(c)), rOf);
+    const groups = chunk(letters, 2);
+    if (other.length) groups.push(...chunk(other, 3));
+    if (role === 'home' && groups.length && R.chars[' ']) groups[0].push(' ');
+    groups.forEach(g => g.forEach(c => used.add(c)));
+    addUnit('base-' + role, roleTitles[role][0], roleTitles[role][1], groups, 'learn', 4);
+  });
+  // ensure space is learned even with no home row
+  if (!used.has(' ') && R.chars[' '] && units.length) { units[0].lessons[0].items.push(' '); units[0].lessons[0].title = listTitle(units[0].lessons[0].items); used.add(' '); }
+  // Remaining base chars (reach keys: number row, extras, thumbs)
+  const reach = sortSlots(L, allChars.filter(c => { const r = rOf(c); return r.layer === 0 && !r.holds.length && !used.has(c); }), rOf);
+  reach.forEach(c => used.add(c));
+  addUnit('base-reach', 'Reach keys', 'Keys outside the three main rows on your base layer.', chunk(reach, 3), 'learn', 4);
+
+  // Capitals and shifted symbols
+  const shifted = allChars.filter(c => { const r = rOf(c); return r.layer === 0 && r.holds.length && r.holds[0].mod === 'shift' && !used.has(c); });
+  const capGroups = [];
+  ['home', 'top', 'bottom'].forEach(role => {
+    const caps = sortSlots(L, shifted.filter(c => /[A-Z]/.test(c) && L.keys[rOf(c).pos].role === role), rOf);
+    chunk(caps, 4).forEach(g => { g.title = 'Capitals: ' + g.join(' '); capGroups.push(g); });
+  });
+  const restCaps = shifted.filter(c => /[A-Z]/.test(c) && !capGroups.some(g => g.includes(c)));
+  if (restCaps.length) { const g = restCaps.slice(); g.title = 'Capitals: ' + g.join(' '); capGroups.push(g); }
+  capGroups.forEach(g => g.forEach(c => used.add(c)));
+  const shSyms = sortSlots(L, shifted.filter(c => !used.has(c)), rOf);
+  const shGroups = chunk(shSyms, 3);
+  shSyms.forEach(c => used.add(c));
+  addUnit('shift-caps', 'Capitals', 'Hold Shift on the opposite hand, tap the letter.', capGroups, 'learn', 3);
+  addUnit('shift-syms', 'Shifted symbols', 'Symbols you reach with Shift on your base layer.', shGroups, 'learn', 4);
+
+  // Layer units
+  for (let li = 1; li < L.layers.length; li++) {
+    const cs = allChars.filter(c => rOf(c).layer === li && !used.has(c));
+    if (!cs.length) continue;
+    const groups = [];
+    ['home', 'top', 'bottom', 'thumb', 'num', 'extra', 'fn'].forEach(role => {
+      const rc = sortSlots(L, cs.filter(c => L.keys[rOf(c).pos].role === role), rOf);
+      groups.push(...chunk(rc, role === 'thumb' ? 3 : 2));
+    });
+    cs.forEach(c => used.add(c));
+    const act = R.layerActs[li] && pickHolder(L, R.layerActs[li], 0, pref);
+    const name = L.layerNames[li] || 'Layer ' + li;
+    addUnit('layer-' + li, name + ' layer', `Hold a thumb key to reach the ${name} layer.`, groups, 'learn', 4);
+  }
+
+  // Navigation keys (arrows, home/end)
+  const navSets = [
+    { title: 'Arrow keys', keys: ['ArrowLeft', 'ArrowDown', 'ArrowUp', 'ArrowRight'] },
+    { title: 'Home, End, Page Up, Page Down', keys: ['Home', 'End', 'PageUp', 'PageDown'] }
+  ];
+  const navGroups = [];
+  navSets.forEach(s => {
+    const ids = s.keys.filter(k => R.keys[k]);
+    if (ids.length >= 2) { const g = ids.slice(); g.title = s.title; navGroups.push(g); }
+  });
+  if (navGroups.length) {
+    const lessons = navGroups.map(g => ({ id: 'nav:' + g.join(','), title: g.title, kind: 'keys', items: g.slice() }));
+    units.push({ id: 'nav', title: 'Navigation', blurb: 'Move the cursor without leaving the home row.', lessons });
+  }
+
+  // Shortcuts via home-row mods
+  const chordLessons = [];
+  CHORD_SETS.forEach(s => {
+    const items = [];
+    s.letters.forEach(l => { const rr = chordRoute(L, R, s.mods, l, pref); if (rr) items.push(keyId({ key: l, mods: s.mods })); });
+    (s.extra || []).forEach(e => { const rr = chordRoute(L, R, e.mods, e.letter, pref); if (rr) items.push(keyId({ key: e.letter, mods: e.mods })); });
+    if (items.length >= 2) chordLessons.push({ id: 'chord:' + items.join(','), title: s.title, kind: 'chords', items });
+  });
+  if (chordLessons.length) units.push({ id: 'chords', title: 'Shortcuts', blurb: 'Hold the modifier on the opposite hand, then tap.', lessons: chordLessons });
+
+  // number lessons globally
+  let n = 0;
+  units.forEach(u => u.lessons.forEach(l => { l.num = ++n; l.unit = u.id; }));
+  return { units, routes: R, lessons: units.flatMap(u => u.lessons) };
+}
+
+/* Resolve the route (hint) for a drill item */
+function routeFor(L, C, item, pref){
+  if (item.t === 'c') return C.routes.chars[item.ch] || null;
+  if (item.t === 'k') {
+    if (!item.mods.length || (item.mods.length === 1 && C.routes.keys[keyId(item)])) return C.routes.keys[keyId(item)] || null;
+    const letter = item.key.length === 1 ? item.key : null;
+    return letter ? chordRoute(L, C.routes, item.mods, letter, pref) : (C.routes.keys[keyId(item)] || null);
+  }
+  return null;
+}
+
+/* ---------- Drill text generation ---------- */
+function rand(n){ return Math.floor(Math.random() * n); }
+function pick(a){ return a[rand(a.length)]; }
+function shuffle(a){ a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+const PAIRS = { '(': ')', '[': ']', '{': '}', '<': '>' };
+const CLOSERS = { ')': '(', ']': '[', '}': '{', '>': '<' };
+const SNIPPETS = [
+  'a = b;', 'x == y', 'x != y', 'a <= b', 'b >= a', 'i++', 'a && b', 'a || b', '!done', '#tag', '$price', '50%',
+  'x^2', 'a * b', 'a / b', 'a - b', 'a + b', '~/code', '`npm test`', 'me@site.io', 'f(x)', 'arr[i]', 'obj.key',
+  'k: v', '"text"', "'c'", 'snake_case', 'run()', 'if (ok) {}', 'x => x * 2', '# Title', '- item', '@param',
+  '3.14', '2026-10-02', '10:30', 'a | b', 'a & b', 'path\\to', 'n % 2', 'let x = [0];', 'const y = {};',
+  'fn(a, b)', 'map[key]', '{ id: 1 }', '<div>', '</p>', 'a ? b : c', 'x += 1', 'y -= 2', 'i < n', 'git add .',
+  'cd ~/src', 'ls -la', 'rm -rf', 'tx.hash', '0x1f', 'v1.2.3', '[1, 2, 3]', '(a + b) * c', '$HOME', '#!/bin/sh',
+  'user_id', 'a->b', 'a::b', 'x |> f', '#[derive]', 'f"{x}"', 'e.key', 'await fn();', '?.', '{...a}', '100 * 2',
+  'price = 9.99;', 'list[0] = 5', '(1, 2)', 'a % b == 0', 'n ^ m', '~x', '`a`', 'x // 2', '/* note */', '"%s"'
+];
+
+function lettersOf(set){ return [...set].filter(c => /[a-z]/.test(c)); }
+
+function patternText(chars, len){
+  // introduce: "ttt nnn tnt ntn ..."
+  const cs = chars.filter(c => c !== ' ');
+  if (!cs.length) return 'space '.repeat(4).trim();
+  const out = [];
+  cs.forEach(c => { out.push(c.repeat(3), c.repeat(2)); });
+  while (out.join(' ').length < len) {
+    const g = []; const n = 2 + rand(3);
+    for (let i = 0; i < n; i++) g.push(pick(cs));
+    out.push(g.join(''));
+  }
+  return out.join(' ');
+}
+function mixText(newC, known, len){
+  const nc = newC.filter(c => c !== ' '), kc = known.filter(c => c !== ' ' && /[a-z0-9]/i.test(c));
+  const pool = kc.length ? [...nc, ...nc, ...nc, ...kc] : nc;
+  if (!pool.length) return '';
+  const out = [];
+  while (out.join(' ').length < len) {
+    const n = 2 + rand(4), g = [];
+    for (let i = 0; i < n; i++) g.push(pick(pool));
+    if (nc.length && !g.some(c => nc.includes(c))) g[rand(n)] = pick(nc);
+    out.push(g.join(''));
+  }
+  return out.join(' ');
+}
+function pseudoWord(letters, must){
+  const V = letters.filter(c => 'aeiouy'.includes(c)), Cn = letters.filter(c => !'aeiouy'.includes(c));
+  const n = 3 + rand(3); let w = '';
+  for (let i = 0; i < n; i++) {
+    const wantV = V.length && Cn.length ? i % 2 === 1 : true;
+    w += wantV ? pick(V.length ? V : letters) : pick(Cn.length ? Cn : letters);
+  }
+  if (must && !w.includes(must)) { const i = rand(w.length); w = w.slice(0, i) + must + w.slice(i + 1); }
+  return w;
+}
+function wordPool(unlocked, newC, WORDS){
+  const lset = new Set(lettersOf(unlocked));
+  const ok = WORDS.filter(w => [...w].every(c => lset.has(c)));
+  const nl = newC.map(c => c.toLowerCase()).filter(c => /[a-z]/.test(c));
+  const withNew = nl.length ? ok.filter(w => nl.some(c => w.includes(c))) : ok;
+  return { ok, withNew };
+}
+function wordsText(newC, unlocked, len, WORDS, caps){
+  const { ok, withNew } = wordPool(unlocked, newC, WORDS);
+  const letters = lettersOf(unlocked);
+  const nl = newC.map(c => c.toLowerCase()).filter(c => /[a-z]/.test(c));
+  const out = [];
+  let guard = 0;
+  while (out.join(' ').length < len && guard++ < 400) {
+    let w;
+    if (withNew.length >= 4 && Math.random() < 0.7) w = pick(withNew);
+    else if (ok.length >= 6) w = pick(ok);
+    else w = pseudoWord(letters, nl.length ? pick(nl) : null);
+    if (caps && caps.length) {
+      const cap = caps.find(C => w[0] === C.toLowerCase());
+      if (cap) w = cap + w.slice(1);
+      else if (Math.random() < 0.6) { const C = pick(caps); w = C + (ok.filter(x => x[0] === C.toLowerCase())[0] || pseudoWord(letters)).slice(1); }
+    }
+    if (out[out.length - 1] !== w) out.push(w);
+  }
+  return out.join(' ');
+}
+function capPick(unlocked){ return [...unlocked].filter(c => /[A-Z]/.test(c)); }
+function sentenceText(newC, unlocked, len, WORDS){
+  const { ok, withNew } = wordPool(unlocked, newC, WORDS);
+  const letters = lettersOf(unlocked);
+  const caps = new Set(capPick(unlocked));
+  const hasDot = unlocked.has('.'), hasComma = unlocked.has(','), hasQ = unlocked.has('?');
+  const out = [];
+  let guard = 0;
+  while (out.join(' ').length < len && guard++ < 50) {
+    const n = 4 + rand(5), s = [];
+    for (let i = 0; i < n; i++) {
+      let w = withNew.length >= 4 && Math.random() < 0.5 ? pick(withNew) : ok.length >= 6 ? pick(ok) : pseudoWord(letters);
+      if (i === 0 && caps.has(w[0].toUpperCase())) w = w[0].toUpperCase() + w.slice(1);
+      if (hasComma && i > 1 && i < n - 1 && Math.random() < 0.15) w += ',';
+      s.push(w);
+    }
+    let sent = s.join(' ');
+    if (hasDot) sent += hasQ && Math.random() < 0.15 ? '?' : '.';
+    out.push(sent);
+  }
+  return out.join(' ');
+}
+function symbolToken(s, unlocked, word){
+  const w = word();
+  if (/[0-9]/.test(s)) {
+    const ds = [...unlocked].filter(c => /[0-9]/.test(c));
+    let n = s; const L = 1 + rand(3);
+    for (let i = 0; i < L; i++) n += pick(ds);
+    return shuffle([...n]).join('');
+  }
+  if (PAIRS[s] && unlocked.has(PAIRS[s])) return s + w + PAIRS[s];
+  if (CLOSERS[s] && unlocked.has(CLOSERS[s])) return CLOSERS[s] + w + s;
+  if (".,;:!?".includes(s)) return w + s;
+  if ("'\"`".includes(s)) return s + w + s;
+  if ("@#$~".includes(s)) return s + w;
+  if ("-_".includes(s)) return w + s + word();
+  if ("=+*/%^&|\\<>".includes(s)) return Math.random() < 0.5 ? w + ' ' + s + ' ' + word() : w + s + word();
+  return w + s;
+}
+function symbolText(newC, unlocked, len, WORDS, mode){
+  const { ok } = wordPool(unlocked, [], WORDS);
+  const letters = lettersOf(unlocked);
+  const short = ok.filter(w => w.length <= 5);
+  const word = () => short.length ? pick(short) : pseudoWord(letters);
+  const syms = newC.filter(c => c !== ' ');
+  const snips = SNIPPETS.filter(s => [...s].every(c => unlocked.has(c)) && syms.some(c => s.includes(c)));
+  const out = [];
+  let guard = 0;
+  while (out.join(' ').length < len && guard++ < 200) {
+    if (mode === 'pattern') {
+      const s = pick(syms), t = pick(syms);
+      out.push(Math.random() < 0.5 ? s + s + t : s + t + s);
+    } else if (mode === 'code' && snips.length && Math.random() < 0.6) out.push(pick(snips));
+    else if (mode === 'prose' && Math.random() < 0.55) out.push(word());
+    else out.push(symbolToken(pick(syms), unlocked, word));
+  }
+  return out.join(' ');
+}
+
+function unlockedBefore(C, lesson, inclusive){
+  const set = new Set();
+  for (const l of C.lessons) {
+    if (l === lesson && !inclusive) break;
+    if (l.kind === 'learn') l.items.forEach(c => set.add(c));
+    if (l === lesson) break;
+  }
+  return set;
+}
+
+function textItems(str){ return [...str].map(ch => ({ t: 'c', ch })); }
+function keyItem(id){
+  const parts = id.split('+'); const key = parts.pop();
+  return { t: 'k', key, mods: parts };
+}
+function keyItemLabel(it){
+  const NL = { ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', PageUp: 'PgUp', PageDown: 'PgDn' };
+  return modsLabel(new Set(it.mods)) + (NL[it.key] || (it.key.length === 1 ? it.key.toUpperCase() : it.key));
+}
+
+function altText(chars, len){
+  // finger alternation: "tn nt tnt ntn ttn"
+  const cs = chars.filter(c => c !== ' ');
+  if (cs.length < 2) return patternText(cs, len);
+  const out = [];
+  while (out.join(' ').length < len) {
+    const a = pick(cs); let b = pick(cs); if (b === a) b = cs[(cs.indexOf(a) + 1) % cs.length];
+    out.push(pick([a + b, b + a, a + b + a, b + a + b, a + a + b, a + b + b]));
+  }
+  return out.join(' ');
+}
+function bigramText(newC, known, len){
+  // each new key next to an already-known key: "pa ap pe ep"
+  const nc = newC.filter(c => c !== ' '), kc = known.filter(c => c !== ' ' && !nc.includes(c));
+  if (!kc.length) return altText(nc, len);
+  const out = [];
+  while (out.join(' ').length < len) {
+    const n = pick(nc), k = pick(kc);
+    out.push(pick([n + k, k + n, n + k + n, k + n + k]));
+  }
+  return out.join(' ');
+}
+function shortWordsText(newC, unlocked, len, WORDS){
+  const { ok, withNew } = wordPool(unlocked, newC, WORDS);
+  const sw = withNew.filter(w => w.length <= 4), so = ok.filter(w => w.length <= 4);
+  const pool = sw.length >= 4 ? sw : so;
+  if (pool.length < 4) return wordsText(newC, unlocked, len, WORDS);
+  const out = [];
+  while (out.join(' ').length < len) { const w = pick(pool); if (out[out.length - 1] !== w) out.push(w); }
+  return out.join(' ');
+}
+function burstText(base){
+  // repeat each word twice to build rhythm: "tent tent sent sent"
+  const ws = base.split(' ').filter(Boolean), out = [];
+  for (const w of ws) { out.push(w, w); if (out.join(' ').length > base.length) break; }
+  return out.join(' ');
+}
+function keyStages(ids, len){
+  const n = Math.max(12, Math.round(len / 6));
+  const intro = []; ids.forEach(id => { for (let i = 0; i < 3; i++) intro.push(id); });
+  const alt = []; while (alt.length < n) { const a = pick(ids); let b = pick(ids); if (b === a && ids.length > 1) b = ids[(ids.indexOf(a) + 1) % ids.length]; alt.push(a, b, a); }
+  const mix = []; while (mix.length < n) mix.push(pick(ids));
+  const speed = []; while (speed.length < n * 2) speed.push(pick(ids));
+  return [['Meet the keys', intro], ['Back and forth', alt], ['Mixed drill', mix], ['Speed round', speed]]
+    .map(([name, a]) => ({ name, items: a.map(keyItem) }));
+}
+
+function makeStages(C, lesson, WORDS, len){
+  len = len || 90;
+  if (lesson.kind === 'keys' || lesson.kind === 'chords') return keyStages(lesson.items, len);
+  const isReview = lesson.kind === 'review';
+  const before = unlockedBefore(C, lesson, false);
+  const unlocked = unlockedBefore(C, lesson, true);
+  if (isReview) lesson.items.forEach(c => unlocked.add(c));
+  unlocked.add(' ');
+  const newC = lesson.items;
+  const hasLetters = newC.some(c => /[a-z]/.test(c));
+  const hasCaps = newC.some(c => /[A-Z]/.test(c));
+  const symOnly = !hasLetters && !hasCaps;
+  const knownLetters = [...before].filter(c => /[a-z]/.test(c));
+  const st = [];
+  const add = (name, text) => { if (text && text.trim()) st.push({ name, text }); };
+  const enough = wordPool(unlocked, newC, WORDS).ok.length >= 6;
+
+  if (hasCaps && !hasLetters) {
+    const caps = newC.filter(c => /[A-Z]/.test(c));
+    const pairs = () => { const o = []; while (o.join(' ').length < len * 0.7) { const C = pick(caps), l = pick(lettersOf(unlocked)); o.push(pick([C + l, C + C.toLowerCase(), C + l + l])); } return o.join(' '); };
+    if (!isReview) {
+      add('Meet the keys', caps.map(C => `${C}${C.toLowerCase()} ${C}${C.toLowerCase()}${C.toLowerCase()}`).join(' ') + ' ' + patternText(caps, len / 2));
+      add('Shift and tap', pairs());
+    }
+    const cw = wordsText(newC, unlocked, len, WORDS, caps);
+    add('Capital words', cw);
+    add('Word bursts', burstText(wordsText(newC, unlocked, len * 0.6, WORDS, caps)));
+    add('Mixed case', wordsText(newC, unlocked, len, WORDS, capPick(unlocked)));
+    add('Sentences', sentenceText(newC, unlocked, len * 1.3, WORDS));
+    add('Accuracy check', sentenceText(newC, unlocked, len * 1.6, WORDS));
+  } else if (symOnly) {
+    const lets = lettersOf(unlocked);
+    if (!isReview) {
+      add('Meet the keys', patternText(newC, len * 0.6));
+      add('Back and forth', altText(newC, len * 0.6));
+    }
+    add('Key pairs', symbolText(newC, unlocked, len * 0.7, WORDS, 'pattern'));
+    if (lets.length) add('With letters', bigramText(newC, lets, len * 0.7));
+    add('In context', symbolText(newC, unlocked, len, WORDS, 'token'));
+    if (before.has('a')) add('Code', symbolText(newC, unlocked, len * 1.1, WORDS, 'code'));
+    add('Prose', symbolText(newC, unlocked, len * 1.2, WORDS, 'prose'));
+    add('Accuracy check', symbolText(newC, unlocked, len * 1.4, WORDS, before.has('a') ? 'code' : 'token'));
+  } else {
+    if (!isReview) {
+      add('Meet the keys', patternText(newC, len * 0.7));
+      add('Back and forth', altText(newC, len * 0.7));
+      if (knownLetters.length) add('With known keys', bigramText(newC, knownLetters, len * 0.8));
+    }
+    add('Mixed drill', mixText(newC, [...before], len));
+    if (enough) {
+      add('Short words', shortWordsText(newC, unlocked, len * 0.8, WORDS));
+      const w = wordsText(newC, unlocked, len, WORDS);
+      add('Words', w);
+      add('Word bursts', burstText(wordsText(newC, unlocked, len * 0.6, WORDS)));
+      add('Sentences', sentenceText(newC, unlocked, len * 1.3, WORDS));
+    } else if (lettersOf(unlocked).length >= 4) {
+      add('Pseudo-words', wordsText(newC, unlocked, len, WORDS));
+      add('Mixed drill 2', mixText(newC, [...before], len));
+    } else {
+      add('Mixed drill 2', mixText(newC, [...before], len));
+    }
+    const extra = newC.filter(c => !/[a-z ]/.test(c));
+    if (extra.length) add('Punctuation', symbolText(extra, unlocked, len, WORDS, 'prose'));
+    add('Accuracy check', enough ? sentenceText(newC, unlocked, len * 1.6, WORDS) : mixText(newC, [...before], len * 1.3));
+  }
+  return st.map(s => ({ name: s.name, items: textItems(s.text.replace(/\s+/g, ' ').trim()) }));
+}
+
+/* Free practice and problem keys */
+function practiceStages(C, unlocked, focus, WORDS, len){
+  const u = new Set(unlocked); u.add(' ');
+  const letters = focus.filter(c => /[a-z]/.test(c));
+  const syms = focus.filter(c => !/[a-z ]/.test(c));
+  const st = [];
+  if (focus.length) st.push({ name: 'Focus drill', text: mixText(focus, [], len) });
+  if (letters.length) st.push({ name: 'Focus words', text: wordsText(letters, u, len, WORDS) });
+  if (syms.length) st.push({ name: 'Focus symbols', text: symbolText(syms, u, len, WORDS, 'token') });
+  st.push({ name: 'Sentences', text: sentenceText(letters, u, len * 1.4, WORDS) });
+  return st.filter(s => s.text.trim()).map(s => ({ name: s.name, items: textItems(s.text.replace(/\s+/g, ' ').trim()) }));
+}
+
+const HomerowEngine = { buildLayout, buildRoutes, buildCurriculum, makeStages, practiceStages, routeFor, keyItem, keyItemLabel,
+  keyId, charName, listTitle, unlockedBefore, parseZmkKeymap, MOD_SYM, MOD_NAME, FINGERS, textItems };
+if (typeof module !== 'undefined') module.exports = HomerowEngine;
+</script>
+<script>/* ============================================================
+   Homerow UI
+   ============================================================ */
+(function(){
+const E = HomerowEngine;
+const WORDS = window.HOMEROW_WORDS || [];
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ---------- storage ---------- */
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('homerow.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v){ try { localStorage.setItem('homerow.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k){ try { localStorage.removeItem('homerow.' + k); } catch (e) {} }
+};
+const DEFAULT_SETTINGS = { passAcc: 95, targetWpm: 20, stopOnError: true, stageLen: 90, routePref: 'layers',
+  showFingers: true, showKeyboard: true, dailyGoal: 15, unlockAll: false };
+
+const S = {
+  layouts: store.get('layouts', {}),
+  activeId: store.get('active', null),
+  settings: Object.assign({}, DEFAULT_SETTINGS, store.get('settings', {})),
+  view: 'learn', layerView: 0, run: null, msg: null, confirmDel: null, customText: ''
+};
+
+function today(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function freshStats(){ return { progress: {}, keys: {}, misfires: { shift: 0, mod: 0, alt: 0 }, sessions: [], daily: {} }; }
+
+/* ---------- layout loading ---------- */
+function loadLayoutText(text, nameHint){
+  const L = E.buildLayout(text, { name: nameHint });
+  S.layouts[L.id] = { name: L.title, keyboard: L.keyboard, text, savedAt: Date.now() };
+  if (!store.set('layouts', S.layouts)) S.msg = { t: 'err', m: 'Loaded, but this browser blocked storage, so the layout will not be remembered after you close the page.' };
+  activate(L.id);
+  return L;
+}
+function activate(id){
+  const rec = S.layouts[id]; if (!rec) return;
+  S.layout = E.buildLayout(rec.text, { name: rec.name, id });
+  S.activeId = S.layout.id; store.set('active', S.activeId);
+  S.stats = Object.assign(freshStats(), store.get('stats.' + S.activeId, {}));
+  S.layerView = 0;
+  rebuild();
+}
+function rebuild(){ S.C = E.buildCurriculum(S.layout, S.settings.routePref); }
+function saveStats(){ store.set('stats.' + S.activeId, S.stats); }
+
+/* ---------- derived ---------- */
+function lessonProg(l){ return S.stats.progress[l.id] || null; }
+function isDone(l){ const p = lessonProg(l); return !!(p && p.stars > 0); }
+function isUnlocked(i){
+  if (S.settings.unlockAll || i === 0) return true;
+  const ls = S.C.lessons;
+  return isDone(ls[i - 1]) || isDone(ls[i]);
+}
+function nextLessonIdx(){ const i = S.C.lessons.findIndex(l => !isDone(l)); return i < 0 ? S.C.lessons.length - 1 : i; }
+function unlockedChars(){
+  const set = new Set([' ']);
+  S.C.lessons.forEach((l, i) => {
+    if (l.kind !== 'learn') return;
+    if (S.settings.unlockAll || isDone(l) || i <= nextLessonIdx()) l.items.forEach(c => set.add(c));
+  });
+  return set;
+}
+function overall(){
+  const ss = S.stats.sessions.filter(s => s.wpm != null);
+  const recent = ss.slice(-30);
+  const avg = k => recent.length ? recent.reduce((a, s) => a + s[k], 0) / recent.length : null;
+  const total = S.stats.sessions.reduce((a, s) => a + (s.secs || 0), 0);
+  return { wpm: avg('wpm'), acc: avg('acc'), total, todaySecs: S.stats.daily[today()] || 0 };
+}
+function problemKeys(limit){
+  const ks = S.stats.keys, unlocked = unlockedChars();
+  const rows = Object.keys(ks).filter(k => ks[k].n >= 6 && k !== ' ' && (k.length === 1 ? unlocked.has(k) : true)).map(k => {
+    const s = ks[k]; const er = s.err / s.n; const lat = s.ln ? s.lat / s.ln : 0;
+    return { k, er, lat, n: s.n };
+  });
+  if (!rows.length) return [];
+  const lats = rows.map(r => r.lat).filter(Boolean).sort((a, b) => a - b);
+  const med = lats.length ? lats[Math.floor(lats.length / 2)] : 0;
+  rows.forEach(r => { r.score = r.er * 100 + Math.max(0, r.lat - med) / 40; });
+  return rows.filter(r => r.score > 1.5).sort((a, b) => b.score - a.score).slice(0, limit || 4);
+}
+function fmtTime(s){ s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60; return h ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`; }
+function starsHtml(n, max){ let s = ''; for (let i = 0; i < (max || 3); i++) s += `<span class="${i < n ? 'on' : ''}">★</span>`; return `<span class="stars" aria-label="${n} of 3 stars">${s}</span>`; }
+function kc(c, cls){ const lab = c.length > 1 ? E.keyItemLabel(E.keyItem(c)) : E.charName(c); return `<span class="kc ${cls || ''}">${esc(lab)}</span>`; }
+function itemLabel(id){ return id.length > 1 ? E.keyItemLabel(E.keyItem(id)) : E.charName(id); }
+
+/* ---------- keyboard SVG ---------- */
+const U = 60;
+function keyLabels(li, p){
+  const k = S.layout.layers[li] && S.layout.layers[li][p];
+  if (!k || k.none) return { main: '', sub: '' };
+  let main = k.tap ? k.tap.label : (k.label || '');
+  if (k.inherited) main = '';
+  let sub = '';
+  if (k.hold && k.hold.layer != null) sub = (S.layout.layerNames[k.hold.layer] || 'L' + k.hold.layer).slice(0, 3);
+  else if (k.hold && k.hold.mod) sub = E.MOD_SYM[k.hold.mod];
+  return { main, sub };
+}
+function kbSVG(li, hl){
+  hl = hl || {};
+  const geo = S.layout.geo, holds = new Set((hl.holds || []).map(h => h.pos));
+  const W = geo.width * U, H = geo.height * U;
+  let out = `<svg class="kb ${S.settings.showFingers ? 'fingers' : ''}" viewBox="-6 -6 ${W + 12} ${H + 12}" role="img" aria-label="${esc(S.layout.layerNames[li] || '')} layer of ${esc(geo.name)}">`;
+  for (const g of S.layout.keys) {
+    const isT = hl.target === g.pos, isH = holds.has(g.pos);
+    const lab = isH ? keyLabels(0, g.pos) : keyLabels(li, g.pos);
+    const k = S.layout.layers[li][g.pos];
+    const empty = !isT && !isH && (!k || k.none || k.inherited);
+    const cls = ['k', 'f-' + g.finger, g.role === 'home' && !g.thumb ? 'home' : '', isT ? 'tgt' : '', isH ? 'hold' : '', empty ? 'empty' : ''].join(' ');
+    const x = g.x * U, y = g.y * U, s = U - 6;
+    const main = lab.main, fs = main.length <= 1 ? 22 : main.length <= 3 ? 15 : main.length <= 5 ? 11 : 9;
+    out += `<g class="${isT ? 'tgtg' : ''} ${isH ? 'holdg' : ''}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${g.r || 0} ${s / 2} ${s / 2})">`;
+    out += `<rect class="${cls}" width="${s}" height="${s}" rx="9"/>`;
+    if (main) out += `<text x="${s / 2}" y="${lab.sub ? s / 2 - 5 : s / 2}" font-size="${fs}">${esc(main)}</text>`;
+    if (lab.sub) out += `<text class="sub" x="${s / 2}" y="${s - 10}" font-size="10">${esc(isH ? 'hold' : lab.sub)}</text>`;
+    if (g.role === 'home' && g.finger === 'index' && !g.stretch) out += `<rect class="bump" x="${s / 2 - 7}" y="${s - 5}" width="14" height="2.5" rx="1"/>`;
+    out += `</g>`;
+  }
+  return out + `</svg>`;
+}
+const legendHtml = () => `<div class="legend">${['pinky', 'ring', 'middle', 'index', 'thumb'].map(f => `<span><i style="background:var(--f-${f})"></i>${f[0].toUpperCase() + f.slice(1)}</span>`).join('')}<span><i style="background:var(--go)"></i>Press</span><span><i style="background:var(--accent)"></i>Hold</span></div>`;
+
+function fingerName(p){ const g = S.layout.keys[p]; return g ? `${g.hand === 'L' ? 'left' : 'right'} ${g.finger}` : ''; }
+function hintFor(item){
+  const r = E.routeFor(S.layout, S.C, item, S.settings.routePref);
+  if (!r) return { r: null, html: '<span class="muted">This character is not on your layout. Type it however you can.</span>' };
+  const parts = r.holds.map(h => {
+    const lab = keyLabels(0, h.pos);
+    const what = h.kind === 'layer' ? (S.layout.layerNames[h.layer] || 'layer') : E.MOD_NAME[h.mod];
+    return `Hold <span class="kc">${esc(lab.main || '?')}</span> for ${esc(what)} <span class="muted">(${fingerName(h.pos)})</span>`;
+  });
+  const t = keyLabels(r.layer, r.pos);
+  parts.push(`${r.holds.length ? 'then press' : 'Press'} <span class="kc">${esc(t.main || '?')}</span> <span class="muted">(${fingerName(r.pos)})</span>`);
+  const layer = r.layer ? `<span class="layer">${esc(S.layout.layerNames[r.layer])}</span>` : '';
+  return { r, html: layer + parts.join(', ') };
+}
+
+/* ---------- views ---------- */
+function header(){
+  const o = overall(), goal = S.settings.dailyGoal * 60, pct = Math.min(1, o.todaySecs / goal), C = 2 * Math.PI * 18;
+  const L = S.layout;
+  return `<header class="top"><div class="wrap">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">${[0,1,2,3,4,5,6,7,8].map(i => `<i class="${i >= 3 && i < 6 ? 'on' : ''}"></i>`).join('')}</span>Homerow</div>
+    <div class="layout-chip"><b title="${esc(L.title)}">${esc(L.title)}</b><span>${esc(L.geo.name)} · ${L.layers.length} layers</span></div>
+    <div class="stats">
+      <div class="stat"><small>Avg speed</small><b>${o.wpm == null ? '–' : Math.round(o.wpm)}<em>wpm</em></b></div>
+      <div class="stat"><small>Avg accuracy</small><b>${o.acc == null ? '–' : Math.round(o.acc)}<em>%</em></b></div>
+      <div class="stat"><small>Typing time</small><b>${fmtTime(o.total)}</b></div>
+      <div class="goal"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="ring-bg" cx="22" cy="22" r="18"/><circle class="ring" cx="22" cy="22" r="18" stroke-dasharray="${(C * pct).toFixed(1)} ${C.toFixed(1)}"/></svg>
+        <div class="stat"><small>Daily goal</small><b>${fmtTime(o.todaySecs)}<em>/ ${S.settings.dailyGoal}:00</em></b></div></div>
+    </div></div></header>`;
+}
+function sidebar(){
+  const nav = [['learn', 'Lessons'], ['practice', 'Practice'], ['layout', 'Layout'], ['settings', 'Settings']];
+  const pk = problemKeys(4);
+  let units = '';
+  if (S.view === 'learn') units = `<div><h4>Units</h4><div class="unitlinks">${S.C.units.map(u => {
+    const d = u.lessons.filter(isDone).length;
+    return `<a href="#u-${u.id}" data-jump="u-${u.id}">${esc(u.title)}<span>${d}/${u.lessons.length}</span></a>`; }).join('')}</div></div>`;
+  return `<aside class="side">
+    <nav class="nav">${nav.map(([v, t]) => `<button class="${S.view === v ? 'on' : ''}" data-view="${v}">${t}</button>`).join('')}</nav>
+    ${units}
+    <div class="card"><h4>Your problem keys</h4>${pk.length ? `<div class="probkeys">${pk.map(r => kc(r.k, 'warn')).join('')}</div><button class="btn" data-act="practice-problem">Practice these</button>` : `<p class="muted" style="margin:0;font-size:14px">Type a few lessons and the keys you miss or hesitate on show up here.</p>`}</div>
+  </aside>`;
+}
+
+function learnView(){
+  const ls = S.C.lessons, done = ls.filter(isDone).length, nxt = nextLessonIdx();
+  const nl = ls[nxt];
+  let html = `<section class="hero"><div><h2>${done === ls.length ? 'Every lesson complete' : 'Next: ' + esc(nl.title)}</h2>
+    <p>${done} of ${ls.length} lessons done on ${esc(S.layout.title)}</p></div>
+    <div class="progress" aria-label="${Math.round(done / ls.length * 100)}% complete"><i style="width:${(done / ls.length * 100).toFixed(1)}%"></i></div>
+    <button class="btn go" data-start="${nxt}"><span class="tri"></span>${done ? 'Continue' : 'Start'}</button></section>`;
+  S.C.units.forEach(u => {
+    const d = u.lessons.filter(isDone).length;
+    html += `<section class="unit" id="u-${u.id}"><header><div><h3>${esc(u.title)}</h3><p>${esc(u.blurb)}</p></div><span class="muted">${d} of ${u.lessons.length} done</span></header><div class="lessons">`;
+    u.lessons.forEach(l => {
+      const i = ls.indexOf(l), p = lessonProg(l), un = isUnlocked(i), isNext = i === nxt;
+      const segN = (p && p.stageCount) || (l.kind === 'review' ? 6 : l.kind === 'learn' ? 8 : 4);
+      const segDone = p ? (p.stars > 0 ? segN : (p.stagesDone || 0)) : 0;
+      const keys = l.kind === 'review' ? '' : l.items.filter(c => c !== ' ' || l.items.length === 1).map(c => kc(c)).join('') + (l.items.includes(' ') ? kc(' ') : '');
+      const title = l.kind === 'review' || l.title.startsWith('Capitals') || l.kind === 'keys' || l.kind === 'chords' ? esc(l.title) : '';
+      html += `<div class="lesson ${isDone(l) ? 'done' : ''} ${isNext ? 'next' : ''} ${un ? '' : 'locked'}">
+        <div class="num">${isDone(l) ? '✓' : l.num}</div>
+        <div class="ttl"><b>${title}${title && keys ? ' ' : ''}${l.kind === 'review' ? '' : (title ? '' : keys)}</b>
+          <div class="meta">${l.kind === 'review' ? '<span class="badge">Review</span>' : ''}${(l.kind === 'keys' || l.kind === 'chords') ? keys : ''}<span class="segs">${Array.from({ length: segN }, (_, k) => `<i class="${k < segDone ? 'on' : ''}"></i>`).join('')}</span>${p && p.stars ? starsHtml(p.stars) + `<span>${Math.round(p.bestWpm || 0)} wpm · ${Math.round(p.bestAcc || 0)}%</span>` : ''}</div></div>
+        <div class="act">${un ? `<button class="btn ${isNext ? 'go' : 'ghost'}" data-start="${i}"><span class="tri"></span>${isDone(l) ? 'Redo' : 'Start'}</button>` : `<button class="btn ghost" disabled>Locked</button>`}</div>
+      </div>`;
+    });
+    html += `</div></section>`;
+  });
+  return html;
+}
+
+function practiceView(){
+  const pk = problemKeys(8);
+  const misf = S.stats.misfires;
+  return `<div class="section-title"><h2>Practice</h2><span class="muted">Uses only the keys you have unlocked</span></div>
+  <div class="grid2">
+    <div class="card"><h3 style="font-size:19px">Problem keys</h3>
+      ${pk.length ? `<table class="ptable"><thead><tr><th>Key</th><th>Miss rate</th><th>Avg time</th><th>Typed</th></tr></thead><tbody>${pk.map(r => `<tr><td>${kc(r.k)}</td><td>${(r.er * 100).toFixed(0)}%</td><td>${Math.round(r.lat)} ms</td><td>${r.n}</td></tr>`).join('')}</tbody></table>
+      <p><button class="btn go" data-act="practice-problem"><span class="tri"></span>Practice problem keys</button></p>` : `<p class="muted">No problem keys yet. They appear once you have typed each key a few times.</p>`}
+    </div>
+    <div class="card"><h3 style="font-size:19px">Home-row mod misfires</h3>
+      <p class="muted" style="margin-top:4px">Counted when a modifier fires while you meant to type a letter.</p>
+      <table class="ptable"><tbody>
+        <tr><td>Accidental Shift</td><td>${misf.shift || 0}</td></tr>
+        <tr><td>Accidental ⌘ or ⌃</td><td>${misf.mod || 0}</td></tr>
+        <tr><td>Accidental ⌥</td><td>${misf.alt || 0}</td></tr></tbody></table>
+      <p class="muted" style="font-size:13px">If one keeps climbing, type that finger's key a little more crisply or raise its tapping term.</p>
+    </div>
+    <div class="card"><h3 style="font-size:19px">Free practice</h3>
+      <p class="muted" style="margin-top:4px">Words and sentences from all your unlocked keys.</p>
+      <button class="btn primary" data-act="practice-free"><span class="tri"></span>Start free practice</button>
+    </div>
+    <div class="card field"><h3 style="font-size:19px">Your own text</h3>
+      <label for="customText" class="muted" style="font-weight:400">Paste code, notes or anything you type often.</label>
+      <textarea id="customText" placeholder="const total = items.reduce((a, b) => a + b, 0);">${esc(S.customText)}</textarea>
+      <div><button class="btn primary" data-act="practice-custom"><span class="tri"></span>Type this text</button></div>
+    </div>
+  </div>`;
+}
+
+function layoutView(){
+  const L = S.layout;
+  const tabs = L.layerNames.map((n, i) => `<button class="${S.layerView === i ? 'on' : ''}" data-layer="${i}">${esc(n)}</button>`).join('');
+  const chars = Object.keys(S.C.routes.chars).filter(c => c !== ' ').sort();
+  const saved = Object.entries(S.layouts).map(([id, r]) => `<div class="row ${id === S.activeId ? 'on' : ''}"><div><b>${esc(r.name)}</b><div class="muted" style="font-size:13px">${esc(r.keyboard || 'keyboard')} · saved ${new Date(r.savedAt).toLocaleDateString()}</div></div>
+    <div style="display:flex;gap:8px">${id === S.activeId ? '<span class="badge">In use</span>' : `<button class="btn" data-use="${esc(id)}">Use</button>`}
+    <button class="btn ghost danger" data-del="${esc(id)}">${S.confirmDel === id ? 'Confirm remove' : 'Remove'}</button></div></div>`).join('');
+  return `<div class="section-title"><h2>${esc(L.title)}</h2><span class="muted">${esc(L.geo.name)} · ${L.n} keys · ${L.format === 'moergo' ? 'MoErgo layout' : 'ZMK keymap'}</span></div>
+  <div class="tabs">${tabs}</div>
+  <div class="kbwrap">${kbSVG(S.layerView, {})}${legendHtml()}</div>
+  ${L.geo.name.includes('grid') ? '<p class="msg ok">This keyboard has no built-in shape, so keys are drawn as a plain grid. Lessons still follow your keymap.</p>' : ''}
+  <div class="card"><h3 style="font-size:19px">Characters you can type <span class="muted" style="font-size:14px;font-weight:400">${chars.length}</span></h3>
+    <div class="charmap" style="margin-top:10px">${chars.map(c => kc(c)).join('')}</div></div>
+  <div class="grid2">
+    <div class="card field"><h3 style="font-size:19px">Load a layout</h3>
+      <small>MoErgo Layout Editor export (.json) for Go60 or Glove80, or a ZMK .keymap file. Layouts are saved in this browser.</small>
+      <input type="file" id="layoutFile" accept=".json,.keymap,.dtsi,.txt">
+      <label for="layoutPaste">Or paste the file contents</label>
+      <textarea id="layoutPaste" placeholder='{"keyboard":"go60","layers":[…]}'></textarea>
+      <div><button class="btn primary" data-act="load-paste">Load pasted layout</button></div>
+      ${S.msg ? `<div class="msg ${S.msg.t}">${esc(S.msg.m)}</div>` : ''}
+    </div>
+    <div class="card"><h3 style="font-size:19px">Saved layouts</h3><div class="saved" style="margin-top:10px">${saved}</div>
+      <p class="muted" style="font-size:13px">Progress and key stats are kept separately for each layout.</p></div>
+  </div>`;
+}
+
+function settingsView(){
+  const s = S.settings;
+  const sel = (id, opts, v) => `<select id="${id}">${opts.map(([val, t]) => `<option value="${val}" ${String(v) === String(val) ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+  return `<div class="section-title"><h2>Settings</h2></div>
+  <div class="grid2">
+    <div class="card field"><label for="routePref">Numbers and symbols</label>
+      ${sel('routePref', [['layers', 'Teach them on thumb layers (Miryoku style)'], ['reach', 'Teach the number row and reach keys']], s.routePref)}
+      <small>Changes where lessons send you for digits, brackets and punctuation when your layout has both.</small></div>
+    <div class="card field"><label for="passAcc">Accuracy needed to pass</label>
+      ${sel('passAcc', [[90, '90%'], [95, '95%'], [97, '97%'], [98, '98%']], s.passAcc)}
+      <label for="targetWpm">Speed for the second star</label>
+      <input type="number" id="targetWpm" min="5" max="150" value="${s.targetWpm}"></div>
+    <div class="card field"><label for="stageLen">Drill length</label>
+      ${sel('stageLen', [[60, 'Short'], [90, 'Normal'], [140, 'Long']], s.stageLen)}
+      <label for="dailyGoal">Daily goal (minutes)</label>
+      <input type="number" id="dailyGoal" min="1" max="120" value="${s.dailyGoal}"></div>
+    <div class="card field">
+      <div class="check"><input type="checkbox" id="stopOnError" ${s.stopOnError ? 'checked' : ''}><label for="stopOnError">Stop on errors<br><small>You must type the right key before moving on.</small></label></div>
+      <div class="check"><input type="checkbox" id="showKeyboard" ${s.showKeyboard ? 'checked' : ''}><label for="showKeyboard">Show the keyboard during lessons</label></div>
+      <div class="check"><input type="checkbox" id="showFingers" ${s.showFingers ? 'checked' : ''}><label for="showFingers">Colour keys by finger</label></div>
+      <div class="check"><input type="checkbox" id="unlockAll" ${s.unlockAll ? 'checked' : ''}><label for="unlockAll">Unlock every lesson</label></div></div>
+    <div class="card field"><label>Reset</label><small>Clears lesson progress and key stats for ${esc(S.layout.title)} only.</small>
+      <div><button class="btn danger" data-act="reset">${S.confirmDel === '__reset' ? 'Confirm reset' : 'Reset progress'}</button></div></div>
+  </div>`;
+}
+
+const CREDITS = [['moosytype', 'https://github.com/moosylog/moosytype'], ['typing.com', 'https://www.typing.com'], ['keybr.com', 'https://www.keybr.com'],
+  ['Miryoku', 'https://github.com/manna-harbour/miryoku'], ['MoErgo', 'https://www.moergo.com'], ['ZMK', 'https://zmk.dev'], ['wordfreq (CC BY-SA 4.0)', 'https://github.com/rspeer/wordfreq']];
+function footer(){
+  return `<footer class="wrap credits"><p>Inspired by ${CREDITS.slice(0, 3).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Layout and keymap formats from ${CREDITS.slice(3, 6).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Word list from <a href="${CREDITS[6][1]}" target="_blank" rel="noopener">${CREDITS[6][0]}</a>. Fonts: Atkinson Hyperlegible, Bricolage Grotesque, IBM Plex Mono (SIL OFL).</p></footer>`;
+}
+function render(){
+  if (S.run) { renderRun(true); return; }
+  const main = S.view === 'learn' ? learnView() : S.view === 'practice' ? practiceView() : S.view === 'layout' ? layoutView() : settingsView();
+  $('#app').innerHTML = header() + `<div class="wrap shell">${sidebar()}<main class="main">${main}</main></div>` + footer();
+}
+
+/* ---------- running a lesson ---------- */
+function computeStars(acc, wpm, kind){
+  const s = S.settings;
+  if (acc < s.passAcc) return 0;
+  if (kind === 'keys' || kind === 'chords') return acc >= 100 ? 3 : acc >= 97 ? 2 : 1;
+  if (wpm < s.targetWpm) return 1;
+  return acc >= 98 && wpm >= s.targetWpm * 1.25 ? 3 : 2;
+}
+function startLesson(i){
+  const l = S.C.lessons[i];
+  const stages = E.makeStages(S.C, l, WORDS, +S.settings.stageLen);
+  beginRun({ lesson: l, lessonIdx: i, stages, title: `Lesson ${l.num}: ${l.title}` });
+}
+function beginRun(o){
+  S.run = Object.assign({ si: 0, results: [] }, o);
+  resetStage();
+  renderRun(true);
+}
+function resetStage(){
+  const r = S.run;
+  Object.assign(r, { items: r.stages[r.si].items, idx: 0, tried: new Set(), wrong: new Set(), errCount: 0, t0: null, last: null,
+    misfires: { shift: 0, mod: 0, alt: 0 }, result: null, lastMisfire: null });
+}
+function liveNums(){
+  const r = S.run;
+  const secs = r.t0 ? ((r.result ? r.tEnd : performance.now()) - r.t0) / 1000 : 0;
+  const n = r.tried.size;
+  const wpm = secs > 1 ? (r.idx / 5) / (secs / 60) : 0;
+  const acc = n ? (n - r.errCount) / n * 100 : 100;
+  return { secs, wpm, acc };
+}
+function renderRun(full){
+  const r = S.run;
+  if (full) {
+    const newKeys = r.lesson && r.lesson.kind !== 'review' ? r.lesson.items.map(c => kc(c, 'big')).join('') : '';
+    $('#app').innerHTML = header() + `<div class="wrap" style="padding-block:20px 60px"><div class="run">
+      <div class="runbar"><button class="btn ghost" data-act="exit">← Lessons</button><h2>${esc(r.title)}</h2>
+        <div class="live"><div class="stat"><small>Speed</small><b id="lvW">0<em>wpm</em></b></div><div class="stat"><small>Accuracy</small><b id="lvA">100<em>%</em></b></div><div class="stat"><small>Time</small><b id="lvT">0:00</b></div></div></div>
+      <div class="stagechips" id="chips"></div>
+      ${newKeys ? `<div class="newkeys">New keys ${newKeys}</div>` : ''}
+      <div class="typebox" id="typebox"><div class="viewport"><div class="textline" id="textline"></div></div><div id="overlay"></div></div>
+      <div class="hint" id="hint"></div>
+      ${S.settings.showKeyboard ? `<div class="kbwrap" id="kb"></div>` : ''}
+      <p class="muted" style="font-size:13px;margin:0">Esc leaves the lesson. Some browser shortcuts, like ⌘W, can't be blocked, so watch for accidental Command holds.</p>
+    </div></div>`;
+    paintText();
+  }
+  paintChips();
+  paintState();
+}
+function paintChips(){
+  const r = S.run;
+  $('#chips').innerHTML = r.stages.map((s, i) => `<span class="${i === r.si ? 'on' : ''} ${i < r.si || (r.results[i] && r.results[i].pass) ? 'done' : ''}">${i + 1}. ${esc(s.name)}</span>`).join('');
+}
+function paintText(){
+  const r = S.run;
+  let html = '<span class="w">';
+  r.items.forEach((it, i) => {
+    if (it.t === 'k') { html += `</span><span class="w"><span class="c kchip" id="c${i}">${esc(E.keyItemLabel(it))}</span></span><span class="w">`; return; }
+    if (it.ch === ' ') html += `<span class="c sp" id="c${i}">&nbsp;</span></span><span class="w">`;
+    else html += `<span class="c" id="c${i}">${esc(it.ch)}</span>`;
+  });
+  html += '</span>';
+  $('#textline').innerHTML = html;
+}
+function paintState(){
+  const r = S.run;
+  const tl = $('#textline'); if (!tl) return;
+  r.items.forEach((_, i) => {
+    const el = document.getElementById('c' + i); if (!el) return;
+    const cls = ['c'];
+    if (r.items[i].t === 'k') cls.push('kchip');
+    if (r.items[i].ch === ' ') cls.push('sp');
+    if (i < r.idx) cls.push(r.wrong.has(i) ? (S.settings.stopOnError ? 'fixed' : 'bad') : 'ok');
+    if (i === r.idx) { cls.push('cur'); if (r.wrong.has(i)) cls.push('bad'); }
+    el.className = cls.join(' ');
+  });
+  const cur = document.getElementById('c' + Math.min(r.idx, r.items.length - 1));
+  if (cur) { const lh = cur.offsetHeight || 40; tl.style.transform = `translateY(${-Math.max(0, cur.offsetTop - lh * 0.95)}px)`; }
+  updateLive();
+  // hint + keyboard
+  const it = r.items[r.idx];
+  if (it && !r.result) {
+    const h = hintFor(it);
+    $('#hint').innerHTML = h.html + (r.lastMisfire ? ` <span class="misfire">${esc(r.lastMisfire)}</span>` : '');
+    const kb = $('#kb');
+    if (kb) kb.innerHTML = kbSVG(h.r ? h.r.layer : 0, h.r ? { target: h.r.pos, holds: h.r.holds } : {}) + legendHtml();
+  }
+  // overlay
+  const ov = $('#overlay');
+  if (r.result) ov.innerHTML = resultCard();
+  else if (!document.hasFocus()) ov.innerHTML = `<button class="focusveil" data-act="focus">Click here, then start typing</button>`;
+  else ov.innerHTML = r.t0 ? '' : '';
+}
+function updateLive(){
+  const n = liveNums();
+  const w = $('#lvW'), a = $('#lvA'), t = $('#lvT');
+  if (w) w.innerHTML = `${Math.round(n.wpm)}<em>wpm</em>`;
+  if (a) a.innerHTML = `${Math.round(n.acc)}<em>%</em>`;
+  if (t) t.textContent = fmtTime(n.secs);
+}
+setInterval(() => { if (S.run && S.run.t0 && !S.run.result) updateLive(); }, 500);
+
+function resultCard(){
+  const r = S.run, res = r.result;
+  const lastStage = r.si === r.stages.length - 1;
+  const mf = res.misfires.shift + res.misfires.mod + res.misfires.alt;
+  if (res.lessonDone) {
+    return `<div class="result"><h3>${res.stars ? 'Lesson complete' : 'Lesson finished'}</h3>${starsHtml(res.stars)}
+      <div class="nums"><div class="stat"><small>Speed</small><b>${Math.round(res.wpm)}<em>wpm</em></b></div><div class="stat"><small>Accuracy</small><b>${Math.round(res.acc)}<em>%</em></b></div></div>
+      <div class="row">${r.lesson && r.lessonIdx < S.C.lessons.length - 1 ? `<button class="btn go" data-act="next-lesson"><span class="tri"></span>Next lesson (Enter)</button>` : ''}<button class="btn" data-act="redo-lesson">Redo lesson</button><button class="btn ghost" data-act="exit">Back to lessons</button></div></div>`;
+  }
+  return `<div class="result"><h3>${res.pass ? 'Stage passed' : 'Not quite'}</h3>${starsHtml(res.stars)}
+    <div class="nums"><div class="stat"><small>Speed</small><b>${Math.round(res.wpm)}<em>wpm</em></b></div><div class="stat"><small>Accuracy</small><b>${Math.round(res.acc)}<em>%</em></b></div>${mf ? `<div class="stat"><small>Mod misfires</small><b>${mf}</b></div>` : ''}</div>
+    ${res.pass ? '' : `<p class="muted" style="margin:0">You need ${S.settings.passAcc}% accuracy to move on. Slow down a little.</p>`}
+    ${res.missed.length ? `<div class="newkeys">Missed ${res.missed.map(c => kc(c, 'warn')).join('')}</div>` : ''}
+    <div class="row">${res.pass ? `<button class="btn go" data-act="next-stage"><span class="tri"></span>${lastStage ? 'Finish lesson' : 'Next stage'} (Enter)</button><button class="btn" data-act="retry-stage">Retry</button>` : `<button class="btn go" data-act="retry-stage"><span class="tri"></span>Try again (Enter)</button>`}</div></div>`;
+}
+
+function finishStage(now){
+  const r = S.run; r.tEnd = now;
+  const secs = Math.max(1, (now - r.t0) / 1000);
+  const n = r.items.length;
+  const acc = (n - r.errCount) / n * 100;
+  const wpm = (n / 5) / (secs / 60);
+  const kind = r.lesson ? (r.lesson.kind === 'review' ? r.lesson.reviewKind : r.lesson.kind) : 'practice';
+  const stars = computeStars(acc, wpm, kind);
+  const missed = [...new Set([...r.wrong].map(i => { const it = r.items[i]; return it.t === 'c' ? it.ch : E.keyId(it); }))].filter(c => c !== ' ').slice(0, 8);
+  r.result = { acc, wpm, stars, pass: acc >= S.settings.passAcc, misfires: r.misfires, missed, secs };
+  r.results[r.si] = r.result;
+  const st = S.stats;
+  st.sessions.push({ d: today(), wpm: kind === 'keys' || kind === 'chords' ? null : wpm, acc, secs, n });
+  if (st.sessions.length > 600) st.sessions = st.sessions.slice(-600);
+  st.daily[today()] = (st.daily[today()] || 0) + secs;
+  if (r.lesson && r.result.pass) {
+    const p = st.progress[r.lesson.id] || { stars: 0 };
+    p.stageCount = r.stages.length; p.stagesDone = Math.max(p.stagesDone || 0, r.si + 1);
+    st.progress[r.lesson.id] = p;
+  }
+  saveStats();
+  renderRun(false);
+  paintChips();
+}
+function finishLesson(){
+  const r = S.run;
+  const res = r.results.filter(Boolean);
+  const acc = res.reduce((a, x) => a + x.acc, 0) / res.length, wpm = res.reduce((a, x) => a + x.wpm, 0) / res.length;
+  const kind = r.lesson ? (r.lesson.kind === 'review' ? r.lesson.reviewKind : r.lesson.kind) : 'practice';
+  const stars = Math.max(1, computeStars(acc, wpm, kind));
+  if (r.lesson) {
+    const p = S.stats.progress[r.lesson.id] || {};
+    p.stars = Math.max(p.stars || 0, stars); p.bestWpm = Math.max(p.bestWpm || 0, kind === 'keys' || kind === 'chords' ? 0 : wpm);
+    p.bestAcc = Math.max(p.bestAcc || 0, acc); p.stageCount = r.stages.length; p.stagesDone = r.stages.length;
+    S.stats.progress[r.lesson.id] = p; saveStats();
+  }
+  r.result = { lessonDone: true, acc, wpm, stars, misfires: { shift: 0, mod: 0, alt: 0 }, missed: [] };
+  paintState();
+}
+function nextStage(){
+  const r = S.run;
+  if (r.si >= r.stages.length - 1) { finishLesson(); return; }
+  r.si++; resetStage(); renderRun(true);
+}
+function exitRun(){ S.run = null; render(); }
+
+function onKey(e){
+  const r = S.run; if (!r) return;
+  if (r.result) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (r.result.lessonDone) { if (r.lesson && r.lessonIdx < S.C.lessons.length - 1) startLesson(r.lessonIdx + 1); else exitRun(); }
+      else if (r.result.pass) nextStage(); else { resetStage(); renderRun(true); }
+    } else if (e.key === 'Escape') { e.preventDefault(); exitRun(); }
+    return;
+  }
+  if (e.key === 'Escape') { e.preventDefault(); exitRun(); return; }
+  if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Fn', 'Hyper', 'Super', 'OS', 'AltGraph'].includes(e.key)) return;
+  const it = r.items[r.idx]; if (!it) return;
+  e.preventDefault();
+  const now = performance.now();
+  let ok = false, misfire = null;
+  if (it.t === 'c') {
+    if (e.key === 'Backspace') {
+      if (!S.settings.stopOnError && r.idx > 0 && r.wrong.has(r.idx - 1)) { r.idx--; paintState(); }
+      return;
+    }
+    let typed = e.key === 'Enter' ? '\n' : e.key;
+    if (e.metaKey || e.ctrlKey) misfire = e.metaKey ? '⌘ fired instead of a letter' : '⌃ fired instead of a letter';
+    else if (e.key === 'Dead' || (e.altKey && typed !== it.ch)) misfire = '⌥ fired instead of a letter';
+    else if (typed.length === 1 && typed !== it.ch && typed.toLowerCase() === it.ch.toLowerCase() && /[a-z]/i.test(typed)) misfire = typed === typed.toUpperCase() ? 'Shift fired by accident' : 'Shift was not held';
+    if (typed.length !== 1 && !misfire) return; // stray navigation key: ignore
+    ok = !misfire && typed === it.ch;
+    if (misfire) { const t = misfire.startsWith('⌘') || misfire.startsWith('⌃') ? 'mod' : misfire.startsWith('⌥') ? 'alt' : 'shift'; r.misfires[t]++; S.stats.misfires[t] = (S.stats.misfires[t] || 0) + 1; }
+  } else {
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const want = new Set(it.mods);
+    const modsOk = ['ctrl', 'alt', 'meta', 'shift'].every(m => !!e[m + 'Key'] === want.has(m));
+    ok = k === it.key && modsOk;
+    if (k === it.key && !modsOk) misfire = 'Wrong modifier held';
+  }
+  r.lastMisfire = misfire;
+  if (!r.t0) { r.t0 = now; r.last = now; }
+  const id = it.t === 'c' ? it.ch : E.keyId(it);
+  const ks = S.stats.keys[id] || (S.stats.keys[id] = { n: 0, err: 0, lat: 0, ln: 0 });
+  if (!r.tried.has(r.idx)) {
+    r.tried.add(r.idx); ks.n++;
+    if (!ok) { ks.err++; r.errCount++; }
+    else if (r.idx > 0) { const lat = now - r.last; if (lat < 3000) { ks.lat += lat; ks.ln++; } }
+  }
+  if (ok) { r.idx++; r.last = now; }
+  else {
+    r.wrong.add(r.idx);
+    const tb = $('#typebox'); if (tb) { tb.classList.remove('shake'); void tb.offsetWidth; tb.classList.add('shake'); }
+    if (!S.settings.stopOnError) { r.idx++; r.last = now; }
+  }
+  if (r.idx >= r.items.length) finishStage(now); else paintState();
+}
+
+/* ---------- practice ---------- */
+function startPractice(kind){
+  const unlocked = unlockedChars();
+  let stages, title;
+  if (kind === 'problem') {
+    const pk = problemKeys(4).map(r => r.k);
+    const chars = pk.filter(k => k.length === 1);
+    const keys = pk.filter(k => k.length > 1);
+    stages = chars.length ? E.practiceStages(S.C, unlocked, chars, WORDS, +S.settings.stageLen) : [];
+    if (keys.length) stages.push({ name: 'Focus keys', items: Array.from({ length: 12 }, () => E.keyItem(keys[Math.floor(Math.random() * keys.length)])) });
+    title = 'Problem keys: ' + pk.map(itemLabel).join(' ');
+  } else if (kind === 'free') {
+    stages = E.practiceStages(S.C, unlocked, [], WORDS, +S.settings.stageLen * 1.5);
+    title = 'Free practice';
+  } else {
+    const t = (S.customText || '').replace(/\s+/g, ' ').trim();
+    if (!t) return;
+    stages = [];
+    for (let i = 0; i < t.length; i += 160) {
+      let end = Math.min(t.length, i + 160);
+      stages.push({ name: 'Part ' + (stages.length + 1), items: E.textItems(t.slice(i, end).trim()) });
+    }
+    title = 'Your text';
+  }
+  if (!stages.length) return;
+  beginRun({ lesson: null, stages, title });
+}
+
+/* ---------- events ---------- */
+document.addEventListener('keydown', onKey);
+window.addEventListener('focus', () => { if (S.run) paintState(); });
+window.addEventListener('blur', () => { if (S.run) paintState(); });
+document.addEventListener('click', e => {
+  const t = e.target.closest('button, a[data-jump]'); if (!t) return;
+  const d = t.dataset;
+  if (d.jump) { e.preventDefault(); const el = document.getElementById(d.jump); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  if (d.view) { S.view = d.view; S.msg = null; S.confirmDel = null; render(); return; }
+  if (d.start != null) { startLesson(+d.start); return; }
+  if (d.layer != null) { S.layerView = +d.layer; render(); return; }
+  if (d.use) { activate(d.use); S.msg = null; render(); return; }
+  if (d.del) {
+    if (S.confirmDel !== d.del) { S.confirmDel = d.del; render(); return; }
+    delete S.layouts[d.del]; store.set('layouts', S.layouts); store.del('stats.' + d.del); S.confirmDel = null;
+    if (d.del === S.activeId) { const ids = Object.keys(S.layouts); if (ids.length) activate(ids[0]); else { seedDefault(); } }
+    render(); return;
+  }
+  switch (d.act) {
+    case 'exit': exitRun(); break;
+    case 'focus': window.focus(); paintState(); break;
+    case 'next-stage': nextStage(); break;
+    case 'retry-stage': resetStage(); renderRun(true); break;
+    case 'next-lesson': startLesson(S.run.lessonIdx + 1); break;
+    case 'redo-lesson': if (S.run.lesson) startLesson(S.run.lessonIdx); else { S.run.si = 0; S.run.results = []; resetStage(); renderRun(true); } break;
+    case 'practice-problem': startPractice('problem'); break;
+    case 'practice-free': startPractice('free'); break;
+    case 'practice-custom': S.customText = ($('#customText') || {}).value || ''; startPractice('custom'); break;
+    case 'load-paste': {
+      const txt = ($('#layoutPaste') || {}).value || '';
+      if (!txt.trim()) { S.msg = { t: 'err', m: 'Paste the contents of a layout file first.' }; render(); break; }
+      try { const L = loadLayoutText(txt); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${L.title}. Lessons rebuilt for this layout.` }; }
+      catch (err) { S.msg = { t: 'err', m: err.message }; }
+      render(); break;
+    }
+    case 'reset':
+      if (S.confirmDel !== '__reset') { S.confirmDel = '__reset'; render(); break; }
+      S.stats = freshStats(); saveStats(); S.confirmDel = null; render(); break;
+  }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'layoutFile' && t.files && t.files[0]) {
+    const f = t.files[0], rd = new FileReader();
+    rd.onload = () => { try { const L = loadLayoutText(String(rd.result), f.name.replace(/\.[^.]+$/, '')); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${L.title} from ${f.name}. Lessons rebuilt for this layout.` }; } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); };
+    rd.readAsText(f); return;
+  }
+  const keys = ['routePref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'showFingers', 'unlockAll'];
+  if (keys.includes(t.id)) {
+    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && t.id === 'routePref') ? t.value : Math.max(1, +t.value || DEFAULT_SETTINGS[t.id]);
+    S.settings[t.id] = v; store.set('settings', S.settings);
+    if (t.id === 'routePref') rebuild();
+    render();
+  }
+});
+document.addEventListener('input', e => { if (e.target.id === 'customText') S.customText = e.target.value; });
+
+/* ---------- boot ---------- */
+function seedDefault(){
+  const txt = window.HOMEROW_DEFAULT_LAYOUT ? JSON.stringify(window.HOMEROW_DEFAULT_LAYOUT) : null;
+  if (!txt) return;
+  const L = E.buildLayout(txt);
+  S.layouts[L.id] = { name: L.title, keyboard: L.keyboard, text: txt, savedAt: Date.now() };
+  store.set('layouts', S.layouts);
+  activate(L.id);
+}
+try {
+  if (S.activeId && S.layouts[S.activeId]) activate(S.activeId);
+  else if (Object.keys(S.layouts).length) activate(Object.keys(S.layouts)[0]);
+  else seedDefault();
+} catch (err) {
+  console.error(err); S.layouts = {}; seedDefault();
+}
+render();
+})();
+</script>
+</body></html>
