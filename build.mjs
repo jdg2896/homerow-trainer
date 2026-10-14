@@ -27,7 +27,7 @@ const head = `<meta charset="utf-8">
 <style>${read('src/style.css')}</style>`;
 
 const body = `<div id="app"></div>
-<script>window.HOMEROW_WORDS=${read('data/words.json')};window.HOMEROW_PRESETS=${presets};</script>
+<script>window.HOMEROW_TRAINER_WORDS=${read('data/words.json')};window.HOMEROW_TRAINER_PRESETS=${presets};</script>
 <script>${read('src/engine.js')}</script>
 <script>${read('src/ui.js')}</script>`;
 

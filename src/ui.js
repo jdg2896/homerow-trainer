@@ -1,17 +1,17 @@
 /* ============================================================
-   Homerow UI
+   Homerow Trainer UI
    ============================================================ */
 (function(){
-const E = HomerowEngine;
-const WORDS = window.HOMEROW_WORDS || [];
+const E = HomerowTrainerEngine;
+const WORDS = window.HOMEROW_TRAINER_WORDS || [];
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ---------- storage ---------- */
 const store = {
-  get(k, d){ try { const v = localStorage.getItem('homerow.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-  set(k, v){ try { localStorage.setItem('homerow.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
-  del(k){ try { localStorage.removeItem('homerow.' + k); } catch (e) {} }
+  get(k, d){ try { const v = localStorage.getItem('homerow-trainer.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v){ try { localStorage.setItem('homerow-trainer.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k){ try { localStorage.removeItem('homerow-trainer.' + k); } catch (e) {} }
 };
 const DEFAULT_SETTINGS = { passAcc: 95, targetWpm: 20, stopOnError: true, stageLen: 90, routePref: 'layers',
   showFingers: true, showKeyboard: true, dailyGoal: 15, unlockAll: false, theme: 'system' };
@@ -149,7 +149,7 @@ function header(){
   const o = overall(), goal = S.settings.dailyGoal * 60, pct = Math.min(1, o.todaySecs / goal), C = 2 * Math.PI * 18;
   const L = S.layout;
   return `<header class="top"><div class="bar">
-    <div class="brand"><span class="brand-mark" aria-hidden="true">${[0,1,2,3,4,5,6,7,8].map(i => `<i class="${i >= 3 && i < 6 ? 'on' : ''}"></i>`).join('')}</span>Homerow</div>
+    <div class="brand"><span class="brand-mark" aria-hidden="true">${[0,1,2,3,4,5,6,7,8].map(i => `<i class="${i >= 3 && i < 6 ? 'on' : ''}"></i>`).join('')}</span>Homerow Trainer</div>
     <div class="layout-chip"><b title="${esc(L.title)}">${esc(L.title)}</b><span>${esc(L.geo.name)} · ${L.layers.length} layers</span></div>
     <div class="stats">
       <div class="stat"><small>Avg speed</small><b>${o.wpm == null ? '–' : Math.round(o.wpm)}<em>wpm</em></b></div>
@@ -242,7 +242,7 @@ function practiceView(){
 
 const KBD_NAME = { go60: 'Go60', glove80: 'Glove80' };
 function presetsCard(){
-  const presets = window.HOMEROW_PRESETS || [];
+  const presets = window.HOMEROW_TRAINER_PRESETS || [];
   if (!presets.length) return '';
   const groups = {};
   presets.forEach((p, i) => { (groups[p.keyboard] = groups[p.keyboard] || []).push(i); });
@@ -381,7 +381,7 @@ function renderRun(full){
       <div class="typebox" id="typebox"><div class="viewport"><div class="textline" id="textline"></div></div><div id="overlay"></div></div>
       <div class="hint" id="hint"></div>
       ${S.settings.showKeyboard ? `<div class="kbwrap" id="kb"></div>` : ''}
-      <p class="muted" style="font-size:13px;margin:0">Esc leaves the lesson. Homerow can't block every browser shortcut, like ⌘W, so watch for accidental Command holds.</p>
+      <p class="muted" style="font-size:13px;margin:0">Esc leaves the lesson. Homerow Trainer can't block every browser shortcut, like ⌘W, so watch for accidental Command holds.</p>
     </div></div>`;
     paintText();
   }
@@ -625,7 +625,7 @@ document.addEventListener('click', e => {
     case 'practice-free': startPractice('free'); break;
     case 'practice-custom': S.customText = ($('#customText') || {}).value || ''; startPractice('custom'); break;
     case 'add-selected': {
-      const i = ($('#presetSel') || {}).value, p = (window.HOMEROW_PRESETS || [])[+i];
+      const i = ($('#presetSel') || {}).value, p = (window.HOMEROW_TRAINER_PRESETS || [])[+i];
       S.presetSel = +i || 0;
       if (p) { try { const L = loadLayoutText(JSON.stringify(p)); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Added ${L.title} and switched to it.` }; } catch (err) { S.msg = { t: 'err', m: err.message }; } }
       render(); break;
@@ -666,7 +666,7 @@ applyTheme(S.settings.theme);
 // Miryoku (macOS) on Go60, from the Starter layouts catalog (data/presets/).
 const DEFAULT_LAYOUT_ID = 'bcbba205-ff1e-4254-9bda-d85cfbac68ff';
 function defaultPreset(){
-  const ps = window.HOMEROW_PRESETS || [];
+  const ps = window.HOMEROW_TRAINER_PRESETS || [];
   if (!ps.length) return null;
   return ps.find(p => String(p.uuid) === DEFAULT_LAYOUT_ID) || ps[0];
 }

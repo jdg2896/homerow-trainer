@@ -1,17 +1,17 @@
 # Credits
 
-Homerow is an independent, non-commercial project. It shares no code with the projects below, but it would not exist without them. Thank you to everyone listed here.
+Homerow Trainer is an independent, non-commercial project. It shares no code with the projects below, but it would not exist without them. Thank you to everyone listed here.
 
 ## Inspiration
 
-- **[moosytype](https://github.com/moosylog/moosytype)** by moosylog: a typing trainer for split and ergonomic keyboards. Homerow's core ideas come from it: loading your own ZMK / MoErgo layout and adapting the trainer to it, an on-screen keyboard that shows the key you need on the right layer, practice that targets the keys you miss, and the overall feel of the typing interface.
+- **[moosytype](https://github.com/moosylog/moosytype)** by moosylog: a typing trainer for split and ergonomic keyboards. Homerow Trainer's core ideas come from it: loading your own ZMK / MoErgo layout and adapting the trainer to it, an on-screen keyboard that shows the key you need on the right layer, practice that targets the keys you miss, and the overall feel of the typing interface.
 - **[typing.com](https://www.typing.com)**: the progressive lesson structure (two new keys at a time, review lessons, units from the home row outward), the stage-by-stage lesson progress, star ratings, problem keys and the daily goal.
 - **[keybr.com](https://www.keybr.com)**: the idea of generating practice words using only the letters you have unlocked so far.
 
 ## Keyboards, layouts and firmware
 
 - **[Miryoku](https://github.com/manna-harbour/miryoku)** by Manna Harbour: the layout the bundled keymap is based on (home-row mods and thumb-held layers), and the reason the curriculum teaches symbols and numbers on thumb layers by default.
-- **[MoErgo](https://www.moergo.com)**: the Go60 and Glove80 keyboards and the Layout Editor JSON format Homerow reads. The bundled layout, `data/default-layout.json` ("Miryoku (macOS)" for Go60), was published by MoErgo in its layout library and uses the TailorKey hold-tap definitions.
+- **[MoErgo](https://www.moergo.com)**: the Go60 and Glove80 keyboards and the Layout Editor JSON format Homerow Trainer reads. The bundled layout, `data/default-layout.json` ("Miryoku (macOS)" for Go60), was published by MoErgo in its layout library and uses the TailorKey hold-tap definitions.
 - **[ZMK Firmware](https://zmk.dev)**: the keymap format and behavior names (`&kp`, `&mt`, `&lt`, `&mo`, `&sk`, `&trans`) that the layout parser understands.
 
 ## Data

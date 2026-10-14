@@ -1,4 +1,4 @@
-# Homerow
+# Homerow Trainer
 
 A typing trainer for ergonomic split keyboards that builds typing.com-style progressive lessons from your own layout. Load a MoErgo Layout Editor export (Go60, Glove80) or a ZMK `.keymap`, and it works out which finger, layer and modifier produces every character — thumb layers and home-row mods included — then teaches them in order.
 

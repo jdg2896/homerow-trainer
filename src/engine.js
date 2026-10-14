@@ -1,5 +1,5 @@
 /* ============================================================
-   Homerow engine: layout parsing, routing, curriculum, drills.
+   Homerow Trainer engine: layout parsing, routing, curriculum, drills.
    Pure functions, no DOM. Testable in node.
    ============================================================ */
 
@@ -252,7 +252,7 @@ function buildLayout(text, opts){
   const fmt = detectFormat(text);
   let raw;
   if (fmt === 'moergo') {
-    try { raw = JSON.parse(text); } catch (e) { throw new Error("Homerow couldn't read this JSON file: " + e.message); }
+    try { raw = JSON.parse(text); } catch (e) { throw new Error("Homerow Trainer couldn't read this JSON file: " + e.message); }
     if (!Array.isArray(raw.layers) || !raw.layers.length) throw new Error('The JSON has no "layers" array. Export the layout from the MoErgo Layout Editor.');
   } else raw = parseZmkKeymap(text);
   const n = Math.max(...raw.layers.map(l => l.length));
@@ -803,6 +803,6 @@ function practiceStages(C, unlocked, focus, WORDS, len){
   return st.filter(s => s.text.trim()).map(s => ({ name: s.name, items: textItems(s.text.replace(/\s+/g, ' ').trim()) }));
 }
 
-const HomerowEngine = { buildLayout, buildRoutes, buildCurriculum, makeStages, practiceStages, routeFor, keyItem, keyItemLabel,
+const HomerowTrainerEngine = { buildLayout, buildRoutes, buildCurriculum, makeStages, practiceStages, routeFor, keyItem, keyItemLabel,
   keyId, charName, listTitle, unlockedBefore, parseZmkKeymap, MOD_SYM, MOD_NAME, FINGERS, textItems };
-if (typeof module !== 'undefined') module.exports = HomerowEngine;
+if (typeof module !== 'undefined') module.exports = HomerowTrainerEngine;
