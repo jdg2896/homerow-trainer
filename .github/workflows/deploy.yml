@@ -20,11 +20,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: '3.13'
+          node-version: '20'
+      - name: Test curriculum/engine
+        run: node test/curriculum.js
       - name: Build dist/index.html
-        run: python build.py
+        run: node build.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

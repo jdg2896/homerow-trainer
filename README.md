@@ -1,6 +1,6 @@
 # Homerow
 
-A typing trainer that builds typing.com-style progressive lessons from your own keyboard layout. Load a MoErgo Layout Editor export (Go60, Glove80) or a ZMK `.keymap`, and it works out which finger, layer and modifier produces every character, then teaches them in order.
+A typing trainer for ergonomic split keyboards that builds typing.com-style progressive lessons from your own layout. Load a MoErgo Layout Editor export (Go60, Glove80) or a ZMK `.keymap`, and it works out which finger, layer and modifier produces every character — thumb layers and home-row mods included — then teaches them in order.
 
 Inspired by [moosytype](https://github.com/moosylog/moosytype), [typing.com](https://www.typing.com) and [keybr.com](https://www.keybr.com). See [CREDITS.md](CREDITS.md).
 
@@ -31,18 +31,21 @@ Key codes are mapped assuming a US ANSI host layout. Go60/Glove80 key geometry i
 
 ## Develop
 
-No dependencies for the app itself.
+No dependencies for the app itself, and Node is the only runtime. The `npm` scripts are thin wrappers (no packages to install).
 
 ```sh
-python3 build.py              # writes dist/index.html
-node test/curriculum.js       # prints the generated curriculum and sample drills for the bundled layout
-node tools/fetch_presets.mjs  # refresh data/presets/ from the layouts MoErgo's editors currently ship
+npm run build    # node build.mjs — writes dist/index.html
+npm test         # node test/curriculum.js — builds every bundled layout and checks each drill item routes
+npm run presets  # node tools/fetch_presets.mjs — refresh data/presets/ from MoErgo's live editors
 open dist/index.html
 ```
 
+`npm test` and `npm run build` run in CI on every pull request (`.github/workflows/ci.yml`), and
+the deploy workflow runs the test before publishing to GitHub Pages.
+
 The **Starter layouts** dropdown (Layout view) is populated from `data/presets/`,
 which `tools/fetch_presets.mjs` downloads from the live Go60 and Glove80 editors.
-Re-run it, then `python3 build.py`, to refresh the catalog.
+Re-run it, then `node build.mjs`, to refresh the catalog.
 
 ```
 src/engine.js   layout parsing, routing, curriculum, drill generation (pure, runs in node)

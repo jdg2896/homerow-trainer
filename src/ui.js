@@ -447,7 +447,10 @@ function updateLive(){
   if (a) a.innerHTML = `${Math.round(n.acc)}<em>%</em>`;
   if (t) t.textContent = fmtTime(n.secs);
 }
-setInterval(() => { if (S.run && S.run.t0 && !S.run.result) updateLive(); }, 500);
+// Tick the live speed/accuracy readout only while a timed run is in progress; self-stops otherwise.
+let liveTimer = null;
+function startLiveTimer(){ if (liveTimer == null) liveTimer = setInterval(() => { if (S.run && S.run.t0 && !S.run.result) updateLive(); else stopLiveTimer(); }, 500); }
+function stopLiveTimer(){ if (liveTimer != null) { clearInterval(liveTimer); liveTimer = null; } }
 
 function resultCard(){
   const r = S.run, res = r.result;
@@ -509,7 +512,7 @@ function nextStage(){
   if (r.si >= r.stages.length - 1) { finishLesson(); return; }
   r.si++; resetStage(); renderRun(true);
 }
-function exitRun(){ S.run = null; render(); }
+function exitRun(){ stopLiveTimer(); S.run = null; render(); }
 
 function onKey(e){
   const r = S.run; if (!r) return;
@@ -547,7 +550,7 @@ function onKey(e){
     if (k === it.key && !modsOk) misfire = 'Wrong modifier held';
   }
   r.lastMisfire = misfire;
-  if (!r.t0) { r.t0 = now; r.last = now; }
+  if (!r.t0) { r.t0 = now; r.last = now; startLiveTimer(); }
   const id = it.t === 'c' ? it.ch : E.keyId(it);
   const ks = S.stats.keys[id] || (S.stats.keys[id] = { n: 0, err: 0, lat: 0, ln: 0 });
   if (!r.tried.has(r.idx)) {
@@ -673,7 +676,7 @@ function seedDefault(){
   const txt = JSON.stringify(p);
   const L = E.buildLayout(txt);
   S.layouts[L.id] = { name: L.title, keyboard: L.keyboard, text: txt, savedAt: Date.now() };
-  store.set('layouts', S.layouts);
+  if (!store.set('layouts', S.layouts)) S.msg = { t: 'err', m: 'This browser blocked storage, so your layouts, progress and stats will not be remembered after you close the page.' };
   activate(L.id);
 }
 try {
