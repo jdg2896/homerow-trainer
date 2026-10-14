@@ -452,7 +452,7 @@ function buildCurriculum(L, pref){
   const capGroups = [];
   ['home', 'top', 'bottom'].forEach(role => {
     const caps = sortSlots(L, shifted.filter(c => /[A-Z]/.test(c) && L.keys[rOf(c).pos].role === role), rOf);
-    chunk(caps, 4).forEach(g => { g.title = 'Capitals: ' + g.join(' '); capGroups.push(g); });
+    chunk(caps, 6).forEach(g => { g.title = 'Capitals: ' + g.join(' '); capGroups.push(g); });
   });
   const restCaps = shifted.filter(c => /[A-Z]/.test(c) && !capGroups.some(g => g.includes(c)));
   if (restCaps.length) { const g = restCaps.slice(); g.title = 'Capitals: ' + g.join(' '); capGroups.push(g); }
@@ -460,7 +460,7 @@ function buildCurriculum(L, pref){
   const shSyms = sortSlots(L, shifted.filter(c => !used.has(c)), rOf);
   const shGroups = chunk(shSyms, 3);
   shSyms.forEach(c => used.add(c));
-  addUnit('shift-caps', 'Capitals', 'Hold Shift on the opposite hand, tap the letter.', capGroups, 'learn', 3);
+  addUnit('shift-caps', 'Capitals', 'Hold Shift on the opposite hand, tap the letter.', capGroups, 'learn', 4);
   addUnit('shift-syms', 'Shifted symbols', 'Symbols you reach with Shift on your base layer.', shGroups, 'learn', 4);
 
   // Layer units
@@ -713,15 +713,9 @@ function shortWordsText(newC, unlocked, len, WORDS){
   while (out.join(' ').length < len) { const w = pick(pool); if (out[out.length - 1] !== w) out.push(w); }
   return out.join(' ');
 }
-function burstText(base){
-  // repeat each word twice to build rhythm: "tent tent sent sent"
-  const ws = base.split(' ').filter(Boolean), out = [];
-  for (const w of ws) { out.push(w, w); if (out.join(' ').length > base.length) break; }
-  return out.join(' ');
-}
 function keyStages(ids, len){
-  const n = Math.max(12, Math.round(len / 6));
-  const intro = []; ids.forEach(id => { for (let i = 0; i < 3; i++) intro.push(id); });
+  const n = Math.max(16, Math.round(len / 3));
+  const intro = []; ids.forEach(id => { for (let i = 0; i < 4; i++) intro.push(id); });
   const alt = []; while (alt.length < n) { const a = pick(ids); let b = pick(ids); if (b === a && ids.length > 1) b = ids[(ids.indexOf(a) + 1) % ids.length]; alt.push(a, b, a); }
   const mix = []; while (mix.length < n) mix.push(pick(ids));
   const speed = []; while (speed.length < n * 2) speed.push(pick(ids));
@@ -755,7 +749,6 @@ function makeStages(C, lesson, WORDS, len){
     }
     const cw = wordsText(newC, unlocked, len, WORDS, caps);
     add('Capital words', cw);
-    add('Word bursts', burstText(wordsText(newC, unlocked, len * 0.6, WORDS, caps)));
     add('Mixed case', wordsText(newC, unlocked, len, WORDS, capPick(unlocked)));
     add('Sentences', sentenceText(newC, unlocked, len * 1.3, WORDS));
     add('Accuracy check', sentenceText(newC, unlocked, len * 1.6, WORDS));
@@ -770,7 +763,7 @@ function makeStages(C, lesson, WORDS, len){
     add('In context', symbolText(newC, unlocked, len, WORDS, 'token'));
     if (before.has('a')) add('Code', symbolText(newC, unlocked, len * 1.1, WORDS, 'code'));
     add('Prose', symbolText(newC, unlocked, len * 1.2, WORDS, 'prose'));
-    add('Accuracy check', symbolText(newC, unlocked, len * 1.4, WORDS, before.has('a') ? 'code' : 'token'));
+    add('Accuracy check', symbolText(newC, unlocked, len * 1.2, WORDS, before.has('a') ? 'code' : 'token'));
   } else {
     if (!isReview) {
       add('Meet the keys', patternText(newC, len * 0.7));
@@ -782,8 +775,7 @@ function makeStages(C, lesson, WORDS, len){
       add('Short words', shortWordsText(newC, unlocked, len * 0.8, WORDS));
       const w = wordsText(newC, unlocked, len, WORDS);
       add('Words', w);
-      add('Word bursts', burstText(wordsText(newC, unlocked, len * 0.6, WORDS)));
-      add('Sentences', sentenceText(newC, unlocked, len * 1.3, WORDS));
+      if (lettersOf(unlocked).length >= 6) add('Sentences', sentenceText(newC, unlocked, len * 1.3, WORDS));
     } else if (lettersOf(unlocked).length >= 4) {
       add('Pseudo-words', wordsText(newC, unlocked, len, WORDS));
       add('Mixed drill 2', mixText(newC, [...before], len));
