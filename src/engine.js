@@ -252,7 +252,7 @@ function buildLayout(text, opts){
   const fmt = detectFormat(text);
   let raw;
   if (fmt === 'moergo') {
-    try { raw = JSON.parse(text); } catch (e) { throw new Error('This JSON file could not be parsed: ' + e.message); }
+    try { raw = JSON.parse(text); } catch (e) { throw new Error("Homerow couldn't read this JSON file: " + e.message); }
     if (!Array.isArray(raw.layers) || !raw.layers.length) throw new Error('The JSON has no "layers" array. Export the layout from the MoErgo Layout Editor.');
   } else raw = parseZmkKeymap(text);
   const n = Math.max(...raw.layers.map(l => l.length));

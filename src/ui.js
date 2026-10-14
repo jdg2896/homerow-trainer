@@ -211,8 +211,9 @@ function learnView(){
 function practiceView(){
   const pk = problemKeys(20);
   const misf = S.stats.misfires;
-  // Left column = things you start; right column = how you're doing. Each column stacks its own cards,
-  // so a long problem-keys table never drags the action cards out of alignment.
+  // Left column = things you start; right column = how you're doing. Problem keys is the only card that
+  // changes height (its table grows, then scrolls), so it goes at the bottom of its column where it can
+  // grow downward freely; the fixed-height misfires card sits above it. Columns keep natural heights.
   const freeCard = `<div class="card field"><h3 style="font-size:19px">Free practice</h3>
       <p class="muted" style="margin:0 0 4px">Words and sentences from all your unlocked keys.</p>
       <div class="actions"><button class="btn go" data-act="practice-free"><span class="tri"></span>Start free practice</button></div></div>`;
@@ -225,7 +226,7 @@ function practiceView(){
       <div class="actions"><button class="btn go" data-act="practice-problem"><span class="tri"></span>Practice problem keys</button></div>` : `<p class="muted" style="margin:4px 0 0">No problem keys yet. They appear once you have typed each key a few times.</p>`}
     </div>`;
   const misfCard = `<div class="card"><h3 style="font-size:19px">Home-row mod misfires</h3>
-      <p class="muted" style="margin-top:4px">Counted when a modifier fires while you meant to type a letter.</p>
+      <p class="muted" style="margin-top:4px">Counts each modifier that fires while you meant to type a letter.</p>
       <table class="ptable"><tbody>
         <tr><td>Accidental Shift</td><td>${misf.shift || 0}</td></tr>
         <tr><td>Accidental ⌘ or ⌃</td><td>${misf.mod || 0}</td></tr>
@@ -235,7 +236,7 @@ function practiceView(){
   return `<div class="section-title"><h2>Practice</h2><span class="muted">Uses only the keys you have unlocked</span></div>
   <div class="pcols">
     <div class="pcol">${freeCard}${textCard}</div>
-    <div class="pcol">${pkCard}${misfCard}</div>
+    <div class="pcol">${misfCard}${pkCard}</div>
   </div>`;
 }
 
@@ -257,7 +258,7 @@ function presetsCard(){
   const btn = inUse ? '<span class="badge" style="align-self:center">In use</span>'
     : `<button class="btn primary" data-act="add-selected">Add to my layouts</button>`;
   return `<div class="card field"><h3 style="font-size:19px">Starter layouts</h3>
-    <small>Official MoErgo layouts from the Go60 and Glove80 editors (✓ = already added). Adding one switches to it; your current layout stays saved and can be removed below.</small>
+    <small>Official MoErgo layouts from the Go60 and Glove80 editors (✓ = already added). Adding one switches to it; your current layout stays saved, and you can remove it below.</small>
     <div style="display:flex;gap:10px;margin-top:12px;align-items:stretch;flex-wrap:wrap">
       <div style="flex:1;min-width:240px"><select id="presetSel" aria-label="Choose a starter layout">${optgroups}</select></div>
       ${btn}
@@ -321,7 +322,7 @@ function settingsView(){
       <label for="theme">Theme</label>
       ${sel('theme', [['system', 'Match system'], ['light', 'Light'], ['dark', 'Dark']], s.theme)}
       <small>Choose a light or dark colour scheme, or follow your device setting.</small></div>
-    <div class="card field"><h3 style="font-size:19px">Reset</h3><small>Clears lesson progress and key stats for ${esc(S.layout.title)} only.</small>
+    <div class="card field"><h3 style="font-size:19px">Reset</h3><small>Clears lesson progress and key stats for your active layout, ${esc(S.layout.title)}. Your other saved layouts keep theirs.</small>
       <div class="actions"><button class="btn danger" data-act="reset">${S.confirmDel === '__reset' ? 'Confirm reset' : 'Reset progress'}</button></div></div>
   </div>`;
 }
@@ -380,7 +381,7 @@ function renderRun(full){
       <div class="typebox" id="typebox"><div class="viewport"><div class="textline" id="textline"></div></div><div id="overlay"></div></div>
       <div class="hint" id="hint"></div>
       ${S.settings.showKeyboard ? `<div class="kbwrap" id="kb"></div>` : ''}
-      <p class="muted" style="font-size:13px;margin:0">Esc leaves the lesson. Some browser shortcuts, like ⌘W, can't be blocked, so watch for accidental Command holds.</p>
+      <p class="muted" style="font-size:13px;margin:0">Esc leaves the lesson. Homerow can't block every browser shortcut, like ⌘W, so watch for accidental Command holds.</p>
     </div></div>`;
     paintText();
   }
