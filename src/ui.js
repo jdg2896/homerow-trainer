@@ -14,7 +14,14 @@ const store = {
   del(k){ try { localStorage.removeItem('homerow.' + k); } catch (e) {} }
 };
 const DEFAULT_SETTINGS = { passAcc: 95, targetWpm: 20, stopOnError: true, stageLen: 90, routePref: 'layers',
-  showFingers: true, showKeyboard: true, dailyGoal: 15, unlockAll: false };
+  showFingers: true, showKeyboard: true, dailyGoal: 15, unlockAll: false, theme: 'system' };
+
+/* ---------- theme ---------- */
+function applyTheme(t){
+  const el = document.documentElement;
+  if (t === 'light' || t === 'dark') el.setAttribute('data-theme', t);
+  else el.removeAttribute('data-theme');
+}
 
 const S = {
   layouts: store.get('layouts', {}),
@@ -309,6 +316,10 @@ function settingsView(){
       <div class="check"><input type="checkbox" id="showKeyboard" ${s.showKeyboard ? 'checked' : ''}><label for="showKeyboard">Show the keyboard during lessons</label></div>
       <div class="check"><input type="checkbox" id="showFingers" ${s.showFingers ? 'checked' : ''}><label for="showFingers">Colour keys by finger</label></div>
       <div class="check"><input type="checkbox" id="unlockAll" ${s.unlockAll ? 'checked' : ''}><label for="unlockAll">Unlock every lesson</label></div></div>
+    <div class="card field"><h3 style="font-size:19px">Appearance</h3>
+      <label for="theme">Theme</label>
+      ${sel('theme', [['system', 'Match system'], ['light', 'Light'], ['dark', 'Dark']], s.theme)}
+      <small>Choose a light or dark colour scheme, or follow your device setting.</small></div>
     <div class="card field"><h3 style="font-size:19px">Reset</h3><small>Clears lesson progress and key stats for ${esc(S.layout.title)} only.</small>
       <div class="actions"><button class="btn danger" data-act="reset">${S.confirmDel === '__reset' ? 'Confirm reset' : 'Reset progress'}</button></div></div>
   </div>`;
@@ -633,17 +644,19 @@ document.addEventListener('change', e => {
     rd.onload = () => { try { const L = loadLayoutText(String(rd.result), f.name.replace(/\.[^.]+$/, '')); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${L.title} from ${f.name}. Lessons rebuilt for this layout.` }; } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); };
     rd.readAsText(f); return;
   }
-  const keys = ['routePref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'showFingers', 'unlockAll'];
+  const keys = ['routePref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'showFingers', 'unlockAll', 'theme'];
   if (keys.includes(t.id)) {
-    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && t.id === 'routePref') ? t.value : Math.max(1, +t.value || DEFAULT_SETTINGS[t.id]);
+    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && (t.id === 'routePref' || t.id === 'theme')) ? t.value : Math.max(1, +t.value || DEFAULT_SETTINGS[t.id]);
     S.settings[t.id] = v; store.set('settings', S.settings);
     if (t.id === 'routePref') rebuild();
+    if (t.id === 'theme') applyTheme(v);
     render();
   }
 });
 document.addEventListener('input', e => { if (e.target.id === 'customText') S.customText = e.target.value; });
 
 /* ---------- boot ---------- */
+applyTheme(S.settings.theme);
 // Miryoku (macOS) on Go60, from the Starter layouts catalog (data/presets/).
 const DEFAULT_LAYOUT_ID = 'bcbba205-ff1e-4254-9bda-d85cfbac68ff';
 function defaultPreset(){

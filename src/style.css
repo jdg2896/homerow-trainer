@@ -2,7 +2,7 @@
 :root{
   --bg:#E8ECF2; --surface:#FFFFFF; --surface-2:#F3F5F9; --ink:#141C2F; --muted:#56627C; --line:#D2D9E5;
   --accent:#2B57D9; --accent-soft:#DCE5FB; --accent-ink:#FFFFFF;
-  --go:#F2B705; --go-ink:#241A00; --ok:#16855A; --err:#CF3A32; --err-soft:#FBE0DD;
+  --go:#F2B705; --go-ink:#241A00; --ok:#127A51; --err:#C13029; --err-soft:#FBE0DD;
   --f-pinky:#E6DCFA; --f-ring:#D4E6FA; --f-middle:#D3F0E0; --f-index:#FBE6C4; --f-thumb:#E3E1DB;
   --key:#FFFFFF; --key-edge:#B8C1D2; --key-ink:#1B2438; --shadow:0 1px 2px rgba(20,28,47,.06),0 4px 14px rgba(20,28,47,.06);
   --display:'Bricolage Grotesque','Avenir Next',system-ui,sans-serif;
@@ -214,8 +214,8 @@ textarea{min-height:120px;font-family:var(--mono);font-size:13px}
 .ptable th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .ptable-scroll thead th{position:sticky;top:0;background:var(--surface)}
 
-.credits{padding:0 16px 32px;font-size:13px;color:var(--muted)}
-.credits p{margin:0;max-width:75ch}
+.credits{padding:24px 16px 32px;font-size:13px;color:var(--muted);text-align:center;border-top:1px solid var(--line)}
+.credits p{margin:0 auto;max-width:112ch}
 .credits a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 .credits a:hover{color:var(--accent)}
 
