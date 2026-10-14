@@ -1,10 +1,10 @@
 // Refresh data/presets/ from the layouts MoErgo's editors currently ship.
-// Usage:  node tools/fetch_presets.mjs   (then rebuild with: python3 build.py)
+// Usage:  node tools/fetch_presets.mjs   (then rebuild with: node build.mjs)
 //
 // Each editor (go60, glove80) bundles its built-in keymaps as hashed ESM
 // chunks referenced from its index bundle. We discover them from the live
 // index (robust to redeploys), evaluate each module, and write its default
-// export — a standard MoErgo layout object — as JSON that build.py bundles.
+// export — a standard MoErgo layout object — as JSON that build.mjs bundles.
 import { pathToFileURL } from 'node:url';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -54,4 +54,4 @@ for (const bd of BOARDS) {
   total += r.length;
 }
 fs.rmSync(TMP, { recursive: true, force: true });
-console.log(`\nWrote ${total} presets to data/presets/. Now run: python3 build.py`);
+console.log(`\nWrote ${total} presets to data/presets/. Now run: node build.mjs`);
