@@ -2,12 +2,13 @@
 from pathlib import Path
 root = Path(__file__).parent
 read = lambda p: (root / p).read_text()
+presets = '[' + ','.join(f.read_text() for f in sorted((root / 'data/presets').glob('*.json'))) + ']'
 body = f'''<title>Homerow Trainer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>{read("src/style.css")}</style>
 <div id="app"></div>
-<script>window.HOMEROW_WORDS={read("data/words.json")};window.HOMEROW_DEFAULT_LAYOUT={read("data/default-layout.json")};</script>
+<script>window.HOMEROW_WORDS={read("data/words.json")};window.HOMEROW_DEFAULT_LAYOUT={read("data/default-layout.json")};window.HOMEROW_PRESETS={presets};</script>
 <script>{read("src/engine.js")}</script>
 <script>{read("src/ui.js")}</script>
 '''

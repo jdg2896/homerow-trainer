@@ -28,10 +28,15 @@ Key codes are mapped assuming a US ANSI host layout. Go60/Glove80 key geometry i
 No dependencies for the app itself.
 
 ```sh
-python3 build.py          # writes dist/index.html
-node test/curriculum.js   # prints the generated curriculum and sample drills for the bundled layout
+python3 build.py              # writes dist/index.html
+node test/curriculum.js       # prints the generated curriculum and sample drills for the bundled layout
+node tools/fetch_presets.mjs  # refresh data/presets/ from the layouts MoErgo's editors currently ship
 open dist/index.html
 ```
+
+The **Starter layouts** dropdown (Layout view) is populated from `data/presets/`,
+which `tools/fetch_presets.mjs` downloads from the live Go60 and Glove80 editors.
+Re-run it, then `python3 build.py`, to refresh the catalog.
 
 ```
 src/engine.js   layout parsing, routing, curriculum, drill generation (pure, runs in node)

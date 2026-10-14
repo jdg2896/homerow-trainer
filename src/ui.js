@@ -20,7 +20,7 @@ const S = {
   layouts: store.get('layouts', {}),
   activeId: store.get('active', null),
   settings: Object.assign({}, DEFAULT_SETTINGS, store.get('settings', {})),
-  view: 'learn', layerView: 0, run: null, msg: null, confirmDel: null, customText: ''
+  view: 'learn', layerView: 0, run: null, msg: null, confirmDel: null, customText: '', presetSel: 0
 };
 
 function today(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -223,6 +223,31 @@ function practiceView(){
   </div>`;
 }
 
+const KBD_NAME = { go60: 'Go60', glove80: 'Glove80' };
+function presetsCard(){
+  const presets = window.HOMEROW_PRESETS || [];
+  if (!presets.length) return '';
+  const groups = {};
+  presets.forEach((p, i) => { (groups[p.keyboard] = groups[p.keyboard] || []).push(i); });
+  const sel = +S.presetSel >= 0 && +S.presetSel < presets.length ? +S.presetSel : 0;
+  const opt = i => { const p = presets[i], added = p.uuid && S.layouts[String(p.uuid)];
+    return `<option value="${i}" ${i === sel ? 'selected' : ''}>${esc(p.title || 'Layout')}${added ? ' ✓' : ''}</option>`; };
+  const order = ['go60', 'glove80'];
+  const keys = Object.keys(groups).sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
+  const optgroups = keys.map(k =>
+    `<optgroup label="${esc(KBD_NAME[k] || k)}">${groups[k].map(opt).join('')}</optgroup>`).join('');
+  const cur = presets[sel], curId = cur && String(cur.uuid || '');
+  const inUse = curId && curId === S.activeId;
+  const btn = inUse ? '<span class="badge" style="align-self:center">In use</span>'
+    : `<button class="btn primary" data-act="add-selected">Add to my layouts</button>`;
+  return `<div class="card field"><h3 style="font-size:19px">Starter layouts</h3>
+    <small>Official MoErgo layouts from the Go60 and Glove80 editors (✓ = already added). Adding one switches to it; your current layout stays saved and can be removed below.</small>
+    <div style="display:flex;gap:10px;margin-top:12px;align-items:stretch;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px"><select id="presetSel" aria-label="Choose a starter layout">${optgroups}</select></div>
+      ${btn}
+    </div></div>`;
+}
+
 function layoutView(){
   const L = S.layout;
   const tabs = L.layerNames.map((n, i) => `<button class="${S.layerView === i ? 'on' : ''}" data-layer="${i}">${esc(n)}</button>`).join('');
@@ -236,6 +261,7 @@ function layoutView(){
   ${L.geo.name.includes('grid') ? '<p class="msg ok">This keyboard has no built-in shape, so keys are drawn as a plain grid. Lessons still follow your keymap.</p>' : ''}
   <div class="card"><h3 style="font-size:19px">Characters you can type <span class="muted" style="font-size:14px;font-weight:400">${chars.length}</span></h3>
     <div class="charmap" style="margin-top:10px">${chars.map(c => kc(c)).join('')}</div></div>
+  ${presetsCard()}
   <div class="grid2">
     <div class="card field"><h3 style="font-size:19px">Load a layout</h3>
       <small>MoErgo Layout Editor export (.json) for Go60 or Glove80, or a ZMK .keymap file. Layouts are saved in this browser.</small>
@@ -561,6 +587,12 @@ document.addEventListener('click', e => {
     case 'practice-problem': startPractice('problem'); break;
     case 'practice-free': startPractice('free'); break;
     case 'practice-custom': S.customText = ($('#customText') || {}).value || ''; startPractice('custom'); break;
+    case 'add-selected': {
+      const i = ($('#presetSel') || {}).value, p = (window.HOMEROW_PRESETS || [])[+i];
+      S.presetSel = +i || 0;
+      if (p) { try { const L = loadLayoutText(JSON.stringify(p)); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Added ${L.title} and switched to it.` }; } catch (err) { S.msg = { t: 'err', m: err.message }; } }
+      render(); break;
+    }
     case 'load-paste': {
       const txt = ($('#layoutPaste') || {}).value || '';
       if (!txt.trim()) { S.msg = { t: 'err', m: 'Paste the contents of a layout file first.' }; render(); break; }
@@ -575,6 +607,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
+  if (t.id === 'presetSel') { S.presetSel = +t.value || 0; render(); return; }
   if (t.id === 'layoutFile' && t.files && t.files[0]) {
     const f = t.files[0], rd = new FileReader();
     rd.onload = () => { try { const L = loadLayoutText(String(rd.result), f.name.replace(/\.[^.]+$/, '')); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${L.title} from ${f.name}. Lessons rebuilt for this layout.` }; } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); };
