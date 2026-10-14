@@ -120,7 +120,7 @@ function kbSVG(li, hl){
   }
   return out + `</svg>`;
 }
-const legendHtml = () => `<div class="legend">${['pinky', 'ring', 'middle', 'index', 'thumb'].map(f => `<span><i style="background:var(--f-${f})"></i>${f[0].toUpperCase() + f.slice(1)}</span>`).join('')}<span><i style="background:var(--go)"></i>Press</span><span><i style="background:var(--accent)"></i>Hold</span></div>`;
+const legendHtml = (withState) => `<div class="legend">${['pinky', 'ring', 'middle', 'index', 'thumb'].map(f => `<span><i style="background:var(--f-${f})"></i>${f[0].toUpperCase() + f.slice(1)}</span>`).join('')}${withState === false ? '' : `<span><i style="background:var(--go)"></i>Press</span><span><i style="background:var(--accent)"></i>Hold</span>`}</div>`;
 
 function fingerName(p){ const g = S.layout.keys[p]; return g ? `${g.hand === 'L' ? 'left' : 'right'} ${g.finger}` : ''; }
 function hintFor(item){
@@ -141,7 +141,7 @@ function hintFor(item){
 function header(){
   const o = overall(), goal = S.settings.dailyGoal * 60, pct = Math.min(1, o.todaySecs / goal), C = 2 * Math.PI * 18;
   const L = S.layout;
-  return `<header class="top"><div class="wrap">
+  return `<header class="top"><div class="bar">
     <div class="brand"><span class="brand-mark" aria-hidden="true">${[0,1,2,3,4,5,6,7,8].map(i => `<i class="${i >= 3 && i < 6 ? 'on' : ''}"></i>`).join('')}</span>Homerow</div>
     <div class="layout-chip"><b title="${esc(L.title)}">${esc(L.title)}</b><span>${esc(L.geo.name)} · ${L.layers.length} layers</span></div>
     <div class="stats">
@@ -156,13 +156,17 @@ function sidebar(){
   const nav = [['learn', 'Lessons'], ['practice', 'Practice'], ['layout', 'Layout'], ['settings', 'Settings']];
   const pk = problemKeys(4);
   let units = '';
-  if (S.view === 'learn') units = `<div><h4>Units</h4><div class="unitlinks">${S.C.units.map(u => {
+  if (S.view === 'learn') units = `<div class="units"><h4>Units</h4><div class="unitlinks">${S.C.units.map(u => {
     const d = u.lessons.filter(isDone).length;
     return `<a href="#u-${u.id}" data-jump="u-${u.id}">${esc(u.title)}<span>${d}/${u.lessons.length}</span></a>`; }).join('')}</div></div>`;
+  // The problem-keys card belongs with the lessons; Practice has its own panel and Layout/Settings are unrelated.
+  const probCard = S.view === 'learn'
+    ? `<div class="card"><h4>Your problem keys</h4>${pk.length ? `<div class="probkeys">${pk.map(r => kc(r.k, 'warn')).join('')}</div><button class="btn" data-act="practice-problem">Practice these</button>` : `<p class="muted" style="margin:0;font-size:14px">Type a few lessons and the keys you miss or hesitate on show up here.</p>`}</div>`
+    : '';
   return `<aside class="side">
     <nav class="nav">${nav.map(([v, t]) => `<button class="${S.view === v ? 'on' : ''}" data-view="${v}">${t}</button>`).join('')}</nav>
     ${units}
-    <div class="card"><h4>Your problem keys</h4>${pk.length ? `<div class="probkeys">${pk.map(r => kc(r.k, 'warn')).join('')}</div><button class="btn" data-act="practice-problem">Practice these</button>` : `<p class="muted" style="margin:0;font-size:14px">Type a few lessons and the keys you miss or hesitate on show up here.</p>`}</div>
+    ${probCard}
   </aside>`;
 }
 
@@ -175,7 +179,10 @@ function learnView(){
     <button class="btn go" data-start="${nxt}"><span class="tri"></span>${done ? 'Continue' : 'Start'}</button></section>`;
   S.C.units.forEach(u => {
     const d = u.lessons.filter(isDone).length;
-    html += `<section class="unit" id="u-${u.id}"><header><div><h3>${esc(u.title)}</h3><p>${esc(u.blurb)}</p></div><span class="muted">${d} of ${u.lessons.length} done</span></header><div class="lessons">`;
+    const containsNext = u.lessons.includes(ls[nxt]);
+    // Keep the page short: open only the current unit and any that are part-done; collapse finished and not-yet-reached ones.
+    const open = containsNext || (d > 0 && d < u.lessons.length);
+    html += `<details class="unit" id="u-${u.id}"${open ? ' open' : ''}><summary><div class="uhead"><div><h3>${esc(u.title)}</h3><p>${esc(u.blurb)}</p></div><div class="uright"><span>${d} of ${u.lessons.length} done</span><span class="chev" aria-hidden="true"></span></div></div></summary><div class="lessons">`;
     u.lessons.forEach(l => {
       const i = ls.indexOf(l), p = lessonProg(l), un = isUnlocked(i), isNext = i === nxt;
       const segN = (p && p.stageCount) || (l.kind === 'review' ? 6 : l.kind === 'learn' ? 8 : 4);
@@ -189,37 +196,39 @@ function learnView(){
         <div class="act">${un ? `<button class="btn ${isNext ? 'go' : 'ghost'}" data-start="${i}"><span class="tri"></span>${isDone(l) ? 'Redo' : 'Start'}</button>` : `<button class="btn ghost" disabled>Locked</button>`}</div>
       </div>`;
     });
-    html += `</div></section>`;
+    html += `</div></details>`;
   });
   return html;
 }
 
 function practiceView(){
-  const pk = problemKeys(8);
+  const pk = problemKeys(20);
   const misf = S.stats.misfires;
-  return `<div class="section-title"><h2>Practice</h2><span class="muted">Uses only the keys you have unlocked</span></div>
-  <div class="grid2">
-    <div class="card"><h3 style="font-size:19px">Problem keys</h3>
-      ${pk.length ? `<table class="ptable"><thead><tr><th>Key</th><th>Miss rate</th><th>Avg time</th><th>Typed</th></tr></thead><tbody>${pk.map(r => `<tr><td>${kc(r.k)}</td><td>${(r.er * 100).toFixed(0)}%</td><td>${Math.round(r.lat)} ms</td><td>${r.n}</td></tr>`).join('')}</tbody></table>
-      <p><button class="btn go" data-act="practice-problem"><span class="tri"></span>Practice problem keys</button></p>` : `<p class="muted">No problem keys yet. They appear once you have typed each key a few times.</p>`}
-    </div>
-    <div class="card"><h3 style="font-size:19px">Home-row mod misfires</h3>
+  // Left column = things you start; right column = how you're doing. Each column stacks its own cards,
+  // so a long problem-keys table never drags the action cards out of alignment.
+  const freeCard = `<div class="card field"><h3 style="font-size:19px">Free practice</h3>
+      <p class="muted" style="margin:0 0 4px">Words and sentences from all your unlocked keys.</p>
+      <div class="actions"><button class="btn go" data-act="practice-free"><span class="tri"></span>Start free practice</button></div></div>`;
+  const textCard = `<div class="card field"><h3 style="font-size:19px">Your own text</h3>
+      <label for="customText" class="muted" style="font-weight:400">Paste code, notes or anything you type often.</label>
+      <textarea id="customText" placeholder="const total = items.reduce((a, b) => a + b, 0);">${esc(S.customText)}</textarea>
+      <div class="actions"><button class="btn go" data-act="practice-custom"><span class="tri"></span>Type this text</button></div></div>`;
+  const pkCard = `<div class="card field"><h3 style="font-size:19px">Problem keys${pk.length ? ` <span class="muted" style="font-size:14px;font-weight:400">${pk.length}</span>` : ''}</h3>
+      ${pk.length ? `<div class="ptable-scroll"><table class="ptable"><thead><tr><th>Key</th><th>Miss rate</th><th>Avg time</th><th>Typed</th></tr></thead><tbody>${pk.map(r => `<tr><td>${kc(r.k)}</td><td>${(r.er * 100).toFixed(0)}%</td><td>${Math.round(r.lat)} ms</td><td>${r.n}</td></tr>`).join('')}</tbody></table></div>
+      <div class="actions"><button class="btn go" data-act="practice-problem"><span class="tri"></span>Practice problem keys</button></div>` : `<p class="muted" style="margin:4px 0 0">No problem keys yet. They appear once you have typed each key a few times.</p>`}
+    </div>`;
+  const misfCard = `<div class="card"><h3 style="font-size:19px">Home-row mod misfires</h3>
       <p class="muted" style="margin-top:4px">Counted when a modifier fires while you meant to type a letter.</p>
       <table class="ptable"><tbody>
         <tr><td>Accidental Shift</td><td>${misf.shift || 0}</td></tr>
         <tr><td>Accidental ⌘ or ⌃</td><td>${misf.mod || 0}</td></tr>
         <tr><td>Accidental ⌥</td><td>${misf.alt || 0}</td></tr></tbody></table>
       <p class="muted" style="font-size:13px">If one keeps climbing, type that finger's key a little more crisply or raise its tapping term.</p>
-    </div>
-    <div class="card"><h3 style="font-size:19px">Free practice</h3>
-      <p class="muted" style="margin-top:4px">Words and sentences from all your unlocked keys.</p>
-      <button class="btn primary" data-act="practice-free"><span class="tri"></span>Start free practice</button>
-    </div>
-    <div class="card field"><h3 style="font-size:19px">Your own text</h3>
-      <label for="customText" class="muted" style="font-weight:400">Paste code, notes or anything you type often.</label>
-      <textarea id="customText" placeholder="const total = items.reduce((a, b) => a + b, 0);">${esc(S.customText)}</textarea>
-      <div><button class="btn primary" data-act="practice-custom"><span class="tri"></span>Type this text</button></div>
-    </div>
+    </div>`;
+  return `<div class="section-title"><h2>Practice</h2><span class="muted">Uses only the keys you have unlocked</span></div>
+  <div class="pcols">
+    <div class="pcol">${freeCard}${textCard}</div>
+    <div class="pcol">${pkCard}${misfCard}</div>
   </div>`;
 }
 
@@ -257,7 +266,7 @@ function layoutView(){
     <button class="btn ghost danger" data-del="${esc(id)}">${S.confirmDel === id ? 'Confirm remove' : 'Remove'}</button></div></div>`).join('');
   return `<div class="section-title"><h2>${esc(L.title)}</h2><span class="muted">${esc(L.geo.name)} · ${L.n} keys · ${L.format === 'moergo' ? 'MoErgo layout' : 'ZMK keymap'}</span></div>
   <div class="tabs">${tabs}</div>
-  <div class="kbwrap">${kbSVG(S.layerView, {})}${legendHtml()}</div>
+  <div class="kbwrap">${kbSVG(S.layerView, {})}${legendHtml(false)}</div>
   ${L.geo.name.includes('grid') ? '<p class="msg ok">This keyboard has no built-in shape, so keys are drawn as a plain grid. Lessons still follow your keymap.</p>' : ''}
   <div class="card"><h3 style="font-size:19px">Characters you can type <span class="muted" style="font-size:14px;font-weight:400">${chars.length}</span></h3>
     <div class="charmap" style="margin-top:10px">${chars.map(c => kc(c)).join('')}</div></div>
@@ -268,7 +277,7 @@ function layoutView(){
       <input type="file" id="layoutFile" accept=".json,.keymap,.dtsi,.txt">
       <label for="layoutPaste">Or paste the file contents</label>
       <textarea id="layoutPaste" placeholder='{"keyboard":"go60","layers":[…]}'></textarea>
-      <div><button class="btn primary" data-act="load-paste">Load pasted layout</button></div>
+      <div class="actions"><button class="btn primary" data-act="load-paste">Load pasted layout</button></div>
       ${S.msg ? `<div class="msg ${S.msg.t}">${esc(S.msg.m)}</div>` : ''}
     </div>
     <div class="card"><h3 style="font-size:19px">Saved layouts</h3><div class="saved" style="margin-top:10px">${saved}</div>
@@ -281,36 +290,39 @@ function settingsView(){
   const sel = (id, opts, v) => `<select id="${id}">${opts.map(([val, t]) => `<option value="${val}" ${String(v) === String(val) ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   return `<div class="section-title"><h2>Settings</h2></div>
   <div class="grid2">
-    <div class="card field"><label for="routePref">Numbers and symbols</label>
-      ${sel('routePref', [['layers', 'Teach them on thumb layers (Miryoku style)'], ['reach', 'Teach the number row and reach keys']], s.routePref)}
+    <div class="card field"><h3 style="font-size:19px">Numbers &amp; symbols</h3>
+      <label for="routePref">Where lessons route them</label>
+      ${sel('routePref', [['layers', 'Thumb layers (Miryoku style)'], ['reach', 'Number row and reach keys']], s.routePref)}
       <small>Changes where lessons send you for digits, brackets and punctuation when your layout has both.</small></div>
-    <div class="card field"><label for="passAcc">Accuracy needed to pass</label>
+    <div class="card field"><h3 style="font-size:19px">Scoring</h3>
+      <label for="passAcc">Accuracy needed to pass</label>
       ${sel('passAcc', [[90, '90%'], [95, '95%'], [97, '97%'], [98, '98%']], s.passAcc)}
-      <label for="targetWpm">Speed for the second star</label>
+      <label for="targetWpm">Speed for the second star (wpm)</label>
       <input type="number" id="targetWpm" min="5" max="150" value="${s.targetWpm}"></div>
-    <div class="card field"><label for="stageLen">Drill length</label>
+    <div class="card field"><h3 style="font-size:19px">Drills &amp; goal</h3>
+      <label for="stageLen">Drill length</label>
       ${sel('stageLen', [[60, 'Short'], [90, 'Normal'], [140, 'Long']], s.stageLen)}
       <label for="dailyGoal">Daily goal (minutes)</label>
       <input type="number" id="dailyGoal" min="1" max="120" value="${s.dailyGoal}"></div>
-    <div class="card field">
+    <div class="card field"><h3 style="font-size:19px">During a lesson</h3>
       <div class="check"><input type="checkbox" id="stopOnError" ${s.stopOnError ? 'checked' : ''}><label for="stopOnError">Stop on errors<br><small>You must type the right key before moving on.</small></label></div>
       <div class="check"><input type="checkbox" id="showKeyboard" ${s.showKeyboard ? 'checked' : ''}><label for="showKeyboard">Show the keyboard during lessons</label></div>
       <div class="check"><input type="checkbox" id="showFingers" ${s.showFingers ? 'checked' : ''}><label for="showFingers">Colour keys by finger</label></div>
       <div class="check"><input type="checkbox" id="unlockAll" ${s.unlockAll ? 'checked' : ''}><label for="unlockAll">Unlock every lesson</label></div></div>
-    <div class="card field"><label>Reset</label><small>Clears lesson progress and key stats for ${esc(S.layout.title)} only.</small>
-      <div><button class="btn danger" data-act="reset">${S.confirmDel === '__reset' ? 'Confirm reset' : 'Reset progress'}</button></div></div>
+    <div class="card field"><h3 style="font-size:19px">Reset</h3><small>Clears lesson progress and key stats for ${esc(S.layout.title)} only.</small>
+      <div class="actions"><button class="btn danger" data-act="reset">${S.confirmDel === '__reset' ? 'Confirm reset' : 'Reset progress'}</button></div></div>
   </div>`;
 }
 
 const CREDITS = [['moosytype', 'https://github.com/moosylog/moosytype'], ['typing.com', 'https://www.typing.com'], ['keybr.com', 'https://www.keybr.com'],
   ['Miryoku', 'https://github.com/manna-harbour/miryoku'], ['MoErgo', 'https://www.moergo.com'], ['ZMK', 'https://zmk.dev'], ['wordfreq (CC BY-SA 4.0)', 'https://github.com/rspeer/wordfreq']];
 function footer(){
-  return `<footer class="wrap credits"><p>Inspired by ${CREDITS.slice(0, 3).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Layout and keymap formats from ${CREDITS.slice(3, 6).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Word list from <a href="${CREDITS[6][1]}" target="_blank" rel="noopener">${CREDITS[6][0]}</a>. Fonts: Atkinson Hyperlegible, Bricolage Grotesque, IBM Plex Mono (SIL OFL).</p></footer>`;
+  return `<footer class="credits"><p>Inspired by ${CREDITS.slice(0, 3).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Layout and keymap formats from ${CREDITS.slice(3, 6).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Word list from <a href="${CREDITS[6][1]}" target="_blank" rel="noopener">${CREDITS[6][0]}</a>. Fonts: Atkinson Hyperlegible, Bricolage Grotesque, IBM Plex Mono <span style="white-space:nowrap">(SIL OFL)</span>.</p></footer>`;
 }
 function render(){
   if (S.run) { renderRun(true); return; }
   const main = S.view === 'learn' ? learnView() : S.view === 'practice' ? practiceView() : S.view === 'layout' ? layoutView() : settingsView();
-  $('#app').innerHTML = header() + `<div class="wrap shell">${sidebar()}<main class="main">${main}</main></div>` + footer();
+  $('#app').innerHTML = header() + `<div class="shell">${sidebar()}<main class="main">${main}</main></div>` + footer();
 }
 
 /* ---------- running a lesson ---------- */
@@ -399,7 +411,15 @@ function paintState(){
     const h = hintFor(it);
     $('#hint').innerHTML = h.html + (r.lastMisfire ? ` <span class="misfire">${esc(r.lastMisfire)}</span>` : '');
     const kb = $('#kb');
-    if (kb) kb.innerHTML = kbSVG(h.r ? h.r.layer : 0, h.r ? { target: h.r.pos, holds: h.r.holds } : {}) + legendHtml();
+    if (kb) {
+      kb.innerHTML = kbSVG(h.r ? h.r.layer : 0, h.r ? { target: h.r.pos, holds: h.r.holds } : {}) + legendHtml();
+      // On narrow screens the keyboard scrolls horizontally; keep the target key in view.
+      const tg = kb.querySelector('.tgtg');
+      if (tg && kb.scrollWidth > kb.clientWidth + 4) {
+        const t = tg.getBoundingClientRect(), k = kb.getBoundingClientRect();
+        kb.scrollLeft += (t.left + t.width / 2) - (k.left + k.width / 2);
+      }
+    }
   }
   // overlay
   const ov = $('#overlay');
@@ -566,7 +586,7 @@ window.addEventListener('blur', () => { if (S.run) paintState(); });
 document.addEventListener('click', e => {
   const t = e.target.closest('button, a[data-jump]'); if (!t) return;
   const d = t.dataset;
-  if (d.jump) { e.preventDefault(); const el = document.getElementById(d.jump); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  if (d.jump) { e.preventDefault(); const el = document.getElementById(d.jump); if (el) { if (el.tagName === 'DETAILS') el.open = true; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
   if (d.view) { S.view = d.view; S.msg = null; S.confirmDel = null; render(); return; }
   if (d.start != null) { startLesson(+d.start); return; }
   if (d.layer != null) { S.layerView = +d.layer; render(); return; }
