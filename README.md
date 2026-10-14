@@ -4,6 +4,12 @@ A typing trainer that builds typing.com-style progressive lessons from your own 
 
 Inspired by [moosytype](https://github.com/moosylog/moosytype), [typing.com](https://www.typing.com) and [keybr.com](https://www.keybr.com). See [CREDITS.md](CREDITS.md).
 
+## Motivation
+
+I bought a MoErgo Go60 (September 2026) due to arm pain. As a first-time ergonomic split keyboard user figuring out the next steps, I found the [MoErgo Discord community](https://discord.com/invite/cdywSRX9qF) and [Moosy's personal research notes](https://sites.google.com/view/keyboards/about) helpful for onboarding. I was originally going to keep QWERTY, but realized my touch typing skills from a regular keyboard don't carry over to columnar layouts, and I'd have to relearn regardless. So that realization, along with reading [Moosy's "Learn" section](https://sites.google.com/view/keyboards/learn), made me decide to learn a new [keyboard layout (Miryoku layout adaptation for macOS)](https://my.moergo.com/go60/#/layout/miryoku-macos).
+
+I only learned to touch type QWERTY around 2019, and [typing.com](https://www.typing.com/) helped a lot, since the lessons were progressive and interactive. Fast forward to today, I'm learning a new keyboard layout. While there are open-source practice tools like [moosytype (inspired by monkeytype)](https://moosylog.github.io/moosytype/), I was looking for a similar learning experience to typing.com, but adapted to MoErgo keyboards, and ergonomic keyboards in general. So I decided to build my own app with the help of Claude.
+
 ## What it does
 
 - **Layout-driven curriculum.** Home row → top row → bottom row → reach keys → capitals → shifted symbols → each thumb layer → navigation keys → ⌘/⌃ shortcuts. Two new keys per lesson, with review lessons along the way.
@@ -15,11 +21,11 @@ Inspired by [moosytype](https://github.com/moosylog/moosytype), [typing.com](htt
 
 ## Supported layouts
 
-| Input | Notes |
-|---|---|
-| MoErgo `.json` (Go60, Glove80) | Custom hold-taps (`holdTaps`) are resolved to mod-tap or layer-tap |
-| ZMK `.keymap` | `&kp`, `&mt`, `&lt`, `&mo`, `&sk`, `&trans`, custom hold-tap behaviors |
-| Other key counts | Lessons still work; the keyboard is drawn as a plain grid |
+| Input                          | Notes                                                                  |
+| ------------------------------ | ---------------------------------------------------------------------- |
+| MoErgo `.json` (Go60, Glove80) | Custom hold-taps (`holdTaps`) are resolved to mod-tap or layer-tap     |
+| ZMK `.keymap`                  | `&kp`, `&mt`, `&lt`, `&mo`, `&sk`, `&trans`, custom hold-tap behaviors |
+| Other key counts               | Lessons still work; the keyboard is drawn as a plain grid              |
 
 Key codes are mapped assuming a US ANSI host layout. Go60/Glove80 key geometry is approximate.
 
@@ -44,6 +50,10 @@ src/ui.js       views, typing engine, stats, storage
 src/style.css   styles and theme tokens (light/dark)
 data/           word list and presets/ (Starter layouts; first-run default is seeded from here)
 ```
+
+## Contributing
+
+This is a personal project, and I'm open to feedback. Also feel free to file an issue or make a pull request if you have interesting ideas, improvements, or bug fixes. Otherwise, you can fork this repository and adapt it to your liking.
 
 ## Credits
 
