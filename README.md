@@ -42,7 +42,7 @@ Re-run it, then `python3 build.py`, to refresh the catalog.
 src/engine.js   layout parsing, routing, curriculum, drill generation (pure, runs in node)
 src/ui.js       views, typing engine, stats, storage
 src/style.css   styles and theme tokens (light/dark)
-data/           bundled default layout (Miryoku macOS on Go60) and word list
+data/           word list and presets/ (Starter layouts; first-run default is seeded from here)
 ```
 
 ## Credits
@@ -57,4 +57,4 @@ Full list, including fonts, in [CREDITS.md](CREDITS.md).
 
 ## License
 
-Code is [MIT](LICENSE). `data/words.json` is CC BY-SA 4.0 and `data/default-layout.json` belongs to its authors; see [data/README.md](data/README.md).
+Code is [MIT](LICENSE). `data/words.json` is CC BY-SA 4.0 and the bundled layouts in `data/presets/` belong to their authors; see [data/README.md](data/README.md).

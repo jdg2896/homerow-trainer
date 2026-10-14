@@ -1,6 +1,6 @@
 const E=require('../src/engine.js');const fs=require('fs');
 const W=JSON.parse(fs.readFileSync(__dirname+'/../data/words.json'));
-const L=E.buildLayout(fs.readFileSync(__dirname+'/../data/default-layout.json','utf8'));
+const L=E.buildLayout(fs.readFileSync(__dirname+'/../data/presets/go60-07-miryoku-macos.json','utf8'));
 for(const pref of ['layers','reach']){
 const C=E.buildCurriculum(L,pref);
 console.log('== pref',pref, C.lessons.length,'lessons');

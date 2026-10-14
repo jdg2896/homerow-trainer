@@ -624,9 +624,17 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => { if (e.target.id === 'customText') S.customText = e.target.value; });
 
 /* ---------- boot ---------- */
+// Miryoku (macOS) on Go60, from the Starter layouts catalog (data/presets/).
+const DEFAULT_LAYOUT_ID = 'bcbba205-ff1e-4254-9bda-d85cfbac68ff';
+function defaultPreset(){
+  const ps = window.HOMEROW_PRESETS || [];
+  if (!ps.length) return null;
+  return ps.find(p => String(p.uuid) === DEFAULT_LAYOUT_ID) || ps[0];
+}
 function seedDefault(){
-  const txt = window.HOMEROW_DEFAULT_LAYOUT ? JSON.stringify(window.HOMEROW_DEFAULT_LAYOUT) : null;
-  if (!txt) return;
+  const p = defaultPreset();
+  if (!p) return;
+  const txt = JSON.stringify(p);
   const L = E.buildLayout(txt);
   S.layouts[L.id] = { name: L.title, keyboard: L.keyboard, text: txt, savedAt: Date.now() };
   store.set('layouts', S.layouts);
