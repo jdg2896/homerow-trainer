@@ -196,8 +196,9 @@ function buildGeometry(keyboard, n){
   if (keyboard === 'go60' && n === 60) {
     const gap = 2.4;
     for (let r = 0; r < 4; r++) for (let c = 0; c < 12; c++) G.push(gridKey(r * 12 + c, r, c, 12, gap));
-    [1, 2, 3].forEach((c, i) => G.push(gridKey(48 + i, 4, c, 12, gap)));
-    [8, 9, 10].forEach((c, i) => G.push(gridKey(51 + i, 4, c, 12, gap)));
+    // Go60 columns 2,3,4 (index/middle/ring, counting in from the centre) have a 5th row; 1,5,6 have four.
+    [2, 3, 4].forEach((c, i) => G.push(gridKey(48 + i, 4, c, 12, gap)));
+    [7, 8, 9].forEach((c, i) => G.push(gridKey(51 + i, 4, c, 12, gap)));
     const W = 12 + gap;
     G.push(...thumbArc([54, 55, 56], 'L', 3.7, 5.3, 0.22, W));
     G.push(...thumbArc([57, 58, 59], 'R', 3.7, 5.3, 0.22, W).reverse());

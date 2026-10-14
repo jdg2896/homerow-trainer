@@ -268,9 +268,10 @@ function layoutView(){
   const L = S.layout;
   const tabs = L.layerNames.map((n, i) => `<button class="${S.layerView === i ? 'on' : ''}" data-layer="${i}">${esc(n)}</button>`).join('');
   const chars = Object.keys(S.C.routes.chars).filter(c => c !== ' ').sort();
+  const onlyOne = Object.keys(S.layouts).length <= 1;
   const saved = Object.entries(S.layouts).map(([id, r]) => `<div class="row ${id === S.activeId ? 'on' : ''}"><div><b>${esc(r.name)}</b><div class="muted" style="font-size:13px">${esc(r.keyboard || 'keyboard')} · saved ${new Date(r.savedAt).toLocaleDateString()}</div></div>
     <div style="display:flex;gap:8px">${id === S.activeId ? '<span class="badge">In use</span>' : `<button class="btn" data-use="${esc(id)}">Use</button>`}
-    <button class="btn ghost danger" data-del="${esc(id)}">${S.confirmDel === id ? 'Confirm remove' : 'Remove'}</button></div></div>`).join('');
+    <button class="btn ghost danger" data-del="${esc(id)}"${onlyOne ? ' disabled title="Keep at least one layout. Add another before removing this one."' : ''}>${S.confirmDel === id ? 'Confirm remove' : 'Remove'}</button></div></div>`).join('');
   return `<div class="section-title"><h2>${esc(L.title)}</h2><span class="muted">${esc(L.geo.name)} · ${L.n} keys · ${L.format === 'moergo' ? 'MoErgo layout' : 'ZMK keymap'}</span></div>
   <div class="tabs">${tabs}</div>
   <div class="kbwrap">${kbSVG(S.layerView, {})}${legendHtml(false)}</div>
@@ -603,9 +604,10 @@ document.addEventListener('click', e => {
   if (d.layer != null) { S.layerView = +d.layer; render(); return; }
   if (d.use) { activate(d.use); S.msg = null; render(); return; }
   if (d.del) {
+    if (Object.keys(S.layouts).length <= 1) { S.confirmDel = null; render(); return; }
     if (S.confirmDel !== d.del) { S.confirmDel = d.del; render(); return; }
     delete S.layouts[d.del]; store.set('layouts', S.layouts); store.del('stats.' + d.del); S.confirmDel = null;
-    if (d.del === S.activeId) { const ids = Object.keys(S.layouts); if (ids.length) activate(ids[0]); else { seedDefault(); } }
+    if (d.del === S.activeId) activate(Object.keys(S.layouts)[0]);
     render(); return;
   }
   switch (d.act) {
