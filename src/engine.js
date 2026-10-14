@@ -190,35 +190,55 @@ function thumbArc(posList, hand, startX, y0, step, mirrorW){
     return g;
   });
 }
+// MoErgo thumb keys sit on a natural arc: each is rotated about a shared pivot (rx, ry) rather than its
+// own centre, which is what curves the cluster. Given the raw [x, y, r, rx, ry] (key top-left + pivot, in
+// key units, from the MoErgo default geometry), fold the pivot rotation into the key's final centre so the
+// renderer can keep rotating about the centre. KW is the key side in units (matches s = U - 6 in the UI).
+const KW = 1 - 6 / 60;
+function pivotThumb(pos, x, y, r, rx, ry, hand){
+  const a = r * Math.PI / 180, cx = x + KW / 2, cy = y + KW / 2, dx = cx - rx, dy = cy - ry;
+  const px = rx + dx * Math.cos(a) - dy * Math.sin(a), py = ry + dx * Math.sin(a) + dy * Math.cos(a);
+  return { pos, row: 99, col: -1, hand, finger: 'thumb', stretch: false, x: px - KW / 2, y: py - KW / 2, r, thumb: true };
+}
 
 function buildGeometry(keyboard, n){
   const G = [];
   if (keyboard === 'go60' && n === 60) {
-    const gap = 2.4;
+    const gap = 5, W = 12 + gap;
     for (let r = 0; r < 4; r++) for (let c = 0; c < 12; c++) G.push(gridKey(r * 12 + c, r, c, 12, gap));
     // Go60 columns 2,3,4 (index/middle/ring, counting in from the centre) have a 5th row; 1,5,6 have four.
     [2, 3, 4].forEach((c, i) => G.push(gridKey(48 + i, 4, c, 12, gap)));
     [7, 8, 9].forEach((c, i) => G.push(gridKey(51 + i, 4, c, 12, gap)));
-    const W = 12 + gap;
-    G.push(...thumbArc([54, 55, 56], 'L', 3.7, 5.3, 0.22, W));
-    G.push(...thumbArc([57, 58, 59], 'R', 3.7, 5.3, 0.22, W).reverse());
+    // Thumb fan: one 3-key arc per hand, each key rotated about a pivot far below the board (ry = 9),
+    // outer key first (least rotated). Raw [x, y, r, rx, ry] from the MoErgo Go60 default geometry.
+    const thumbs = [                                        // pos, x, y, r, rx, ry, hand
+      [54, 4, 4.25, 15, 4.5, 9, 'L'], [55, 4, 4.25, 30, 4.5, 9, 'L'], [56, 4, 4.25, 45, 4.5, 9, 'L'],   // outer -> inner
+      [57, 12, 4.25, -15, 12.5, 9, 'R'], [58, 12, 4.25, -30, 12.5, 9, 'R'], [59, 12, 4.25, -45, 12.5, 9, 'R']
+    ];
+    thumbs.forEach(t => G.push(pivotThumb(...t)));
     G.sort((a, b) => a.pos - b.pos);
     return { keys: G, homeRow: 2, numRow: 0, width: W, height: 7.1, name: 'Go60' };
   }
   if (keyboard === 'glove80' && n === 80) {
-    const gap = 5.2, W = 12 + gap;
+    const gap = 6, W = 12 + gap;
     for (let i = 0; i < 5; i++) { G.push(gridKey(i, 0, i, 12, gap)); G.push(gridKey(5 + i, 0, 7 + i, 12, gap)); }
     for (let r = 1; r <= 4; r++) for (let c = 0; c < 12; c++) {
       const pos = r < 4 ? 10 + (r - 1) * 12 + c : (c < 6 ? 46 + c : 58 + (c - 6));
       G.push(gridKey(pos, r, c, 12, gap));
     }
     for (let i = 0; i < 5; i++) { G.push(gridKey(64 + i, 5, i, 12, gap)); G.push(gridKey(75 + i, 5, 7 + i, 12, gap)); }
-    G.push(...thumbArc([52, 53, 54], 'L', 6.0, 5.0, 0.3, W));
-    G.push(...thumbArc([55, 56, 57], 'R', 6.0, 5.0, 0.3, W).reverse());
-    G.push(...thumbArc([69, 70, 71], 'L', 6.0, 6.15, 0.3, W));
-    G.push(...thumbArc([72, 73, 74], 'R', 6.0, 6.15, 0.3, W).reverse());
+    // Thumb clusters: an upper arc (Shift/Ctrl/Lower) and a lower arc (Bksp/Del/Alt) per hand, each key
+    // rotated about a shared pivot so the cluster curves naturally. Raw [x, y, r, rx, ry] from the MoErgo
+    // Glove80 default geometry; pivotThumb folds the pivot rotation into each key's centre.
+    const thumbs = [                                        // pos, x, y, r, rx, ry, hand
+      [52, 6.4, 4,   20,  4, 4,   'L'], [53, 7.8, 3.3, 30,  4, 3.3, 'L'], [54, 10.1, 1.5, 45,  4, 1.5, 'L'],  // Shift Ctrl Lower
+      [69, 5.3, 5.4, 15,  4, 5.4, 'L'], [70, 6.6, 5,   25,  4, 5,   'L'], [71, 9,    3.2, 45,  4, 3.2, 'L'],  // Bksp  Del  Alt
+      [57, 10.7, 4, -20, 14, 4,   'R'], [56, 9.3, 3.3,-30, 14, 3.3, 'R'], [55, 7,    1.5,-45, 14, 1.5, 'R'],  // Shift Ctrl Win/Gui
+      [74, 11.7, 5.4,-15,14, 5.4, 'R'], [73, 10.4, 5, -25, 14, 5,   'R'], [72, 8,    3.2,-45, 14, 3.2, 'R']   // Space Enter Alt
+    ];
+    thumbs.forEach(t => G.push(pivotThumb(...t)));
     G.sort((a, b) => a.pos - b.pos);
-    return { keys: G, homeRow: 3, numRow: 1, width: W, height: 8.4, name: 'Glove80' };
+    return { keys: G, homeRow: 3, numRow: 1, width: W, height: 8.6, name: 'Glove80' };
   }
   // Generic grid: rows of 10 or 12 plus thumbs
   let cols = 12, rows;
