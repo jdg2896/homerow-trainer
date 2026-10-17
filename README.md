@@ -56,9 +56,7 @@ data/           word list and presets/ (Starter layouts; first-run default is se
 
 ## Contributing
 
-This is a personal project, and I'm open to feedback. Also feel free to file an issue or make a pull request if you have interesting ideas, improvements, or bug fixes. Otherwise, you can fork this repository and adapt it to your liking.
-
-The header's **Report a bug** button and the footer's **Send feedback** and **Report a bug** links open a short form (Bug or Feedback) and then a prefilled GitHub issue, where screenshots and files can be added before submitting. Issues are labelled through the templates in `.github/ISSUE_TEMPLATE/`. Bug reports attach the active layout file by default. Long reports, which is most that include a layout, are copied to the clipboard and pasted on GitHub, because issue links are capped at about 8 KB. Unless you untick it, the issue also includes diagnostics: the app version and commit, browser, active layout, current screen, settings and recent JS errors. That gives whoever picks the issue up, person or agent, enough to reproduce it. The version comes from `package.json` and the commit is stamped in by `build.mjs`. Bump the version when you ship user-facing changes.
+This is a personal project, and I'm open to feedback. Also feel free to [file an issue](https://github.com/jdg2896/homerow-trainer/issues/new/choose) or make a pull request if you have interesting ideas, improvements, or bug fixes. Otherwise, you can fork this repository and adapt it to your liking.
 
 ## Credits
 
