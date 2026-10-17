@@ -68,6 +68,9 @@ h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
 .nav button:hover{background:var(--surface)}
 .nav button.on{background:var(--accent);color:var(--accent-ink)}
 .nav button span{font-weight:400;font-size:12px;opacity:.8}
+.nav .kbd{font-family:var(--mono);opacity:.55}
+.keyhint{margin:-16px 0 0;font-size:13px;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.keyhint .kc{font-size:11px}
 .side h4{margin:0 0 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .unitlinks{display:flex;flex-direction:column;gap:2px}
 .unitlinks a{display:flex;justify-content:space-between;color:inherit;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:14px}
@@ -173,14 +176,19 @@ details.unit[open]>summary .chev{transform:rotate(45deg)}
 /* State fills must out-rank .kb.fingers .k.f-* (0,4,0), so scope them under .fingers too. */
 .kb .k.tgt,.kb.fingers .k.tgt{fill:var(--go);stroke:var(--go-ink);stroke-width:2.5}
 .kb .k.hold,.kb.fingers .k.hold{fill:var(--accent);stroke:var(--accent)}
+/* Subtle highlight: keep the finger colour, outline the key instead (dashed = hold). */
+.kb .k.tgt-soft,.kb .k.hold-soft{stroke:var(--accent);stroke-width:3}
+.kb .k.hold-soft{stroke-dasharray:6 4}
 .kb .k.empty{opacity:.45}
 .kb text{fill:var(--key-ink);font-family:var(--mono);font-weight:600;text-anchor:middle;dominant-baseline:central}
 .kb text.sub{fill:var(--muted);font-weight:500;font-family:var(--body)}
-.kb .tgtg text{fill:var(--go-ink)}
-.kb .holdg text{fill:var(--accent-ink)}
+.kb .tgtg:not(.soft) text{fill:var(--go-ink)}
+.kb .holdg:not(.soft) text{fill:var(--accent-ink)}
 .kb .bump{fill:var(--key-edge)}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px;border:1px solid var(--key-edge)}
+.legend i.soft{border:2px solid var(--accent)}
+.legend i.soft.hold{border-style:dashed}
 
 /* Layout & forms */
 .tabs{display:flex;gap:6px;flex-wrap:wrap}
@@ -246,7 +254,7 @@ dialog.fb .actions{justify-content:flex-end}
 @media (max-width:860px){
   .shell{grid-template-columns:minmax(0,1fr)}
   .nav{flex-direction:row;flex-wrap:wrap}
-  .units,.side .card{display:none}
+  .units,.side .card,.nav .kbd,.keyhint{display:none}
   .stats{margin-left:0;gap:16px}
   /* Keep Feedback on the brand's row, top right, instead of wrapping under the stats. */
   .bar{column-gap:12px}

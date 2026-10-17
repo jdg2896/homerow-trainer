@@ -14,7 +14,7 @@ const store = {
   del(k){ try { localStorage.removeItem('homerow-trainer.' + k); } catch (e) {} }
 };
 const DEFAULT_SETTINGS = { passAcc: 95, targetWpm: 20, stopOnError: true, stageLen: 90, routePref: 'layers',
-  showFingers: true, showKeyboard: true, dailyGoal: 15, unlockAll: false, theme: 'system' };
+  showFingers: true, showKeyboard: true, keyHighlight: 'bright', dailyGoal: 15, unlockAll: false, theme: 'system' };
 
 /* ---------- theme ---------- */
 function applyTheme(t){
@@ -111,14 +111,14 @@ function kbSVG(li, hl){
   const W = geo.width * U, H = geo.height * U;
   let out = `<svg class="kb ${S.settings.showFingers ? 'fingers' : ''}" viewBox="-6 -6 ${W + 12} ${H + 12}" role="img" aria-label="${esc(S.layout.layerNames[li] || '')} layer of ${esc(geo.name)}">`;
   for (const g of S.layout.keys) {
-    const isT = hl.target === g.pos, isH = holds.has(g.pos);
+    const isT = hl.target === g.pos, isH = holds.has(g.pos), soft = hl.soft ? '-soft' : '';
     const lab = isH ? keyLabels(0, g.pos) : keyLabels(li, g.pos);
     const k = S.layout.layers[li][g.pos];
     const empty = !isT && !isH && (!k || k.none || k.inherited);
-    const cls = ['k', 'f-' + g.finger, g.role === 'home' && !g.thumb ? 'home' : '', isT ? 'tgt' : '', isH ? 'hold' : '', empty ? 'empty' : ''].join(' ');
+    const cls = ['k', 'f-' + g.finger, g.role === 'home' && !g.thumb ? 'home' : '', isT ? 'tgt' + soft : '', isH ? 'hold' + soft : '', empty ? 'empty' : ''].join(' ');
     const x = g.x * U, y = g.y * U, s = U - 6;
     const main = lab.main, fs = main.length <= 1 ? 22 : main.length <= 3 ? 15 : main.length <= 5 ? 11 : 9;
-    out += `<g class="${isT ? 'tgtg' : ''} ${isH ? 'holdg' : ''}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${g.r || 0} ${s / 2} ${s / 2})">`;
+    out += `<g class="${isT ? 'tgtg' : ''} ${isH ? 'holdg' : ''} ${soft ? 'soft' : ''}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${g.r || 0} ${s / 2} ${s / 2})">`;
     out += `<rect class="${cls}" width="${s}" height="${s}" rx="9"/>`;
     if (main) out += `<text x="${s / 2}" y="${lab.sub ? s / 2 - 5 : s / 2}" font-size="${fs}">${esc(main)}</text>`;
     if (lab.sub) out += `<text class="sub" x="${s / 2}" y="${s - 10}" font-size="10">${esc(isH ? 'hold' : lab.sub)}</text>`;
@@ -127,7 +127,9 @@ function kbSVG(li, hl){
   }
   return out + `</svg>`;
 }
-const legendHtml = (withState) => `<div class="legend">${['pinky', 'ring', 'middle', 'index', 'thumb'].map(f => `<span><i style="background:var(--f-${f})"></i>${f[0].toUpperCase() + f.slice(1)}</span>`).join('')}${withState === false ? '' : `<span><i style="background:var(--go)"></i>Press</span><span><i style="background:var(--accent)"></i>Hold</span>`}</div>`;
+const legendHtml = (withState, soft) => `<div class="legend">${['pinky', 'ring', 'middle', 'index', 'thumb'].map(f => `<span><i style="background:var(--f-${f})"></i>${f[0].toUpperCase() + f.slice(1)}</span>`).join('')}${withState === false ? '' : soft
+  ? `<span><i class="soft"></i>Press</span><span><i class="soft hold"></i>Hold</span>`
+  : `<span><i style="background:var(--go)"></i>Press</span><span><i style="background:var(--accent)"></i>Hold</span>`}</div>`;
 
 function fingerName(p){ const g = S.layout.keys[p]; return g ? `${g.hand === 'L' ? 'left' : 'right'} ${g.finger}` : ''; }
 function hintFor(item){
@@ -172,7 +174,7 @@ function sidebar(){
     ? `<div class="card"><h4>Your problem keys</h4>${pk.length ? `<div class="probkeys">${pk.map(r => kc(r.k, 'warn')).join('')}</div><button class="btn" data-act="practice-problem">Practice these</button>` : `<p class="muted" style="margin:0;font-size:14px">Type a few lessons and the keys you miss or hesitate on show up here.</p>`}</div>`
     : '';
   return `<aside class="side">
-    <nav class="nav">${nav.map(([v, t]) => `<button class="${S.view === v ? 'on' : ''}" data-view="${v}">${t}</button>`).join('')}</nav>
+    <nav class="nav">${nav.map(([v, t], i) => `<button class="${S.view === v ? 'on' : ''}" data-view="${v}" aria-keyshortcuts="${i + 1}">${t}<span class="kbd">${i + 1}</span></button>`).join('')}</nav>
     ${units}
     ${probCard}
   </aside>`;
@@ -184,7 +186,8 @@ function learnView(){
   let html = `<section class="hero"><div><h2>${done === ls.length ? 'Every lesson complete' : 'Next: ' + esc(nl.title)}</h2>
     <p>${done} of ${ls.length} lessons done on ${esc(S.layout.title)}</p></div>
     <div class="progress" aria-label="${Math.round(done / ls.length * 100)}% complete"><i style="width:${(done / ls.length * 100).toFixed(1)}%"></i></div>
-    <button class="btn go" data-start="${nxt}"><span class="tri"></span>${done ? 'Continue' : 'Start'}</button></section>`;
+    <button class="btn go" data-start="${nxt}"><span class="tri"></span>${done || resumeStage(nl) ? 'Continue' : 'Start'}</button></section>
+    <p class="muted keyhint"><span class="kc">↑</span><span class="kc">↓</span> move between lessons · <span class="kc">Enter</span> starts · <span class="kc">1</span>–<span class="kc">4</span> switch tabs · <span class="kc">Esc</span> leaves a lesson</p>`;
   S.C.units.forEach(u => {
     const d = u.lessons.filter(isDone).length;
     const containsNext = u.lessons.includes(ls[nxt]);
@@ -201,7 +204,7 @@ function learnView(){
         <div class="num">${isDone(l) ? '✓' : l.num}</div>
         <div class="ttl"><b>${title}${title && keys ? ' ' : ''}${l.kind === 'review' ? '' : (title ? '' : keys)}</b>
           <div class="meta">${l.kind === 'review' ? '<span class="badge">Review</span>' : ''}${(l.kind === 'keys' || l.kind === 'chords') ? keys : ''}<span class="segs">${Array.from({ length: segN }, (_, k) => `<i class="${k < segDone ? 'on' : ''}"></i>`).join('')}</span>${p && p.stars ? starsHtml(p.stars) + `<span>${Math.round(p.bestWpm || 0)} wpm · ${Math.round(p.bestAcc || 0)}%</span>` : ''}</div></div>
-        <div class="act">${un ? `<button class="btn ${isNext ? 'go' : 'ghost'}" data-start="${i}"><span class="tri"></span>${isDone(l) ? 'Redo' : 'Start'}</button>` : `<button class="btn ghost" disabled>Locked</button>`}</div>
+        <div class="act">${un ? `<button class="btn ${isNext ? 'go' : 'ghost'}" data-start="${i}"><span class="tri"></span>${isDone(l) ? 'Redo' : resumeStage(l) ? 'Continue' : 'Start'}</button>` : `<button class="btn ghost" disabled>Locked</button>`}</div>
       </div>`;
     });
     html += `</div></details>`;
@@ -317,6 +320,9 @@ function settingsView(){
     <div class="card field"><h3 style="font-size:19px">During a lesson</h3>
       <div class="check"><input type="checkbox" id="stopOnError" ${s.stopOnError ? 'checked' : ''}><label for="stopOnError">Stop on errors<br><small>You must type the right key before moving on.</small></label></div>
       <div class="check"><input type="checkbox" id="showKeyboard" ${s.showKeyboard ? 'checked' : ''}><label for="showKeyboard">Show the keyboard during lessons</label></div>
+      <label for="keyHighlight">Next-key highlight</label>
+      ${sel('keyHighlight', [['bright', 'Bright (fill the key)'], ['subtle', 'Subtle (outline only)'], ['stuck', 'Only when stuck']], s.keyHighlight)}
+      <small>Only when stuck hides the hint and key highlight until you pause for ${REVEAL_MS / 1000}s or miss, which helps you rely on touch typing.</small>
       <div class="check"><input type="checkbox" id="showFingers" ${s.showFingers ? 'checked' : ''}><label for="showFingers">Colour keys by finger</label></div>
       <div class="check"><input type="checkbox" id="unlockAll" ${s.unlockAll ? 'checked' : ''}><label for="unlockAll">Unlock every lesson</label></div></div>
     <div class="card field"><h3 style="font-size:19px">Appearance</h3>
@@ -339,6 +345,8 @@ function render(){
   if (S.run) { renderRun(true); return; }
   const main = S.view === 'learn' ? learnView() : S.view === 'practice' ? practiceView() : S.view === 'layout' ? layoutView() : settingsView();
   $('#app').innerHTML = header() + `<div class="shell">${sidebar()}<main class="main">${main}</main></div>` + footer();
+  // Land on Start/Continue so Enter begins the next lesson, instead of tabbing past the header and sidebar first.
+  if (S.view === 'learn') $('.hero .btn').focus({ preventScroll: true });
 }
 
 /* ---------- running a lesson ---------- */
@@ -349,10 +357,15 @@ function computeStars(acc, wpm, kind){
   if (wpm < s.targetWpm) return 1;
   return acc >= 98 && wpm >= s.targetWpm * 1.25 ? 3 : 2;
 }
+// A lesson left part-way resumes at its first unpassed stage; a finished one starts over (Redo).
+function resumeStage(l){ const p = lessonProg(l); return p && !p.stars && p.stagesDone ? p.stagesDone : 0; }
 function startLesson(i){
-  const l = S.C.lessons[i];
+  const l = S.C.lessons[i], p = lessonProg(l);
   const stages = E.makeStages(S.C, l, WORDS, +S.settings.stageLen);
-  beginRun({ lesson: l, lessonIdx: i, stages, title: `Lesson ${l.num}: ${l.title}` });
+  let si = resumeStage(l), results = [];
+  if (si && si < stages.length && p.stageCount === stages.length) results = (p.stageRes || []).map(x => x && Object.assign({ pass: true }, x));
+  else si = 0;
+  beginRun({ lesson: l, lessonIdx: i, stages, si, results, title: `Lesson ${l.num}: ${l.title}` });
 }
 function beginRun(o){
   S.run = Object.assign({ si: 0, results: [] }, o);
@@ -362,7 +375,7 @@ function beginRun(o){
 function resetStage(){
   const r = S.run;
   Object.assign(r, { items: r.stages[r.si].items, idx: 0, tried: new Set(), wrong: new Set(), errCount: 0, t0: null, last: null,
-    misfires: { shift: 0, mod: 0, alt: 0 }, result: null, lastMisfire: null });
+    misfires: { shift: 0, mod: 0, alt: 0 }, result: null, lastMisfire: null, revealAt: -1 });
 }
 function liveNums(){
   const r = S.run;
@@ -425,23 +438,32 @@ function paintState(){
   const it = r.items[r.idx];
   if (it && !r.result) {
     const h = hintFor(it);
-    $('#hint').innerHTML = h.html + (r.lastMisfire ? ` <span class="misfire">${esc(r.lastMisfire)}</span>` : '');
-    const kb = $('#kb');
-    if (kb) {
-      kb.innerHTML = kbSVG(h.r ? h.r.layer : 0, h.r ? { target: h.r.pos, holds: h.r.holds } : {}) + legendHtml();
-      // On narrow screens the keyboard scrolls horizontally; keep the target key in view.
-      const tg = kb.querySelector('.tgtg');
-      if (tg && kb.scrollWidth > kb.clientWidth + 4) {
-        const t = tg.getBoundingClientRect(), k = kb.getBoundingClientRect();
-        kb.scrollLeft += (t.left + t.width / 2) - (k.left + k.width / 2);
-      }
-    }
+    const idx = r.idx;
+    clearTimeout(revealTimer);
+    if (!revealed()) revealTimer = setTimeout(() => { if (S.run === r && r.idx === idx && !r.result) { r.revealAt = idx; paintHint(h); } }, REVEAL_MS);
+    paintHint(h);
   }
   // overlay
   const ov = $('#overlay');
   if (r.result) ov.innerHTML = resultCard();
   else if (!document.hasFocus()) ov.innerHTML = `<button class="focusveil" data-act="focus">Click here, then start typing</button>`;
   else ov.innerHTML = r.t0 ? '' : '';
+}
+// keyHighlight: 'bright' fills the keys, 'subtle' outlines them, 'stuck' shows nothing until you pause or miss.
+const REVEAL_MS = 1500;
+let revealTimer = null;
+function revealed(){ const r = S.run; return S.settings.keyHighlight !== 'stuck' || r.revealAt === r.idx || r.wrong.has(r.idx); }
+function paintHint(h){
+  const r = S.run, show = revealed(), soft = S.settings.keyHighlight === 'subtle';
+  $('#hint').innerHTML = (show ? h.html : '') + (r.lastMisfire ? ` <span class="misfire">${esc(r.lastMisfire)}</span>` : '');
+  const kb = $('#kb'); if (!kb) return;
+  kb.innerHTML = kbSVG(h.r ? h.r.layer : 0, h.r && show ? { target: h.r.pos, holds: h.r.holds, soft } : {}) + legendHtml(true, soft);
+  // On narrow screens the keyboard scrolls horizontally; keep the target key in view.
+  const tg = kb.querySelector('.tgtg');
+  if (tg && kb.scrollWidth > kb.clientWidth + 4) {
+    const t = tg.getBoundingClientRect(), k = kb.getBoundingClientRect();
+    kb.scrollLeft += (t.left + t.width / 2) - (k.left + k.width / 2);
+  }
 }
 function updateLive(){
   const n = liveNums();
@@ -489,6 +511,8 @@ function finishStage(now){
   if (r.lesson && r.result.pass) {
     const p = st.progress[r.lesson.id] || { stars: 0 };
     p.stageCount = r.stages.length; p.stagesDone = Math.max(p.stagesDone || 0, r.si + 1);
+    // Kept so a resumed lesson still scores over every stage, not just the ones typed after resuming.
+    if (!p.stars) (p.stageRes = p.stageRes || [])[r.si] = { acc, wpm };
     st.progress[r.lesson.id] = p;
   }
   saveStats();
@@ -504,7 +528,7 @@ function finishLesson(){
   if (r.lesson) {
     const p = S.stats.progress[r.lesson.id] || {};
     p.stars = Math.max(p.stars || 0, stars); p.bestWpm = Math.max(p.bestWpm || 0, kind === 'keys' || kind === 'chords' ? 0 : wpm);
-    p.bestAcc = Math.max(p.bestAcc || 0, acc); p.stageCount = r.stages.length; p.stagesDone = r.stages.length;
+    p.bestAcc = Math.max(p.bestAcc || 0, acc); p.stageCount = r.stages.length; p.stagesDone = r.stages.length; delete p.stageRes;
     S.stats.progress[r.lesson.id] = p; saveStats();
   }
   r.result = { lessonDone: true, acc, wpm, stars, misfires: { shift: 0, mod: 0, alt: 0 }, missed: [] };
@@ -517,8 +541,36 @@ function nextStage(){
 }
 function exitRun(){ stopLiveTimer(); S.run = null; render(); }
 
+/* ---------- keyboard navigation (outside a run) ---------- */
+const VIEW_KEYS = { 1: 'learn', 2: 'practice', 3: 'layout', 4: 'settings' };
+// Visible stops in the lesson list, in page order: hero button, unit headers, then each open unit's Start/Redo buttons.
+function navTargets(){
+  return [...document.querySelectorAll('.main .hero .btn, .main details.unit > summary, .main .lesson .act .btn:not(:disabled)')]
+    .filter(el => el.getClientRects().length);
+}
+function onNavKey(e){
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest('input, textarea, select')) return;
+  const k = e.key;
+  if (VIEW_KEYS[k]) {
+    e.preventDefault(); S.view = VIEW_KEYS[k]; S.msg = null; S.confirmDel = null; render();
+    if (S.view !== 'learn') $('.nav button.on').focus();
+    return;
+  }
+  if (S.view !== 'learn') return;
+  if (k === 'Enter' && document.activeElement === document.body) { e.preventDefault(); startLesson(nextLessonIdx()); return; }
+  const dir = k === 'ArrowDown' ? 1 : k === 'ArrowUp' ? -1 : 0;
+  if (!dir && k !== 'Home' && k !== 'End') return;
+  const ts = navTargets(); if (!ts.length) return;
+  e.preventDefault();
+  let i = ts.indexOf(document.activeElement);
+  if (i < 0) i = Math.max(0, ts.indexOf($('.lesson.next .act .btn'))); // focus is off the list: start from the next lesson
+  else i = k === 'Home' ? 0 : k === 'End' ? ts.length - 1 : Math.max(0, Math.min(ts.length - 1, i + dir));
+  ts[i].focus({ preventScroll: true }); ts[i].scrollIntoView({ block: 'nearest' });
+}
+
 function onKey(e){
-  const r = S.run; if (!r || fbOpen()) return;
+  if (fbOpen()) return;
+  const r = S.run; if (!r) { onNavKey(e); return; }
   if (r.result) {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -791,9 +843,9 @@ document.addEventListener('change', e => {
     rd.onload = () => { try { const L = loadLayoutText(String(rd.result), f.name.replace(/\.[^.]+$/, '')); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${L.title} from ${f.name}. Lessons rebuilt for this layout.` }; } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); };
     rd.readAsText(f); return;
   }
-  const keys = ['routePref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'showFingers', 'unlockAll', 'theme'];
+  const keys = ['routePref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'showFingers', 'unlockAll', 'theme'];
   if (keys.includes(t.id)) {
-    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && (t.id === 'routePref' || t.id === 'theme')) ? t.value : Math.max(1, +t.value || DEFAULT_SETTINGS[t.id]);
+    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && ['routePref', 'keyHighlight', 'theme'].includes(t.id)) ? t.value : Math.max(1, +t.value || DEFAULT_SETTINGS[t.id]);
     S.settings[t.id] = v; store.set('settings', S.settings);
     if (t.id === 'routePref') rebuild();
     if (t.id === 'theme') applyTheme(v);
