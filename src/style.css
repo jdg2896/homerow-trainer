@@ -40,7 +40,10 @@ h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
 /* Header */
 .top{background:var(--surface);border-bottom:1px solid var(--line)}
 .bar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:12px 16px}
-.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:21px;letter-spacing:-.01em}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:21px;letter-spacing:-.01em;background:none;border:0;padding:0;color:inherit}
+.brand:hover .brand-mark i.on{filter:brightness(1.1)}
+.fb-open{padding:6px 12px;font-size:14px;gap:6px}
+.fb-open svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .brand-mark{display:grid;grid-template-columns:repeat(3,9px);gap:3px}
 .brand-mark i{width:9px;height:9px;border-radius:2px;background:var(--line)}
 .brand-mark i.on{background:var(--go)}
@@ -218,12 +221,38 @@ textarea{min-height:120px;font-family:var(--mono);font-size:13px}
 .credits p{margin:0 auto;max-width:112ch}
 .credits a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 .credits a:hover{color:var(--accent)}
+.credits .ver{margin-bottom:8px}
+.linkbtn{background:none;border:0;padding:0;color:inherit;text-decoration:underline;text-underline-offset:2px}
+.linkbtn:hover{color:var(--accent)}
+
+/* Feedback dialog */
+dialog.fb{width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow-y:auto;padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+dialog.fb::backdrop{background:rgba(13,18,28,.55)}
+dialog.fb h3{font-size:21px;margin-bottom:4px}
+dialog.fb textarea{font-family:var(--body);font-size:15px;min-height:0;resize:vertical}
+dialog.fb:not([data-type="bug"]) .bug-only{display:none}
+dialog.fb .check{margin-top:6px}
+dialog.fb .actions{justify-content:flex-end}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:6px}
+.seg label{flex:1;font-size:14px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:block;text-align:center;padding:8px 6px;cursor:pointer;font-weight:700;color:var(--muted)}
+.seg label+label span{border-left:1px solid var(--line)}
+.seg input:checked+span{background:var(--accent-soft);color:var(--ink)}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:-2px}
+.fbdiag summary{cursor:pointer;font-size:14px;color:var(--muted)}
+.fbdiag pre{font-family:var(--mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow-y:auto;margin:6px 0 0}
 
 @media (max-width:860px){
   .shell{grid-template-columns:minmax(0,1fr)}
   .nav{flex-direction:row;flex-wrap:wrap}
   .units,.side .card{display:none}
   .stats{margin-left:0;gap:16px}
+  /* Keep Feedback on the brand's row, top right, instead of wrapping under the stats. */
+  .bar{column-gap:12px}
+  .fb-open{order:1;margin-left:auto;padding:7px}
+  .fb-open span{display:none}
+  .layout-chip,.stats{order:2}
   .lesson{grid-template-columns:34px minmax(0,1fr)}
   .lesson .act{grid-column:2}
   .runbar .live{margin-left:0}

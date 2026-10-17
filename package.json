@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "A typing trainer for ergonomic split keyboards that builds progressive lessons from your own MoErgo or ZMK layout.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jdg2896/homerow-trainer.git"
+  },
   "private": true,
   "type": "commonjs",
   "scripts": {

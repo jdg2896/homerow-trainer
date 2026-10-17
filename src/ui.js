@@ -149,7 +149,7 @@ function header(){
   const o = overall(), goal = S.settings.dailyGoal * 60, pct = Math.min(1, o.todaySecs / goal), C = 2 * Math.PI * 18;
   const L = S.layout;
   return `<header class="top"><div class="bar">
-    <div class="brand"><span class="brand-mark" aria-hidden="true">${[0,1,2,3,4,5,6,7,8].map(i => `<i class="${i >= 3 && i < 6 ? 'on' : ''}"></i>`).join('')}</span>Homerow Trainer</div>
+    <button class="brand" data-act="home" title="Back to lessons"><span class="brand-mark" aria-hidden="true">${[0,1,2,3,4,5,6,7,8].map(i => `<i class="${i >= 3 && i < 6 ? 'on' : ''}"></i>`).join('')}</span>Homerow Trainer</button>
     <div class="layout-chip"><b title="${esc(L.title)}">${esc(L.title)}</b><span>${esc(L.geo.name)} · ${L.layers.length} layers</span></div>
     <div class="stats">
       <div class="stat"><small>Avg speed</small><b>${o.wpm == null ? '–' : Math.round(o.wpm)}<em>wpm</em></b></div>
@@ -157,7 +157,8 @@ function header(){
       <div class="stat"><small>Typing time</small><b>${fmtTime(o.total)}</b></div>
       <div class="goal"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="ring-bg" cx="22" cy="22" r="18"/><circle class="ring" cx="22" cy="22" r="18" stroke-dasharray="${(C * pct).toFixed(1)} ${C.toFixed(1)}"/></svg>
         <div class="stat"><small>Daily goal</small><b>${fmtTime(o.todaySecs)}<em>/ ${S.settings.dailyGoal}:00</em></b></div></div>
-    </div></div></header>`;
+    </div>
+    <button class="btn ghost fb-open" data-act="feedback" data-fbtype="bug" title="Report a bug" aria-label="Report a bug"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="8" width="10" height="13" rx="5"/><path d="M9 8V7a3 3 0 0 1 6 0v1M12 12v9M7 12.5H3m14 0h4M7 17H4m13 0h3M7.6 9.6 5 7m11.4 2.6L19 7"/></svg><span>Report a bug</span></button></div></header>`;
 }
 function sidebar(){
   const nav = [['learn', 'Lessons'], ['practice', 'Practice'], ['layout', 'Layout'], ['settings', 'Settings']];
@@ -329,8 +330,10 @@ function settingsView(){
 
 const CREDITS = [['moosytype', 'https://github.com/moosylog/moosytype'], ['typing.com', 'https://www.typing.com'], ['keybr.com', 'https://www.keybr.com'],
   ['Miryoku', 'https://github.com/manna-harbour/miryoku'], ['MoErgo', 'https://www.moergo.com'], ['ZMK', 'https://zmk.dev'], ['wordfreq (CC BY-SA 4.0)', 'https://github.com/rspeer/wordfreq']];
+const BUILD = window.HOMEROW_TRAINER_BUILD || { version: 'dev', commit: '', date: '', repo: 'https://github.com/jdg2896/homerow-trainer' };
 function footer(){
-  return `<footer class="credits"><p>Inspired by ${CREDITS.slice(0, 3).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Layout and keymap formats from ${CREDITS.slice(3, 6).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Word list from <a href="${CREDITS[6][1]}" target="_blank" rel="noopener">${CREDITS[6][0]}</a>. Fonts: Atkinson Hyperlegible, Bricolage Grotesque, IBM Plex Mono <span style="white-space:nowrap">(SIL OFL)</span>.</p></footer>`;
+  const commit = BUILD.commit ? ` · <a href="${BUILD.repo}/commit/${BUILD.commit}" target="_blank" rel="noopener" class="mono">${BUILD.commit}</a>` : '';
+  return `<footer class="credits"><p class="ver">Homerow Trainer v${esc(BUILD.version)}${commit} · <button class="linkbtn" data-act="feedback" data-fbtype="feedback">Send feedback</button> · <button class="linkbtn" data-act="feedback" data-fbtype="bug">Report a bug</button></p><p>Inspired by ${CREDITS.slice(0, 3).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Layout and keymap formats from ${CREDITS.slice(3, 6).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Word list from <a href="${CREDITS[6][1]}" target="_blank" rel="noopener">${CREDITS[6][0]}</a>. Fonts: Atkinson Hyperlegible, Bricolage Grotesque, IBM Plex Mono <span style="white-space:nowrap">(SIL OFL)</span>.</p></footer>`;
 }
 function render(){
   if (S.run) { renderRun(true); return; }
@@ -382,7 +385,7 @@ function renderRun(full){
       <div class="hint" id="hint"></div>
       ${S.settings.showKeyboard ? `<div class="kbwrap" id="kb"></div>` : ''}
       <p class="muted" style="font-size:13px;margin:0">Esc leaves the lesson. Homerow Trainer can't block every browser shortcut, like ⌘W, so watch for accidental Command holds.</p>
-    </div></div>`;
+    </div></div>` + footer();
     paintText();
   }
   paintChips();
@@ -515,7 +518,7 @@ function nextStage(){
 function exitRun(){ stopLiveTimer(); S.run = null; render(); }
 
 function onKey(e){
-  const r = S.run; if (!r) return;
+  const r = S.run; if (!r || fbOpen()) return;
   if (r.result) {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -596,6 +599,140 @@ function startPractice(kind){
 }
 
 /* ---------- events ---------- */
+/* ---------- feedback ----------
+   No backend: the form builds a prefilled GitHub "new issue" link. Each type has a matching
+   .github/ISSUE_TEMPLATE file whose frontmatter applies the label, since the labels query
+   parameter is ignored for people without triage access. */
+const FB_TYPES = {
+  bug: { name: 'Bug', template: 'bug.md', label: 'bug', ask: 'What went wrong?' },
+  feedback: { name: 'Feedback', template: 'feedback.md', label: 'feedback', ask: 'What’s your idea or feedback?' }
+};
+const MAX_URL = 8000; // GitHub rejects much longer issue URLs; longer reports go via the clipboard
+const MAX_BODY = 65000; // GitHub's issue body limit is 65,536 characters
+let fbDialog = null;
+function fbOpen(){ return !!(fbDialog && fbDialog.open); }
+
+function diagnostics(){
+  const L = S.layout, r = S.run, errs = window.HOMEROW_TRAINER_ERRORS || [];
+  const lines = [
+    `Version: v${BUILD.version}${BUILD.commit ? ' (' + BUILD.commit + ')' : ''}${BUILD.date ? ', built ' + BUILD.date : ''}`,
+    `Page: ${location.origin}${location.pathname}`,
+    `Browser: ${navigator.userAgent}`,
+    `Screen: viewport ${innerWidth}x${innerHeight} @${devicePixelRatio}x, language ${navigator.language}, theme ${S.settings.theme}`,
+    `Layout: ${L.title} (${L.geo.name}, ${L.layers.length} layers, keyboard ${L.keyboard || '?'}, id ${L.id})`,
+    `View: ${r ? `lesson "${r.title}", stage ${r.si + 1}/${r.stages.length} (${r.stages[r.si].name}), item ${r.idx}/${r.items.length}` : S.view}`,
+    `Progress: ${S.C.lessons.filter(isDone).length}/${S.C.lessons.length} lessons done, ${S.stats.sessions.length} sessions`,
+    `Settings: ${JSON.stringify(S.settings)}`,
+    errs.length ? 'Recent errors:\n' + errs.map(x => `  [${x.at}] ${x.kind}: ${x.msg}${x.where ? ' @ ' + x.where : ''}`).join('\n') : 'Recent errors: none'
+  ];
+  return lines.join('\n');
+}
+
+// The active layout as stored (MoErgo JSON is re-serialized compactly; ZMK keymaps stay as written).
+function layoutFile(){
+  const rec = S.layouts[S.activeId], text = rec ? rec.text : '';
+  try { return { lang: 'json', text: JSON.stringify(JSON.parse(text)) }; } catch (e) { return { lang: 'c', text }; }
+}
+function fbBody(f, withLayout){
+  const T = FB_TYPES[f.type];
+  const sec = (h, v) => v ? `### ${h}\n\n${v}\n\n` : '';
+  const fold = (summary, lang, text) => `<details><summary>${summary}</summary>\n\n\`\`\`\`${lang}\n${text}\n\`\`\`\`\n\n</details>`;
+  const lf = withLayout && layoutFile();
+  return sec('Type', T.name)
+    + sec(f.type === 'bug' ? 'What happened' : 'Details', f.details)
+    + (f.type === 'bug' ? sec('Steps to reproduce', f.steps) + sec('Expected behavior', f.expected) : '')
+    + sec('Screenshots', '_Paste or drag screenshots and files here, if any._')
+    + (lf ? sec('Layout file', fold(`${esc(S.layout.title)} (${Math.ceil(lf.text.length / 1024)} KB)`, lf.lang, lf.text)) : '')
+    + (f.diag ? sec('Diagnostics', fold('App, browser and layout state (auto-collected)', '', diagnostics())) : '')
+    + '_Sent from the in-app feedback form._';
+}
+function fbUrl(f, body){
+  const T = FB_TYPES[f.type];
+  const q = new URLSearchParams({ template: T.template, labels: T.label, title: f.title, body });
+  return `${BUILD.repo}/issues/new?${q}`;
+}
+
+function fbFields(){
+  const v = id => (fbDialog.querySelector('#' + id) || {}).value || '';
+  const type = (fbDialog.querySelector('input[name=fbType]:checked') || {}).value || 'bug';
+  return { type, title: v('fbTitle').trim(), details: v('fbDetails').trim(), steps: v('fbSteps').trim(), expected: v('fbExpected').trim(),
+    diag: fbDialog.querySelector('#fbDiag').checked, layout: type === 'bug' && fbDialog.querySelector('#fbLayout').checked };
+}
+function fbSync(){
+  const type = fbFields().type;
+  if (fbDialog.dataset.type !== type) fbDialog.querySelector('#fbDiag').checked = type === 'bug';
+  fbDialog.dataset.type = type;
+  fbDialog.querySelector('#fbHead').textContent = type === 'bug' ? 'Report a bug' : 'Send feedback';
+  fbDialog.querySelector('label[for=fbDetails]').textContent = FB_TYPES[type].ask;
+  fbDialog.querySelector('#fbDiagText').textContent = diagnostics();
+}
+function openFeedback(type){
+  if (!fbDialog) {
+    fbDialog = document.createElement('dialog');
+    fbDialog.className = 'fb';
+    fbDialog.setAttribute('aria-labelledby', 'fbHead');
+    fbDialog.innerHTML = `<form class="field">
+      <h3 id="fbHead">Send feedback</h3>
+      <div class="seg" role="radiogroup" aria-label="Type">${Object.entries(FB_TYPES).map(([k, T], i) =>
+        `<label><input type="radio" name="fbType" value="${k}" ${i ? '' : 'checked'}><span>${T.name}</span></label>`).join('')}</div>
+      <label for="fbTitle">Title</label>
+      <input type="text" id="fbTitle" maxlength="120" placeholder="A short summary" autocomplete="off">
+      <label for="fbDetails"></label>
+      <textarea id="fbDetails" rows="4"></textarea>
+      <div class="bug-only field">
+        <label for="fbSteps">Steps to reproduce</label>
+        <textarea id="fbSteps" rows="3" placeholder="1. Open Lessons&#10;2. Start lesson 3&#10;3. …"></textarea>
+        <label for="fbExpected">What did you expect?</label>
+        <input type="text" id="fbExpected" autocomplete="off">
+      </div>
+      <div class="check bug-only"><input type="checkbox" id="fbLayout" checked><label for="fbLayout">Attach my active layout file<br><small>So the bug can be reproduced with your exact keymap.</small></label></div>
+      <div class="check"><input type="checkbox" id="fbDiag" checked><label for="fbDiag">Include diagnostics<br><small>Version, browser, active layout name, current screen, settings and recent errors. No typing history.</small></label></div>
+      <details class="fbdiag"><summary>See what gets included</summary><pre id="fbDiagText"></pre></details>
+      <div class="msg err" id="fbErr" hidden></div>
+      <small>Opens a prefilled issue on GitHub in a new tab, where you can add screenshots or files, then press Submit (needs a GitHub account). Long reports, like ones with a layout file, are copied to your clipboard to paste there.</small>
+      <div class="actions"><button type="button" class="btn ghost" data-act="fb-cancel">Cancel</button><button type="button" class="btn primary" data-act="fb-submit">Continue on GitHub</button></div>
+    </form>`;
+    document.body.appendChild(fbDialog);
+    fbDialog.addEventListener('click', e => { if (e.target === fbDialog) fbDialog.close(); }); // backdrop
+    fbDialog.addEventListener('change', e => { if (e.target.name === 'fbType') fbSync(); });
+    fbDialog.addEventListener('submit', e => e.preventDefault());
+  }
+  const radio = fbDialog.querySelector(`input[name=fbType][value=${FB_TYPES[type] ? type : 'bug'}]`);
+  radio.checked = true;
+  fbSync();
+  fbDialog.querySelector('#fbErr').hidden = true;
+  fbDialog.showModal();
+  fbDialog.querySelector('#fbTitle').focus();
+}
+function submitFeedback(){
+  const f = fbFields(), err = fbDialog.querySelector('#fbErr');
+  const fail = m => { err.textContent = m; err.hidden = false; };
+  if (!f.title || !f.details) { fail('Add a title and a few words of detail first.'); return; }
+  let body = fbBody(f, f.layout);
+  if (body.length > MAX_BODY) body = fbBody(f, false).replace('### Screenshots', '_The layout file was too large to include. Please attach it below._\n\n### Screenshots');
+  const done = () => { fbDialog.querySelector('form').reset(); fbSync(); fbDialog.close(); };
+  const url = fbUrl(f, body);
+  if (url.length <= MAX_URL) { window.open(url, '_blank', 'noopener'); done(); return; }
+  // Too long for a link: copy the report, then open a short placeholder to paste over.
+  // Copy first, synchronously: once the new tab opens this page loses focus and async clipboard writes are refused.
+  if (!copyText(body)) {
+    fail(f.layout ? 'This report is too long for a link and copying it failed. Untick “Attach my active layout file” and attach it on GitHub instead.' : 'This report is too long for a link. Shorten the details and try again.');
+    return;
+  }
+  window.open(fbUrl(f, 'Your full report is on your clipboard. Select this line and paste (⌘V / Ctrl+V) to replace it.'), '_blank', 'noopener');
+  done();
+}
+function copyText(text){
+  // Inside the dialog, since a modal dialog makes the rest of the page unselectable.
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.readOnly = true; ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+  fbDialog.appendChild(ta); ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) {}
+  ta.remove();
+  return ok;
+}
+
 document.addEventListener('keydown', onKey);
 window.addEventListener('focus', () => { if (S.run) paintState(); });
 window.addEventListener('blur', () => { if (S.run) paintState(); });
@@ -615,6 +752,10 @@ document.addEventListener('click', e => {
     render(); return;
   }
   switch (d.act) {
+    case 'home': if (S.run) stopLiveTimer(); S.run = null; S.view = 'learn'; S.msg = null; S.confirmDel = null; render(); scrollTo(0, 0); break;
+    case 'feedback': openFeedback(d.fbtype); break;
+    case 'fb-cancel': fbDialog.close(); break;
+    case 'fb-submit': submitFeedback(); break;
     case 'exit': exitRun(); break;
     case 'focus': window.focus(); paintState(); break;
     case 'next-stage': nextStage(); break;
