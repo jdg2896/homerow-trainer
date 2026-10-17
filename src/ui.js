@@ -362,8 +362,9 @@ function resumeStage(l){ const p = lessonProg(l); return p && !p.stars && p.stag
 function startLesson(i){
   const l = S.C.lessons[i], p = lessonProg(l);
   const stages = E.makeStages(S.C, l, WORDS, +S.settings.stageLen);
-  let si = resumeStage(l), results = [];
-  if (si && si < stages.length && p.stageCount === stages.length) results = (p.stageRes || []).map(x => x && Object.assign({ pass: true }, x));
+  // Clamped so a lesson saved with every stage passed but never finished (before 0.3.1) redoes its last stage instead of restarting.
+  let si = Math.min(resumeStage(l), stages.length - 1), results = [];
+  if (si && p.stageCount === stages.length) results = (p.stageRes || []).map(x => x && Object.assign({ pass: true }, x));
   else si = 0;
   beginRun({ lesson: l, lessonIdx: i, stages, si, results, title: `Lesson ${l.num}: ${l.title}` });
 }
@@ -514,12 +515,14 @@ function finishStage(now){
     // Kept so a resumed lesson still scores over every stage, not just the ones typed after resuming.
     if (!p.stars) (p.stageRes = p.stageRes || [])[r.si] = { acc, wpm };
     st.progress[r.lesson.id] = p;
+    // Record the lesson as soon as its last stage passes, so leaving before clicking through to the summary keeps it.
+    if (r.si === r.stages.length - 1) recordLesson();
   }
   saveStats();
   renderRun(false);
   paintChips();
 }
-function finishLesson(){
+function recordLesson(){
   const r = S.run;
   const res = r.results.filter(Boolean);
   const acc = res.reduce((a, x) => a + x.acc, 0) / res.length, wpm = res.reduce((a, x) => a + x.wpm, 0) / res.length;
@@ -531,7 +534,10 @@ function finishLesson(){
     p.bestAcc = Math.max(p.bestAcc || 0, acc); p.stageCount = r.stages.length; p.stagesDone = r.stages.length; delete p.stageRes;
     S.stats.progress[r.lesson.id] = p; saveStats();
   }
-  r.result = { lessonDone: true, acc, wpm, stars, misfires: { shift: 0, mod: 0, alt: 0 }, missed: [] };
+  return { acc, wpm, stars };
+}
+function finishLesson(){
+  S.run.result = Object.assign({ lessonDone: true, misfires: { shift: 0, mod: 0, alt: 0 }, missed: [] }, recordLesson());
   paintState();
 }
 function nextStage(){
