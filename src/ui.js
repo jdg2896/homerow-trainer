@@ -14,7 +14,7 @@ const store = {
   del(k){ try { localStorage.removeItem('homerow-trainer.' + k); } catch (e) {} }
 };
 const DEFAULT_SETTINGS = { passAcc: 95, targetWpm: 20, stopOnError: true, stageLen: 90, routePref: 'layers',
-  showFingers: true, showKeyboard: true, keyHighlight: 'bright', dailyGoal: 15, unlockAll: false, theme: 'system' };
+  showFingers: true, showKeyboard: true, keyHighlight: 'bright', hintOnMiss: false, dailyGoal: 15, unlockAll: false, theme: 'system' };
 
 /* ---------- theme ---------- */
 function applyTheme(t){
@@ -321,8 +321,8 @@ function settingsView(){
       <div class="check"><input type="checkbox" id="stopOnError" ${s.stopOnError ? 'checked' : ''}><label for="stopOnError">Stop on errors<br><small>You must type the right key before moving on.</small></label></div>
       <div class="check"><input type="checkbox" id="showKeyboard" ${s.showKeyboard ? 'checked' : ''}><label for="showKeyboard">Show the keyboard during lessons</label></div>
       <label for="keyHighlight">Next-key highlight</label>
-      ${sel('keyHighlight', [['bright', 'Bright (fill the key)'], ['subtle', 'Subtle (outline only)'], ['stuck', 'Only when stuck']], s.keyHighlight)}
-      <small>Only when stuck hides the hint and key highlight until you pause for ${REVEAL_MS / 1000}s or miss, which helps you rely on touch typing.</small>
+      ${sel('keyHighlight', [['bright', 'Fill the key'], ['subtle', 'Outline the key'], ['off', 'Off']], s.keyHighlight)}
+      <div class="check"><input type="checkbox" id="hintOnMiss" ${s.hintOnMiss ? 'checked' : ''}><label for="hintOnMiss">Only show hints after a miss<br><small>Hides the hint and key highlight until you press a wrong key, which helps you rely on touch typing.</small></label></div>
       <div class="check"><input type="checkbox" id="showFingers" ${s.showFingers ? 'checked' : ''}><label for="showFingers">Colour keys by finger</label></div>
       <div class="check"><input type="checkbox" id="unlockAll" ${s.unlockAll ? 'checked' : ''}><label for="unlockAll">Unlock every lesson</label></div></div>
     <div class="card field"><h3 style="font-size:19px">Appearance</h3>
@@ -376,7 +376,7 @@ function beginRun(o){
 function resetStage(){
   const r = S.run;
   Object.assign(r, { items: r.stages[r.si].items, idx: 0, tried: new Set(), wrong: new Set(), errCount: 0, t0: null, last: null,
-    misfires: { shift: 0, mod: 0, alt: 0 }, result: null, lastMisfire: null, revealAt: -1 });
+    misfires: { shift: 0, mod: 0, alt: 0 }, result: null, lastMisfire: null });
 }
 function liveNums(){
   const r = S.run;
@@ -438,11 +438,7 @@ function paintState(){
   // hint + keyboard
   const it = r.items[r.idx];
   if (it && !r.result) {
-    const h = hintFor(it);
-    const idx = r.idx;
-    clearTimeout(revealTimer);
-    if (!revealed()) revealTimer = setTimeout(() => { if (S.run === r && r.idx === idx && !r.result) { r.revealAt = idx; paintHint(h); } }, REVEAL_MS);
-    paintHint(h);
+    paintHint(hintFor(it));
   }
   // overlay
   const ov = $('#overlay');
@@ -450,15 +446,13 @@ function paintState(){
   else if (!document.hasFocus()) ov.innerHTML = `<button class="focusveil" data-act="focus">Click here, then start typing</button>`;
   else ov.innerHTML = r.t0 ? '' : '';
 }
-// keyHighlight: 'bright' fills the keys, 'subtle' outlines them, 'stuck' shows nothing until you pause or miss.
-const REVEAL_MS = 1500;
-let revealTimer = null;
-function revealed(){ const r = S.run; return S.settings.keyHighlight !== 'stuck' || r.revealAt === r.idx || r.wrong.has(r.idx); }
+// keyHighlight: 'bright' fills the keys, 'subtle' outlines them, 'off' leaves them unlit. hintOnMiss holds the hint and highlight back until a miss.
+function revealed(){ const r = S.run; return !S.settings.hintOnMiss || r.wrong.has(r.idx); }
 function paintHint(h){
-  const r = S.run, show = revealed(), soft = S.settings.keyHighlight === 'subtle';
+  const r = S.run, show = revealed(), kh = S.settings.keyHighlight, soft = kh === 'subtle';
   $('#hint').innerHTML = (show ? h.html : '') + (r.lastMisfire ? ` <span class="misfire">${esc(r.lastMisfire)}</span>` : '');
   const kb = $('#kb'); if (!kb) return;
-  kb.innerHTML = kbSVG(h.r ? h.r.layer : 0, h.r && show ? { target: h.r.pos, holds: h.r.holds, soft } : {}) + legendHtml(true, soft);
+  kb.innerHTML = kbSVG(h.r ? h.r.layer : 0, h.r && show && kh !== 'off' ? { target: h.r.pos, holds: h.r.holds, soft } : {}) + legendHtml(kh !== 'off', soft);
   // On narrow screens the keyboard scrolls horizontally; keep the target key in view.
   const tg = kb.querySelector('.tgtg');
   if (tg && kb.scrollWidth > kb.clientWidth + 4) {
@@ -849,7 +843,7 @@ document.addEventListener('change', e => {
     rd.onload = () => { try { const L = loadLayoutText(String(rd.result), f.name.replace(/\.[^.]+$/, '')); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${L.title} from ${f.name}. Lessons rebuilt for this layout.` }; } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); };
     rd.readAsText(f); return;
   }
-  const keys = ['routePref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'showFingers', 'unlockAll', 'theme'];
+  const keys = ['routePref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'hintOnMiss', 'showFingers', 'unlockAll', 'theme'];
   if (keys.includes(t.id)) {
     const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && ['routePref', 'keyHighlight', 'theme'].includes(t.id)) ? t.value : Math.max(1, +t.value || DEFAULT_SETTINGS[t.id]);
     S.settings[t.id] = v; store.set('settings', S.settings);
