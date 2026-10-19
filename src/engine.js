@@ -611,6 +611,8 @@ const NGRAMS = [
   'tion that ther with ment ions this here from ould ting hich ever they thin have were tive ough ight ence ance'
 ].map(s => s.split(' '));
 const CONTRACTIONS = ["don't", "it's", "can't", "you're", "we'll", "isn't", "that's", "won't", "let's", "there's", "didn't", "they're"];
+const COMPOUNDS = ['follow-up', 'well-known', 'long-term', 'short-term', 'real-time', 'full-time', 'part-time', 'built-in',
+  'check-in', 'up-to-date', 'self-care', 'high-quality', 'day-to-day', 'one-on-one', 'open-source', 'brand-new'];
 
 function lettersOf(set){ return [...set].filter(c => /[a-z]/.test(c)); }
 
@@ -685,15 +687,15 @@ function sentenceText(newC, unlocked, len, WORDS){
   const has = c => unlocked.has(c), typeable = w => [...w].every(has);
   const word = () => withNew.length >= 4 && Math.random() < 0.5 ? pick(withNew) : ok.length >= 6 ? pick(ok) : pseudoWord(letters);
   // Real-world punctuation only shows up once its keys are unlocked (issue #3).
-  const contr = CONTRACTIONS.filter(typeable);
+  const contr = CONTRACTIONS.filter(typeable), comp = COMPOUNDS.filter(typeable);
   const who = typeable('said') ? ['he', 'she', 'they', 'we'].filter(typeable) : [];
   const out = [];
   let guard = 0;
   while (out.join(' ').length < len && guard++ < 50) {
     const n = 4 + rand(5), s = [];
     for (let i = 0; i < n; i++) {
-      let w = contr.length && Math.random() < 0.08 ? pick(contr) : word();
-      if (has('-') && i < n - 1 && Math.random() < 0.04) w += '-' + word();
+      const r0 = Math.random();
+      let w = contr.length && r0 < 0.08 ? pick(contr) : comp.length && r0 < 0.11 ? pick(comp) : word();
       if (i === 0 && caps.has(w[0].toUpperCase())) w = w[0].toUpperCase() + w.slice(1);
       if (i > 1 && i < n - 1) {
         const r = Math.random();
