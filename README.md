@@ -17,6 +17,7 @@ I only learned to touch type QWERTY around 2019, and [typing.com](https://www.ty
 - **Hints from the keymap.** "Hold Enter for Symbols (right thumb), then press `(` (left thumb)", with the target and held keys lit on an on-screen keyboard.
 - **Home-row mod aware.** Capitals use the opposite-hand shift. Accidental ⌘/⌃/⌥/Shift firing while typing letters is counted as a misfire.
 - **Adaptive practice.** Per-key miss rate and latency drive a "problem keys" drill. Also free practice and custom text.
+- **Grounded in how people learn to type.** Accuracy before speed, short daily sessions, real words early and common letter combinations. See [docs/learning-principles.md](docs/learning-principles.md).
 - **Local only.** Layouts, progress and stats live in `localStorage`, kept separately per layout.
 
 ## Supported layouts
@@ -49,6 +50,7 @@ which `tools/fetch_presets.mjs` downloads from the live Go60 and Glove80 editors
 Re-run it, then `node build.mjs`, to refresh the catalog.
 
 ```
+docs/           learning-principles.md — what drills and the curriculum are based on
 src/engine.js   layout parsing, routing, curriculum, drill generation (pure, runs in node)
 src/ui.js       views, typing engine, stats, storage
 src/style.css   styles and theme tokens (light/dark)
