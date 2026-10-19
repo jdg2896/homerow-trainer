@@ -13,7 +13,7 @@ const store = {
   set(k, v){ try { localStorage.setItem('homerow-trainer.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
   del(k){ try { localStorage.removeItem('homerow-trainer.' + k); } catch (e) {} }
 };
-const DEFAULT_SETTINGS = { passAcc: 95, targetWpm: 20, stopOnError: true, stageLen: 90, routePref: 'layers',
+const DEFAULT_SETTINGS = { passAcc: 95, targetWpm: 20, stopOnError: true, stageLen: 90, routePref: 'layers', modPref: 'auto',
   showFingers: true, showKeyboard: true, keyHighlight: 'bright', hintOnMiss: false, dailyGoal: 15, unlockAll: false, theme: 'system' };
 
 /* ---------- theme ---------- */
@@ -70,7 +70,7 @@ function activate(id){
   rebuild();
 }
 function rebuild(){
-  S.C = E.buildCurriculum(S.layout, S.settings.routePref);
+  S.C = E.buildCurriculum(S.layout, S.settings.routePref, S.settings.modPref);
   // Reviews used to be numbered by position; carry their progress over to the content-based ids.
   let moved = false;
   S.C.lessons.forEach(l => { const pr = S.stats.progress; if (l.legacyId && pr[l.legacyId]) { if (!pr[l.id]) pr[l.id] = pr[l.legacyId]; delete pr[l.legacyId]; moved = true; } });
@@ -335,10 +335,13 @@ function settingsView(){
   const sel = (id, opts, v) => `<select id="${id}">${opts.map(([val, t]) => `<option value="${val}" ${String(v) === String(val) ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   return `<div class="section-title"><h2>Settings</h2></div>
   <div class="grid2">
-    <div class="card field"><h3 style="font-size:19px">Numbers &amp; symbols</h3>
-      <label for="routePref">Where lessons route them</label>
+    <div class="card field"><h3 style="font-size:19px">Key routing</h3>
+      <label for="routePref">Numbers &amp; symbols</label>
       ${sel('routePref', [['layers', 'Thumb layers (Miryoku style)'], ['reach', 'Number row and reach keys']], s.routePref)}
-      <small>Changes where lessons send you for digits, brackets and punctuation when your layout has both.</small></div>
+      <small>Changes where lessons send you for digits, brackets and punctuation when your layout has both.</small>
+      ${S.C.routes.bothModKinds ? `<label for="modPref">Shift and other modifiers</label>
+      ${sel('modPref', [['auto', 'Easiest to reach'], ['dedicated', 'Dedicated modifier keys'], ['homerow', 'Home row mods']], s.modPref)}
+      <small>Your layout has both, so pick which ones lessons tell you to hold.</small>` : ''}</div>
     <div class="card field"><h3 style="font-size:19px">Scoring</h3>
       <label for="passAcc">Accuracy needed to pass</label>
       ${sel('passAcc', [[90, '90%'], [95, '95%'], [97, '97%'], [98, '98%']], s.passAcc)}
@@ -886,11 +889,11 @@ document.addEventListener('change', e => {
     rd.onload = () => { try { const L = loadLayoutText(String(rd.result), f.name.replace(/\.[^.]+$/, '')); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${L.title} from ${f.name}. Lessons rebuilt for this layout.` }; } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); };
     rd.readAsText(f); return;
   }
-  const keys = ['routePref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'hintOnMiss', 'showFingers', 'unlockAll', 'theme'];
+  const keys = ['routePref', 'modPref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'hintOnMiss', 'showFingers', 'unlockAll', 'theme'];
   if (keys.includes(t.id)) {
-    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && ['routePref', 'keyHighlight', 'theme'].includes(t.id)) ? t.value : Math.max(1, +t.value || DEFAULT_SETTINGS[t.id]);
+    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && ['routePref', 'modPref', 'keyHighlight', 'theme'].includes(t.id)) ? t.value : Math.max(1, +t.value || DEFAULT_SETTINGS[t.id]);
     S.settings[t.id] = v; store.set('settings', S.settings);
-    if (t.id === 'routePref') rebuild();
+    if (t.id === 'routePref' || t.id === 'modPref') rebuild();
     if (t.id === 'theme') applyTheme(v);
     render();
   }
