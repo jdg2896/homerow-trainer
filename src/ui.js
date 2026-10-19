@@ -27,29 +27,55 @@ const S = {
   layouts: store.get('layouts', {}),
   activeId: store.get('active', null),
   settings: Object.assign({}, DEFAULT_SETTINGS, store.get('settings', {})),
-  view: 'learn', layerView: 0, run: null, msg: null, confirmDel: null, customText: '', presetSel: 0
+  view: 'learn', layerView: 0, run: null, msg: null, confirmDel: null, renaming: null, updating: null, customText: '', presetSel: 0
 };
 
 function today(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function freshStats(){ return { progress: {}, keys: {}, misfires: { shift: 0, mod: 0, alt: 0 }, sessions: [], daily: {} }; }
 
 /* ---------- layout loading ---------- */
+// Saved layouts are save slots: the id belongs to the slot, not the file, so updating a slot with a
+// newer export keeps its progress. Older slots used the file's uuid as their id and keep it.
+function newLayoutId(){ return 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function saveLayouts(){ if (!store.set('layouts', S.layouts)) S.msg = { t: 'err', m: 'Saved, but this browser blocked storage, so the layout will not be remembered after you close the page.' }; }
 function loadLayoutText(text, nameHint){
-  const L = E.buildLayout(text, { name: nameHint });
-  S.layouts[L.id] = { name: L.title, keyboard: L.keyboard, text, savedAt: Date.now() };
-  if (!store.set('layouts', S.layouts)) S.msg = { t: 'err', m: 'Loaded, but this browser blocked storage, so the layout will not be remembered after you close the page.' };
+  S.msg = null;
+  const L = E.buildLayout(text, { name: nameHint, id: newLayoutId() });
+  S.layouts[L.id] = { name: L.title, keyboard: L.keyboard, uuid: L.uuid, text, savedAt: Date.now() };
+  saveLayouts();
   activate(L.id);
   return L;
 }
+const KNOWN_KBD = ['glove80', 'go60'];
+function updateLayoutText(id, text, nameHint){
+  S.msg = null;
+  const rec = S.layouts[id];
+  const L = E.buildLayout(text, { name: nameHint, id });
+  // Custom keyboards can't be told apart reliably, so only block a switch between two known ones.
+  if (KNOWN_KBD.includes(rec.keyboard) && KNOWN_KBD.includes(L.keyboard) && rec.keyboard !== L.keyboard)
+    throw new Error(`This is a ${KBD_NAME[L.keyboard]} layout, but ${rec.name} is for the ${KBD_NAME[rec.keyboard]}. Add it as a new layout instead.`);
+  Object.assign(rec, { keyboard: L.keyboard, uuid: L.uuid, text, savedAt: Date.now() });
+  saveLayouts();
+  if (id === S.activeId) activate(id);
+  return rec;
+}
+function layoutForPreset(p){ return p.uuid && Object.keys(S.layouts).find(id => ('uuid' in S.layouts[id] ? S.layouts[id].uuid : id) === String(p.uuid)); }
 function activate(id){
   const rec = S.layouts[id]; if (!rec) return;
   S.layout = E.buildLayout(rec.text, { name: rec.name, id });
-  S.activeId = S.layout.id; store.set('active', S.activeId);
+  S.layout.title = rec.name || S.layout.title;
+  S.activeId = id; store.set('active', S.activeId);
   S.stats = Object.assign(freshStats(), store.get('stats.' + S.activeId, {}));
   S.layerView = 0;
   rebuild();
 }
-function rebuild(){ S.C = E.buildCurriculum(S.layout, S.settings.routePref, S.settings.modPref); }
+function rebuild(){
+  S.C = E.buildCurriculum(S.layout, S.settings.routePref, S.settings.modPref);
+  // Reviews used to be numbered by position; carry their progress over to the content-based ids.
+  let moved = false;
+  S.C.lessons.forEach(l => { const pr = S.stats.progress; if (l.legacyId && pr[l.legacyId]) { if (!pr[l.id]) pr[l.id] = pr[l.legacyId]; delete pr[l.legacyId]; moved = true; } });
+  if (moved) saveStats();
+}
 function saveStats(){ store.set('stats.' + S.activeId, S.stats); }
 
 /* ---------- derived ---------- */
@@ -251,15 +277,15 @@ function presetsCard(){
   const groups = {};
   presets.forEach((p, i) => { (groups[p.keyboard] = groups[p.keyboard] || []).push(i); });
   const sel = +S.presetSel >= 0 && +S.presetSel < presets.length ? +S.presetSel : 0;
-  const opt = i => { const p = presets[i], added = p.uuid && S.layouts[String(p.uuid)];
+  const opt = i => { const p = presets[i], added = layoutForPreset(p);
     return `<option value="${i}" ${i === sel ? 'selected' : ''}>${esc(p.title || 'Layout')}${added ? ' ✓' : ''}</option>`; };
   const order = ['go60', 'glove80'];
   const keys = Object.keys(groups).sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
   const optgroups = keys.map(k =>
     `<optgroup label="${esc(KBD_NAME[k] || k)}">${groups[k].map(opt).join('')}</optgroup>`).join('');
-  const cur = presets[sel], curId = cur && String(cur.uuid || '');
-  const inUse = curId && curId === S.activeId;
-  const btn = inUse ? '<span class="badge" style="align-self:center">In use</span>'
+  const curId = presets[sel] && layoutForPreset(presets[sel]);
+  const btn = curId && curId === S.activeId ? '<span class="badge" style="align-self:center">In use</span>'
+    : curId ? `<button class="btn primary" data-use="${esc(curId)}">Switch to it</button>`
     : `<button class="btn primary" data-act="add-selected">Add to my layouts</button>`;
   return `<div class="card field"><h3 style="font-size:19px">Starter layouts</h3>
     <small>Official MoErgo layouts from the Go60 and Glove80 editors (✓ = already added). Adding one switches to it; your current layout stays saved, and you can remove it below.</small>
@@ -274,8 +300,13 @@ function layoutView(){
   const tabs = L.layerNames.map((n, i) => `<button class="${S.layerView === i ? 'on' : ''}" data-layer="${i}">${esc(n)}</button>`).join('');
   const chars = Object.keys(S.C.routes.chars).filter(c => c !== ' ').sort();
   const onlyOne = Object.keys(S.layouts).length <= 1;
-  const saved = Object.entries(S.layouts).map(([id, r]) => `<div class="row ${id === S.activeId ? 'on' : ''}"><div><b>${esc(r.name)}</b><div class="muted" style="font-size:13px">${esc(r.keyboard || 'keyboard')} · saved ${new Date(r.savedAt).toLocaleDateString()}</div></div>
-    <div style="display:flex;gap:8px">${id === S.activeId ? '<span class="badge">In use</span>' : `<button class="btn" data-use="${esc(id)}">Use</button>`}
+  const saved = Object.entries(S.layouts).map(([id, r]) => S.renaming === id
+    ? `<div class="row ${id === S.activeId ? 'on' : ''}"><input type="text" id="renameInput" maxlength="80" value="${esc(r.name)}" aria-label="Layout name" style="flex:1;min-width:180px">
+    <div style="display:flex;gap:8px"><button class="btn primary" data-act="rename-save">Save</button><button class="btn ghost" data-act="rename-cancel">Cancel</button></div></div>`
+    : `<div class="row ${id === S.activeId ? 'on' : ''}"><div><b>${esc(r.name)}</b><div class="muted" style="font-size:13px">${esc(KBD_NAME[r.keyboard] || r.keyboard || 'keyboard')} · updated ${new Date(r.savedAt).toLocaleDateString()}</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${id === S.activeId ? '<span class="badge">In use</span>' : `<button class="btn" data-use="${esc(id)}">Use</button>`}
+    <button class="btn ghost" data-rename="${esc(id)}">Rename</button>
+    <button class="btn ghost" data-update="${esc(id)}" title="Replace this layout's file with a newer export and keep its progress">Update</button>
     <button class="btn ghost danger" data-del="${esc(id)}"${onlyOne ? ' disabled title="Keep at least one layout. Add another before removing this one."' : ''}>${S.confirmDel === id ? 'Confirm remove' : 'Remove'}</button></div></div>`).join('');
   return `<div class="section-title"><h2>${esc(L.title)}</h2><span class="muted">${esc(L.geo.name)} · ${L.n} keys · ${L.format === 'moergo' ? 'MoErgo layout' : 'ZMK keymap'}</span></div>
   <div class="tabs">${tabs}</div>
@@ -294,7 +325,8 @@ function layoutView(){
       ${S.msg ? `<div class="msg ${S.msg.t}">${esc(S.msg.m)}</div>` : ''}
     </div>
     <div class="card"><h3 style="font-size:19px">Saved layouts</h3><div class="saved" style="margin-top:10px">${saved}</div>
-      <p class="muted" style="font-size:13px">Progress and key stats are kept separately for each layout.</p></div>
+      <input type="file" id="updateFile" accept=".json,.keymap,.dtsi,.txt" hidden>
+      <p class="muted" style="font-size:13px">Each layout keeps its own progress and key stats, like a save file. Update one with a newer export to keep its progress: lessons are rebuilt from the new keymap, and any lesson that still covers the same keys keeps its stars.</p></div>
   </div>`;
 }
 
@@ -795,10 +827,12 @@ document.addEventListener('click', e => {
   const t = e.target.closest('button, a[data-jump]'); if (!t) return;
   const d = t.dataset;
   if (d.jump) { e.preventDefault(); const el = document.getElementById(d.jump); if (el) { if (el.tagName === 'DETAILS') el.open = true; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
-  if (d.view) { S.view = d.view; S.msg = null; S.confirmDel = null; render(); return; }
+  if (d.view) { S.view = d.view; S.msg = null; S.confirmDel = null; S.renaming = null; render(); return; }
   if (d.start != null) { startLesson(+d.start); return; }
   if (d.layer != null) { S.layerView = +d.layer; render(); return; }
   if (d.use) { activate(d.use); S.msg = null; render(); return; }
+  if (d.rename) { S.renaming = d.rename; S.confirmDel = null; render(); const i = $('#renameInput'); if (i) { i.focus(); i.select(); } return; }
+  if (d.update) { S.updating = d.update; const f = $('#updateFile'); if (f) { f.value = ''; f.click(); } return; }
   if (d.del) {
     if (Object.keys(S.layouts).length <= 1) { S.confirmDel = null; render(); return; }
     if (S.confirmDel !== d.del) { S.confirmDel = d.del; render(); return; }
@@ -823,6 +857,8 @@ document.addEventListener('click', e => {
     case 'add-selected': {
       const i = ($('#presetSel') || {}).value, p = (window.HOMEROW_TRAINER_PRESETS || [])[+i];
       S.presetSel = +i || 0;
+      const have = p && layoutForPreset(p);
+      if (have) { activate(have); S.msg = null; render(); break; }
       if (p) { try { const L = loadLayoutText(JSON.stringify(p)); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Added ${L.title} and switched to it.` }; } catch (err) { S.msg = { t: 'err', m: err.message }; } }
       render(); break;
     }
@@ -833,6 +869,8 @@ document.addEventListener('click', e => {
       catch (err) { S.msg = { t: 'err', m: err.message }; }
       render(); break;
     }
+    case 'rename-save': saveRename(); break;
+    case 'rename-cancel': S.renaming = null; render(); break;
     case 'reset':
       if (S.confirmDel !== '__reset') { S.confirmDel = '__reset'; render(); break; }
       S.stats = freshStats(); saveStats(); S.confirmDel = null; render(); break;
@@ -841,6 +879,11 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if (t.id === 'presetSel') { S.presetSel = +t.value || 0; render(); return; }
+  if (t.id === 'updateFile' && t.files && t.files[0] && S.layouts[S.updating]) {
+    const f = t.files[0], id = S.updating, rd = new FileReader();
+    rd.onload = () => { try { const r = updateLayoutText(id, String(rd.result), f.name.replace(/\.[^.]+$/, '')); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Updated ${r.name} from ${f.name}. Lessons rebuilt, and your progress is kept.` }; } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } S.updating = null; render(); };
+    rd.readAsText(f); return;
+  }
   if (t.id === 'layoutFile' && t.files && t.files[0]) {
     const f = t.files[0], rd = new FileReader();
     rd.onload = () => { try { const L = loadLayoutText(String(rd.result), f.name.replace(/\.[^.]+$/, '')); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${L.title} from ${f.name}. Lessons rebuilt for this layout.` }; } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); };
@@ -854,6 +897,21 @@ document.addEventListener('change', e => {
     if (t.id === 'theme') applyTheme(v);
     render();
   }
+});
+function saveRename(){
+  const rec = S.layouts[S.renaming], i = $('#renameInput');
+  if (rec && i) {
+    // An empty name falls back to the title in the layout file.
+    rec.name = i.value.trim() || E.buildLayout(rec.text).title;
+    saveLayouts();
+    if (S.renaming === S.activeId) S.layout.title = rec.name;
+  }
+  S.renaming = null; render();
+}
+document.addEventListener('keydown', e => {
+  if (e.target.id !== 'renameInput') return;
+  if (e.key === 'Enter') { e.preventDefault(); saveRename(); }
+  else if (e.key === 'Escape') { e.preventDefault(); S.renaming = null; render(); }
 });
 document.addEventListener('input', e => { if (e.target.id === 'customText') S.customText = e.target.value; });
 
@@ -871,7 +929,7 @@ function seedDefault(){
   if (!p) return;
   const txt = JSON.stringify(p);
   const L = E.buildLayout(txt);
-  S.layouts[L.id] = { name: L.title, keyboard: L.keyboard, text: txt, savedAt: Date.now() };
+  S.layouts[L.id] = { name: L.title, keyboard: L.keyboard, uuid: L.uuid, text: txt, savedAt: Date.now() };
   if (!store.set('layouts', S.layouts)) S.msg = { t: 'err', m: 'This browser blocked storage, so your layouts, progress and stats will not be remembered after you close the page.' };
   activate(L.id);
 }
