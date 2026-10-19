@@ -28,6 +28,9 @@ for (const file of presets) {
     catch (e) { fail(`${file} [${pref}]`, `buildCurriculum threw: ${e.message}`); continue; }
 
     if (!C.lessons.length) { fail(`${file} [${pref}]`, 'produced zero lessons'); continue; }
+    // Progress is stored by lesson id, so ids must be unique.
+    const ids = new Set(C.lessons.map(l => l.id));
+    if (ids.size !== C.lessons.length) fail(`${file} [${pref}]`, `${C.lessons.length - ids.size} duplicate lesson ids`);
 
     // Every drill item of every lesson must resolve to a route.
     let noRoute = 0, items = 0;
