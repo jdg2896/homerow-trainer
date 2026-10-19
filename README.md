@@ -13,7 +13,7 @@ I only learned to touch type QWERTY around 2019, and [typing.com](https://www.ty
 ## What it does
 
 - **Layout-driven curriculum.** Home row → top row → bottom row → reach keys → capitals → shifted symbols → each thumb layer → navigation keys → ⌘/⌃ shortcuts. Two new keys per lesson, with review lessons along the way.
-- **Staged drills.** Meet the keys → mixed drill → words → sentences (code-style snippets for symbol layers). Words only use keys you've already unlocked.
+- **Staged drills.** Meet the keys → mixed drill → words → sentences (code-style snippets for symbol layers). Words only use keys you've already unlocked, and real sentences from Tatoeba take over once you know every letter in them.
 - **Hints from the keymap.** "Hold Enter for Symbols (right thumb), then press `(` (left thumb)", with the target and held keys lit on an on-screen keyboard.
 - **Home-row mod aware.** Capitals use the opposite-hand shift. Accidental ⌘/⌃/⌥/Shift firing while typing letters is counted as a misfire.
 - **Adaptive practice.** Per-key miss rate and latency drive a "problem keys" drill. Also free practice and custom text.
@@ -34,9 +34,10 @@ Key codes are mapped assuming a US ANSI host layout. Go60/Glove80 key geometry i
 No dependencies for the app itself, and Node is the only runtime. The `npm` scripts are thin wrappers (no packages to install).
 
 ```sh
-npm run build    # node build.mjs — writes dist/index.html
-npm test         # node test/curriculum.js — builds every bundled layout and checks each drill item routes
-npm run presets  # node tools/fetch_presets.mjs — refresh data/presets/ from MoErgo's live editors
+npm run build      # node build.mjs — writes dist/index.html
+npm test           # node test/curriculum.js — builds every bundled layout and checks each drill item routes
+npm run presets    # node tools/fetch_presets.mjs — refresh data/presets/ from MoErgo's live editors
+npm run sentences  # node tools/fetch_sentences.mjs — refresh data/sentences.json from Tatoeba
 open dist/index.html
 ```
 
@@ -51,7 +52,7 @@ Re-run it, then `node build.mjs`, to refresh the catalog.
 src/engine.js   layout parsing, routing, curriculum, drill generation (pure, runs in node)
 src/ui.js       views, typing engine, stats, storage
 src/style.css   styles and theme tokens (light/dark)
-data/           word list and presets/ (Starter layouts; first-run default is seeded from here)
+data/           word list, sentences and presets/ (Starter layouts; first-run default is seeded from here)
 ```
 
 ## Contributing
@@ -70,4 +71,4 @@ Full list, including fonts, in [CREDITS.md](CREDITS.md).
 
 ## License
 
-Code is [MIT](LICENSE). `data/words.json` is CC BY-SA 4.0 and the bundled layouts in `data/presets/` belong to their authors; see [data/README.md](data/README.md).
+Code is [MIT](LICENSE). `data/words.json` is CC BY-SA 4.0, `data/sentences.json` is CC BY 2.0 FR (Tatoeba) and the bundled layouts in `data/presets/` belong to their authors; see [data/README.md](data/README.md).

@@ -4,6 +4,7 @@
 (function(){
 const E = HomerowTrainerEngine;
 const WORDS = window.HOMEROW_TRAINER_WORDS || [];
+const SENTENCES = window.HOMEROW_TRAINER_SENTENCES || [];
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -370,11 +371,12 @@ function settingsView(){
 }
 
 const CREDITS = [['moosytype', 'https://github.com/moosylog/moosytype'], ['typing.com', 'https://www.typing.com'], ['keybr.com', 'https://www.keybr.com'],
-  ['Miryoku', 'https://github.com/manna-harbour/miryoku'], ['MoErgo', 'https://www.moergo.com'], ['ZMK', 'https://zmk.dev'], ['wordfreq (CC BY-SA 4.0)', 'https://github.com/rspeer/wordfreq']];
+  ['Miryoku', 'https://github.com/manna-harbour/miryoku'], ['MoErgo', 'https://www.moergo.com'], ['ZMK', 'https://zmk.dev'], ['wordfreq (CC BY-SA 4.0)', 'https://github.com/rspeer/wordfreq'],
+  ['Tatoeba (CC BY 2.0 FR)', 'https://tatoeba.org']];
 const BUILD = window.HOMEROW_TRAINER_BUILD || { version: 'dev', commit: '', date: '', repo: 'https://github.com/jdg2896/homerow-trainer' };
 function footer(){
   const commit = BUILD.commit ? ` · <a href="${BUILD.repo}/commit/${BUILD.commit}" target="_blank" rel="noopener" class="mono">${BUILD.commit}</a>` : '';
-  return `<footer class="credits"><p class="ver">Homerow Trainer v${esc(BUILD.version)}${commit} · <button class="linkbtn" data-act="feedback" data-fbtype="feedback">Send feedback</button> · <button class="linkbtn" data-act="feedback" data-fbtype="bug">Report a bug</button></p><p>Inspired by ${CREDITS.slice(0, 3).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Layout and keymap formats from ${CREDITS.slice(3, 6).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Word list from <a href="${CREDITS[6][1]}" target="_blank" rel="noopener">${CREDITS[6][0]}</a>. Fonts: Atkinson Hyperlegible, Bricolage Grotesque, IBM Plex Mono <span style="white-space:nowrap">(SIL OFL)</span>.</p></footer>`;
+  return `<footer class="credits"><p class="ver">Homerow Trainer v${esc(BUILD.version)}${commit} · <button class="linkbtn" data-act="feedback" data-fbtype="feedback">Send feedback</button> · <button class="linkbtn" data-act="feedback" data-fbtype="bug">Report a bug</button></p><p>Inspired by ${CREDITS.slice(0, 3).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Layout and keymap formats from ${CREDITS.slice(3, 6).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Word list from <a href="${CREDITS[6][1]}" target="_blank" rel="noopener">${CREDITS[6][0]}</a>, sentences from <a href="${CREDITS[7][1]}" target="_blank" rel="noopener">${CREDITS[7][0]}</a>. Fonts: Atkinson Hyperlegible, Bricolage Grotesque, IBM Plex Mono <span style="white-space:nowrap">(SIL OFL)</span>.</p></footer>`;
 }
 function render(){
   if (S.run) { renderRun(true); return; }
@@ -396,7 +398,7 @@ function computeStars(acc, wpm, kind){
 function resumeStage(l){ const p = lessonProg(l); return p && !p.stars && p.stagesDone ? p.stagesDone : 0; }
 function startLesson(i){
   const l = S.C.lessons[i], p = lessonProg(l);
-  const stages = E.makeStages(S.C, l, WORDS, +S.settings.stageLen);
+  const stages = E.makeStages(S.C, l, WORDS, +S.settings.stageLen, SENTENCES);
   // Clamped so a lesson saved with every stage passed but never finished (before 0.3.1) redoes its last stage instead of restarting.
   let si = Math.min(resumeStage(l), stages.length - 1), results = [];
   if (si && p.stageCount === stages.length) results = (p.stageRes || []).map(x => x && Object.assign({ pass: true }, x));
@@ -665,11 +667,11 @@ function startPractice(kind){
     const pk = problemKeys(4).map(r => r.k);
     const chars = pk.filter(k => k.length === 1);
     const keys = pk.filter(k => k.length > 1);
-    stages = chars.length ? E.practiceStages(S.C, unlocked, chars, WORDS, +S.settings.stageLen) : [];
+    stages = chars.length ? E.practiceStages(S.C, unlocked, chars, WORDS, +S.settings.stageLen, SENTENCES) : [];
     if (keys.length) stages.push({ name: 'Focus keys', items: Array.from({ length: 12 }, () => E.keyItem(keys[Math.floor(Math.random() * keys.length)])) });
     title = 'Problem keys: ' + pk.map(itemLabel).join(' ');
   } else if (kind === 'free') {
-    stages = E.practiceStages(S.C, unlocked, [], WORDS, +S.settings.stageLen * 1.5);
+    stages = E.practiceStages(S.C, unlocked, [], WORDS, +S.settings.stageLen * 1.5, SENTENCES);
     title = 'Free practice';
   } else {
     const t = (S.customText || '').replace(/\s+/g, ' ').trim();
