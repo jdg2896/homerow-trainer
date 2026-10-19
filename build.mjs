@@ -11,7 +11,12 @@ const pkg = JSON.parse(read('package.json'));
 let commit = process.env.GITHUB_SHA || '';
 if (!commit) try { commit = execSync('git rev-parse HEAD', { cwd: root, encoding: 'utf8' }).trim(); } catch (e) {}
 const build = { version: pkg.version, commit: commit.slice(0, 7), date: new Date().toISOString().slice(0, 10),
-  repo: pkg.repository.url.replace(/^git\+/, '').replace(/\.git$/, '') };
+  repo: pkg.repository.url.replace(/^git\+/, '').replace(/\.git$/, ''), notes: [] };
+
+// "What's new" in the app is the CHANGELOG.md section for this version, so release notes are written once.
+const log = read('CHANGELOG.md').split(/^## /m).find(s => s.startsWith(pkg.version + ' '));
+if (!log) throw new Error(`CHANGELOG.md has no "## ${pkg.version}" section; add one for this version.`);
+build.notes = log.split('\n').filter(l => l.startsWith('- ')).map(l => l.slice(2).replace(/\*\*|`/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'));
 
 const presetDir = path.join(root, 'data', 'presets');
 const presetFiles = fs.readdirSync(presetDir).filter(f => f.endsWith('.json')).sort();
