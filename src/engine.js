@@ -303,7 +303,7 @@ function buildLayout(text, opts){
   const layerNames = (raw.layer_names && raw.layer_names.length ? raw.layer_names : layers.map((_, i) => i ? 'Layer ' + i : 'Base')).slice(0, layers.length);
   while (layerNames.length < layers.length) layerNames.push('Layer ' + layerNames.length);
   return {
-    id: String(raw.uuid || opts.id || hashStr(text)),
+    id: String(opts.id || raw.uuid || hashStr(text)), uuid: raw.uuid ? String(raw.uuid) : '',
     title: raw.title || opts.name || 'Untitled layout',
     keyboard: keyboard || 'generic', geo, keys, layers, layerNames, format: fmt, n
   };
@@ -440,7 +440,8 @@ function buildCurriculum(L, pref){
       unitNew.push(...g); since++;
       const last = i === groups.length - 1;
       if ((since >= (reviewEvery || 4) && !last) || (last && groups.length > 1)) {
-        lessons.push({ id: id + ':review' + lessons.length, title: last ? title + ' review' : 'Review', kind: 'review', reviewKind: kind, items: unitNew.slice() });
+        // Named by content so progress survives layout updates; legacyId is the old position-based id.
+        lessons.push({ id: id + ':review:' + unitNew.join(''), legacyId: id + ':review' + lessons.length, title: last ? title + ' review' : 'Review', kind: 'review', reviewKind: kind, items: unitNew.slice() });
         since = 0;
       }
     });
