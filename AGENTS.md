@@ -20,6 +20,7 @@ Notes for coding agents. The README has the user-facing overview, the commands a
 - Run `npm test` (CI runs it on every PR, and deploy runs it before publishing to GitHub Pages) and `npm run build`.
 - For UI changes, open `dist/index.html` and check light and dark themes and a narrow (≤860px) window.
 - Bump `version` in `package.json` when you ship user-facing changes, in the same commit as the last of those changes rather than a separate "Bump version" commit. The footer and bug reports show the version next to the commit that `build.mjs` stamps in, so that commit should show what changed.
+- Add a `## <version> — <date>` section to `CHANGELOG.md` in that same commit, with short user-facing bullets. The build fails without one, and returning users see those bullets as "What's new" on the Lessons page.
 
 ## Style
 

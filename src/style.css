@@ -229,7 +229,11 @@ textarea{min-height:120px;font-family:var(--mono);font-size:13px}
 .credits p{margin:0 auto;max-width:112ch}
 .credits a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 .credits a:hover{color:var(--accent)}
-.credits .ver{margin-bottom:8px}
+.whatsnew .wn-top{display:flex;gap:12px;align-items:center;justify-content:space-between}
+.whatsnew h3{font-size:17px}
+.whatsnew ul{margin:8px 0;padding-left:20px}
+.whatsnew li{margin:4px 0}
+.whatsnew a{color:var(--accent);font-size:14px}
 .linkbtn{background:none;border:0;padding:0;color:inherit;text-decoration:underline;text-underline-offset:2px}
 .linkbtn:hover{color:var(--accent)}
 

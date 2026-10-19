@@ -210,7 +210,7 @@ function sidebar(){
 function learnView(){
   const ls = S.C.lessons, done = ls.filter(isDone).length, nxt = nextLessonIdx();
   const nl = ls[nxt];
-  let html = `<section class="hero"><div><h2>${done === ls.length ? 'Every lesson complete' : 'Next: ' + esc(nl.title)}</h2>
+  let html = whatsNew() + `<section class="hero"><div><h2>${done === ls.length ? 'Every lesson complete' : 'Next: ' + esc(nl.title)}</h2>
     <p>${done} of ${ls.length} lessons done on ${esc(S.layout.title)}</p></div>
     <div class="progress" aria-label="${Math.round(done / ls.length * 100)}% complete"><i style="width:${(done / ls.length * 100).toFixed(1)}%"></i></div>
     <button class="btn go" data-start="${nxt}"><span class="tri"></span>${done || resumeStage(nl) ? 'Continue' : 'Start'}</button></section>
@@ -370,13 +370,19 @@ function settingsView(){
   </div>`;
 }
 
-const CREDITS = [['moosytype', 'https://github.com/moosylog/moosytype'], ['typing.com', 'https://www.typing.com'], ['keybr.com', 'https://www.keybr.com'],
-  ['Miryoku', 'https://github.com/manna-harbour/miryoku'], ['MoErgo', 'https://www.moergo.com'], ['ZMK', 'https://zmk.dev'], ['wordfreq (CC BY-SA 4.0)', 'https://github.com/rspeer/wordfreq'],
-  ['Tatoeba (CC BY 2.0 FR)', 'https://tatoeba.org']];
-const BUILD = window.HOMEROW_TRAINER_BUILD || { version: 'dev', commit: '', date: '', repo: 'https://github.com/jdg2896/homerow-trainer' };
+const BUILD = window.HOMEROW_TRAINER_BUILD || { version: 'dev', commit: '', date: '', repo: 'https://github.com/jdg2896/homerow-trainer', notes: [] };
+const repoFile = f => `${BUILD.repo}/blob/main/${f}`;
+// Credits live in CREDITS.md so the footer stays one line as sources are added; a link satisfies the CC BY attributions.
 function footer(){
-  const commit = BUILD.commit ? ` · <a href="${BUILD.repo}/commit/${BUILD.commit}" target="_blank" rel="noopener" class="mono">${BUILD.commit}</a>` : '';
-  return `<footer class="credits"><p class="ver">Homerow Trainer v${esc(BUILD.version)}${commit} · <button class="linkbtn" data-act="feedback" data-fbtype="feedback">Send feedback</button> · <button class="linkbtn" data-act="feedback" data-fbtype="bug">Report a bug</button></p><p>Inspired by ${CREDITS.slice(0, 3).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Layout and keymap formats from ${CREDITS.slice(3, 6).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join(', ')}. Word list from <a href="${CREDITS[6][1]}" target="_blank" rel="noopener">${CREDITS[6][0]}</a>, sentences from <a href="${CREDITS[7][1]}" target="_blank" rel="noopener">${CREDITS[7][0]}</a>. Fonts: Atkinson Hyperlegible, Bricolage Grotesque, IBM Plex Mono <span style="white-space:nowrap">(SIL OFL)</span>.</p></footer>`;
+  const a = (href, text, cls) => `<a href="${href}" target="_blank" rel="noopener"${cls ? ` class="${cls}"` : ''}>${text}</a>`;
+  const commit = BUILD.commit ? ' · ' + a(`${BUILD.repo}/commit/${BUILD.commit}`, BUILD.commit, 'mono') : '';
+  return `<footer class="credits"><p class="ver">${a(repoFile('CHANGELOG.md'), `Homerow Trainer v${esc(BUILD.version)}`)}${commit} · ${a(repoFile('CREDITS.md'), 'Credits &amp; licenses')} · <button class="linkbtn" data-act="feedback" data-fbtype="feedback">Send feedback</button> · <button class="linkbtn" data-act="feedback" data-fbtype="bug">Report a bug</button></p></footer>`;
+}
+function whatsNew(){
+  if (!S.whatsNew) return '';
+  return `<section class="card whatsnew" aria-labelledby="wnHead"><div class="wn-top"><h3 id="wnHead">What's new in v${esc(BUILD.version)}</h3><button class="btn ghost" data-act="whats-new-ok">Got it</button></div>
+    <ul>${BUILD.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>
+    <a href="${repoFile('CHANGELOG.md')}" target="_blank" rel="noopener">Full changelog</a></section>`;
 }
 function render(){
   if (S.run) { renderRun(true); return; }
@@ -844,6 +850,7 @@ document.addEventListener('click', e => {
   }
   switch (d.act) {
     case 'home': if (S.run) stopLiveTimer(); S.run = null; S.view = 'learn'; S.msg = null; S.confirmDel = null; render(); scrollTo(0, 0); break;
+    case 'whats-new-ok': store.set('seenVersion', BUILD.version); S.whatsNew = false; render(); break;
     case 'feedback': openFeedback(d.fbtype); break;
     case 'fb-cancel': fbDialog.close(); break;
     case 'fb-submit': submitFeedback(); break;
@@ -935,6 +942,10 @@ function seedDefault(){
   if (!store.set('layouts', S.layouts)) S.msg = { t: 'err', m: 'This browser blocked storage, so your layouts, progress and stats will not be remembered after you close the page.' };
   activate(L.id);
 }
+// Returning users see the newest changelog notes once per version; first-time visitors start as caught up.
+const seenVersion = store.get('seenVersion', null), returning = Object.keys(S.layouts).length > 0;
+if (!returning && !seenVersion) store.set('seenVersion', BUILD.version);
+S.whatsNew = returning && seenVersion !== BUILD.version && BUILD.notes.length > 0;
 try {
   if (S.activeId && S.layouts[S.activeId]) activate(S.activeId);
   else if (Object.keys(S.layouts).length) activate(Object.keys(S.layouts)[0]);

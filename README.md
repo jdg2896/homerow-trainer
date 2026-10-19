@@ -55,6 +55,7 @@ src/engine.js   layout parsing, routing, curriculum, drill generation (pure, run
 src/ui.js       views, typing engine, stats, storage
 src/style.css   styles and theme tokens (light/dark)
 data/           word list, sentences and presets/ (Starter layouts; first-run default is seeded from here)
+CHANGELOG.md    release notes; build.mjs shows this version's section in the app as "What's new"
 ```
 
 ## Contributing
@@ -68,6 +69,7 @@ This is a personal project, and I'm open to feedback. Also feel free to [file an
 - [keybr.com](https://www.keybr.com): words built only from unlocked letters
 - [Miryoku](https://github.com/manna-harbour/miryoku), [MoErgo](https://www.moergo.com) and [ZMK](https://zmk.dev): the layout, keyboards and keymap formats
 - [wordfreq](https://github.com/rspeer/wordfreq): the practice word list (CC BY-SA 4.0)
+- [Tatoeba](https://tatoeba.org): the practice sentences (CC BY 2.0 FR)
 
 Full list, including fonts, in [CREDITS.md](CREDITS.md).
 
