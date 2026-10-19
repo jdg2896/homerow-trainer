@@ -70,5 +70,24 @@ for (const file of presets) {
   console.log(`ok  ${where}`);
 }
 
+// Drill text varies its numbers, punctuation and letter groups (issue #3). Sampled many
+// times so the random choices can't make this flaky.
+{
+  const where = 'realistic text';
+  const L = E.buildLayout(fs.readFileSync(path.join(presetDir, 'glove80-07-glove80-factory-default-layout.json'), 'utf8'));
+  const C = E.buildCurriculum(L, 'layers');
+  const all = E.unlockedBefore(C, C.lessons[C.lessons.length - 1], true);
+  const text = stages => stages.map(s => s.items.map(i => i.ch).join('')).join(' ');
+  let practice = '', code = '';
+  for (let i = 0; i < 30; i++) practice += text(E.practiceStages(C, all, [], W, 90)) + ' ';
+  for (const l of C.lessons.filter(l => l.items.some(c => /[-:.\/]/.test(c)))) for (let i = 0; i < 5; i++) code += text(E.makeStages(C, l, W, 90)) + ' ';
+  const nums = new Set(code.match(/\d+[-:.\/]\d+(?:[-:.\/]\d+)*/g) || []);
+  if (nums.size < 10) fail(where, `only ${nums.size} distinct numbers with separators in code drills`);
+  if (!practice.includes('"')) fail(where, 'practice sentences never use quotes');
+  if (!/[a-z]'[a-z]/.test(practice)) fail(where, 'practice sentences never use contractions');
+  if (!/\b(the|ing|tion)\b/.test(practice)) fail(where, 'practice has no common letter groups');
+  console.log(`ok  ${where}`);
+}
+
 if (failures) { console.error(`\n${failures} failure(s).`); process.exit(1); }
 console.log(`\nAll ${presets.length} presets passed.`);

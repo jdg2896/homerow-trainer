@@ -571,12 +571,46 @@ const SNIPPETS = [
   'a = b;', 'x == y', 'x != y', 'a <= b', 'b >= a', 'i++', 'a && b', 'a || b', '!done', '#tag', '$price', '50%',
   'x^2', 'a * b', 'a / b', 'a - b', 'a + b', '~/code', '`npm test`', 'me@site.io', 'f(x)', 'arr[i]', 'obj.key',
   'k: v', '"text"', "'c'", 'snake_case', 'run()', 'if (ok) {}', 'x => x * 2', '# Title', '- item', '@param',
-  '3.14', '2026-10-02', '10:30', 'a | b', 'a & b', 'path\\to', 'n % 2', 'let x = [0];', 'const y = {};',
+  '3.14', 'a | b', 'a & b', 'path\\to', 'n % 2', 'let x = [0];', 'const y = {};',
   'fn(a, b)', 'map[key]', '{ id: 1 }', '<div>', '</p>', 'a ? b : c', 'x += 1', 'y -= 2', 'i < n', 'git add .',
-  'cd ~/src', 'ls -la', 'rm -rf', 'tx.hash', '0x1f', 'v1.2.3', '[1, 2, 3]', '(a + b) * c', '$HOME', '#!/bin/sh',
-  'user_id', 'a->b', 'a::b', 'x |> f', '#[derive]', 'f"{x}"', 'e.key', 'await fn();', '?.', '{...a}', '100 * 2',
-  'price = 9.99;', 'list[0] = 5', '(1, 2)', 'a % b == 0', 'n ^ m', '~x', '`a`', 'x // 2', '/* note */', '"%s"'
+  'cd ~/src', 'ls -la', 'rm -rf', 'tx.hash', '[1, 2, 3]', '(a + b) * c', '$HOME', '#!/bin/sh',
+  'user_id', 'a->b', 'a::b', 'x |> f', '#[derive]', 'f"{x}"', 'e.key', 'await fn();', '?.', '{...a}',
+  'list[0] = 5', '(1, 2)', 'a % b == 0', 'n ^ m', '~x', '`a`', 'x // 2', '/* note */', '"%s"', './run.sh', 'src/app.js'
 ];
+// Numbers change every drill so dates, versions and times don't repeat (issue #3).
+const pad2 = n => String(n).padStart(2, '0');
+const between = (a, b) => a + rand(b - a + 1);
+const NUM_SNIPPETS = [
+  () => `${between(1990, 2035)}-${pad2(between(1, 12))}-${pad2(between(1, 28))}`,
+  () => `${pad2(between(1, 28))}/${pad2(between(1, 12))}/${between(1990, 2035)}`,
+  () => `${between(1, 12)}/${between(1, 28)}`,
+  () => `v${rand(5)}.${rand(20)}.${rand(10)}`,
+  () => `${pad2(rand(24))}:${pad2(rand(60))}`,
+  () => `${between(1, 12)}:${pad2(rand(60))} pm`,
+  () => `$${between(1, 99)}.${pad2(rand(100))}`,
+  () => `price = ${between(1, 99)}.${pad2(rand(100))};`,
+  () => `${between(1, 99)}%`,
+  () => `${between(1, 9)}.${rand(10)}${rand(10)}`,
+  () => `${between(1, 9)}/${between(2, 10)}`,
+  () => `192.168.${rand(10)}.${between(1, 254)}`,
+  () => `0x${rand(256).toString(16)}`,
+  () => `${between(100, 999)}-${between(1000, 9999)}`,
+  () => `#${between(1, 999)}`,
+  () => `${between(1, 20)}..${between(21, 99)}`,
+  () => `app.js:${between(1, 400)}`,
+  () => `~/notes/${between(2020, 2030)}-${pad2(between(1, 12))}.md`,
+  () => `localhost:${pick([3000, 5173, 8000, 8080])}`,
+  () => `/api/v${between(1, 3)}/users/${between(1, 999)}`,
+  () => `${between(10, 999)} * ${between(2, 12)}`,
+  () => `x += ${between(2, 99)}`
+];
+// Common English letter groups by length, roughly most frequent first.
+const NGRAMS = [
+  'th he in er an re on at en nd ti es or te of ed is it al ar st to nt ng se ha as ou io le ve co me de hi ri ro ic ne ea ra ce li ch ll be ma si om ur',
+  'the and ing ion tio ent ati for her ter hat tha ere ate his con res ver all ons nce men ith ted ers pro thi wit are ess not ive was ect rea com eve per int est sta',
+  'tion that ther with ment ions this here from ould ting hich ever they thin have were tive ough ight ence ance'
+].map(s => s.split(' '));
+const CONTRACTIONS = ["don't", "it's", "can't", "you're", "we'll", "isn't", "that's", "won't", "let's", "there's", "didn't", "they're"];
 
 function lettersOf(set){ return [...set].filter(c => /[a-z]/.test(c)); }
 
@@ -648,19 +682,35 @@ function sentenceText(newC, unlocked, len, WORDS){
   const { ok, withNew } = wordPool(unlocked, newC, WORDS);
   const letters = lettersOf(unlocked);
   const caps = new Set(capPick(unlocked));
-  const hasDot = unlocked.has('.'), hasComma = unlocked.has(','), hasQ = unlocked.has('?');
+  const has = c => unlocked.has(c), typeable = w => [...w].every(has);
+  const word = () => withNew.length >= 4 && Math.random() < 0.5 ? pick(withNew) : ok.length >= 6 ? pick(ok) : pseudoWord(letters);
+  // Real-world punctuation only shows up once its keys are unlocked (issue #3).
+  const contr = CONTRACTIONS.filter(typeable);
+  const who = typeable('said') ? ['he', 'she', 'they', 'we'].filter(typeable) : [];
   const out = [];
   let guard = 0;
   while (out.join(' ').length < len && guard++ < 50) {
     const n = 4 + rand(5), s = [];
     for (let i = 0; i < n; i++) {
-      let w = withNew.length >= 4 && Math.random() < 0.5 ? pick(withNew) : ok.length >= 6 ? pick(ok) : pseudoWord(letters);
+      let w = contr.length && Math.random() < 0.08 ? pick(contr) : word();
+      if (has('-') && i < n - 1 && Math.random() < 0.04) w += '-' + word();
       if (i === 0 && caps.has(w[0].toUpperCase())) w = w[0].toUpperCase() + w.slice(1);
-      if (hasComma && i > 1 && i < n - 1 && Math.random() < 0.15) w += ',';
+      if (i > 1 && i < n - 1) {
+        const r = Math.random();
+        if (has(',') && r < 0.15) w += ',';
+        else if (has(';') && r < 0.18) w += ';';
+        else if (has(':') && r < 0.2) w += ':';
+      }
       s.push(w);
     }
+    const p = 1 + rand(n - 2);
+    if (has('(') && has(')') && Math.random() < 0.1 && /[a-z]$/.test(s[p])) s[p] = '(' + s[p] + ')';
+    let end = '';
+    if (has('.')) { const r = Math.random(); end = has('?') && r < 0.15 ? '?' : has('!') && r < 0.22 ? '!' : '.'; }
     let sent = s.join(' ');
-    if (hasDot) sent += hasQ && Math.random() < 0.15 ? '?' : '.';
+    if (has('"') && Math.random() < 0.15) {
+      sent = who.length && has(',') && end === '.' && Math.random() < 0.6 ? `"${sent}," ${pick(who)} said.` : `"${sent}${end}"`;
+    } else sent += end;
     out.push(sent);
   }
   return out.join(' ');
@@ -688,7 +738,7 @@ function symbolText(newC, unlocked, len, WORDS, mode){
   const short = ok.filter(w => w.length <= 5);
   const word = () => short.length ? pick(short) : pseudoWord(letters);
   const syms = newC.filter(c => c !== ' ');
-  const snips = SNIPPETS.filter(s => [...s].every(c => unlocked.has(c)) && syms.some(c => s.includes(c)));
+  const snips = SNIPPETS.concat(NUM_SNIPPETS.flatMap(f => [f(), f()])).filter(s => [...s].every(c => unlocked.has(c)) && syms.some(c => s.includes(c)));
   const out = [];
   let guard = 0;
   while (out.join(' ').length < len && guard++ < 200) {
@@ -741,6 +791,24 @@ function bigramText(newC, known, len){
   while (out.join(' ').length < len) {
     const n = pick(nc), k = pick(kc);
     out.push(pick([n + k, k + n, n + k + n, k + n + k]));
+  }
+  return out.join(' ');
+}
+function ngramText(newC, unlocked, len, WORDS){
+  // common letter groups that use a new key, each followed by a word containing it: "ing thing th the"
+  const lset = new Set(lettersOf(unlocked));
+  const nl = newC.filter(c => /[a-z]/.test(c));
+  const groups = NGRAMS.map(g => g.filter(x => [...x].every(c => lset.has(c)) && (!nl.length || nl.some(c => x.includes(c))))).filter(g => g.length);
+  if (groups.reduce((n, g) => n + g.length, 0) < 6) return '';
+  const ok = WORDS ? wordPool(unlocked, [], WORDS).ok : [];
+  const out = [];
+  let guard = 0;
+  while (out.join(' ').length < len && guard++ < 400) {
+    const g = pick(groups), x = g[Math.floor(Math.random() ** 2 * g.length)];
+    if (out.includes(x) && Math.random() < 0.5) continue;
+    out.push(x);
+    const ws = ok.filter(w => w.length > x.length && w.includes(x) && !out.includes(w)).slice(0, 30);
+    if (ws.length && Math.random() < 0.7) out.push(pick(ws));
   }
   return out.join(' ');
 }
@@ -808,9 +876,10 @@ function makeStages(C, lesson, WORDS, len){
     if (!isReview) {
       add('Meet the keys', patternText(newC, len * 0.7));
       add('Back and forth', altText(newC, len * 0.7));
-      if (knownLetters.length) add('With known keys', bigramText(newC, knownLetters, len * 0.8));
+      if (knownLetters.length) add('With known keys', ngramText(newC, unlocked, len * 0.8) || bigramText(newC, knownLetters, len * 0.8));
     }
     add('Mixed drill', mixText(newC, [...before], len));
+    if (isReview) add('Common combos', ngramText(newC, unlocked, len, WORDS));
     if (enough) {
       add('Short words', shortWordsText(newC, unlocked, len * 0.8, WORDS));
       const w = wordsText(newC, unlocked, len, WORDS);
@@ -838,6 +907,7 @@ function practiceStages(C, unlocked, focus, WORDS, len){
   if (focus.length) st.push({ name: 'Focus drill', text: mixText(focus, [], len) });
   if (letters.length) st.push({ name: 'Focus words', text: wordsText(letters, u, len, WORDS) });
   if (syms.length) st.push({ name: 'Focus symbols', text: symbolText(syms, u, len, WORDS, 'token') });
+  if (letters.length || !focus.length) st.push({ name: 'Common combos', text: ngramText(letters, u, len, WORDS) });
   st.push({ name: 'Sentences', text: sentenceText(letters, u, len * 1.4, WORDS) });
   return st.filter(s => s.text.trim()).map(s => ({ name: s.name, items: textItems(s.text.replace(/\s+/g, ' ').trim()) }));
 }
