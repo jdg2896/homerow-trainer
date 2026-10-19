@@ -722,8 +722,8 @@ function sentenceText(newC, unlocked, len, WORDS, SENTS){
   const out = [];
   let guard = 0;
   while (out.join(' ').length < len && guard++ < 50) {
-    // Generated sentences read as nonsense next to real ones, so they fade out as the real pool grows.
-    if (real.length >= 12 && Math.random() < (real.length >= 60 ? 0.95 : 0.7)) {
+    // Generated sentences read as nonsense next to real ones, so they stop once the real pool is big enough.
+    if (real.length >= 60 || (real.length >= 12 && Math.random() < 0.7)) {
       let s = realNew.length >= 4 && Math.random() < 0.6 ? pick(realNew) : pick(real);
       if (out.includes(s)) continue;
       // Tatoeba has almost no quotes, so some sentences become dialogue.
