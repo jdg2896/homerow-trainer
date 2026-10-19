@@ -611,6 +611,9 @@ function onNavKey(e){
   ts[i].focus({ preventScroll: true }); ts[i].scrollIntoView({ block: 'nearest' });
 }
 
+// macOS swaps ` and § when it thinks the keyboard is ISO, which it often guesses for new keyboards.
+const ISO_SWAP = { '`': '§', '~': '±' };
+
 function onKey(e){
   if (fbOpen()) return;
   const r = S.run; if (!r) { onNavKey(e); return; }
@@ -627,7 +630,7 @@ function onKey(e){
   const it = r.items[r.idx]; if (!it) return;
   e.preventDefault();
   const now = performance.now();
-  let ok = false, misfire = null;
+  let ok = false, misfire = null, note = null;
   if (it.t === 'c') {
     if (e.key === 'Backspace') {
       if (!S.settings.stopOnError && r.idx > 0 && r.wrong.has(r.idx - 1)) { r.idx--; paintState(); }
@@ -639,6 +642,7 @@ function onKey(e){
     else if (typed.length === 1 && typed !== it.ch && typed.toLowerCase() === it.ch.toLowerCase() && /[a-z]/i.test(typed)) misfire = typed === typed.toUpperCase() ? 'Shift fired by accident' : 'Shift was not held';
     if (typed.length !== 1 && !misfire) return; // stray navigation key: ignore
     ok = !misfire && typed === it.ch;
+    if (!misfire && ISO_SWAP[it.ch] === typed) note = `Your Mac typed ${typed}: it thinks this keyboard is ISO. Set the keyboard type to ANSI in System Settings › Keyboard.`;
     if (misfire) { const t = misfire.startsWith('⌘') || misfire.startsWith('⌃') ? 'mod' : misfire.startsWith('⌥') ? 'alt' : 'shift'; r.misfires[t]++; S.stats.misfires[t] = (S.stats.misfires[t] || 0) + 1; }
   } else {
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
@@ -647,7 +651,7 @@ function onKey(e){
     ok = k === it.key && modsOk;
     if (k === it.key && !modsOk) misfire = 'Wrong modifier held';
   }
-  r.lastMisfire = misfire;
+  r.lastMisfire = misfire || note;
   if (!r.t0) { r.t0 = now; r.last = now; startLiveTimer(); }
   const id = it.t === 'c' ? it.ch : E.keyId(it);
   const ks = S.stats.keys[id] || (S.stats.keys[id] = { n: 0, err: 0, lat: 0, ln: 0 });
