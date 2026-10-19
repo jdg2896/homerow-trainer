@@ -10,6 +10,10 @@ Notes for coding agents. The README has the user-facing overview, the commands a
 - **Don't hand-edit `data/presets/`.** `npm run presets` downloads it from MoErgo's editors. The build fails if it's empty, and the app seeds its first-run layout from it (`DEFAULT_LAYOUT_ID` in `ui.js`).
 - **Storage keys are prefixed `homerow-trainer.`** and stats are kept per layout (`stats.<layoutId>`). Don't rename them without a migration, or users lose their progress.
 
+## Drills and curriculum
+
+- Changes to lessons, drill text or practice should follow [docs/learning-principles.md](docs/learning-principles.md). If one departs from a principle, say why in the PR, and update the doc when a gap it lists is closed.
+
 ## Before you finish
 
 - Run `npm test` (CI runs it on every PR, and deploy runs it before publishing to GitHub Pages) and `npm run build`.
