@@ -709,7 +709,8 @@ function realSentences(SENTS, unlocked){
 
 function sentenceText(newC, unlocked, len, WORDS, SENTS){
   const real = realSentences(SENTS, unlocked);
-  const realNew = newC.some(c => c !== ' ') ? real.filter(s => newC.some(c => c !== ' ' && s.toLowerCase().includes(c.toLowerCase()))) : real;
+  // Capitals match exactly, so a capitals lesson picks sentences that start with them.
+  const realNew = newC.some(c => c !== ' ') ? real.filter(s => newC.some(c => c !== ' ' && (/[a-z]/.test(c) ? s.toLowerCase() : s).includes(c))) : real;
   const { ok, withNew } = wordPool(unlocked, newC, WORDS);
   const letters = lettersOf(unlocked);
   const caps = new Set(capPick(unlocked));
@@ -721,9 +722,16 @@ function sentenceText(newC, unlocked, len, WORDS, SENTS){
   const out = [];
   let guard = 0;
   while (out.join(' ').length < len && guard++ < 50) {
-    if (real.length >= 12 && Math.random() < 0.7) {
-      const s = realNew.length >= 4 && Math.random() < 0.6 ? pick(realNew) : pick(real);
-      if (!out.includes(s)) out.push(s);
+    // Generated sentences read as nonsense next to real ones, so they fade out as the real pool grows.
+    if (real.length >= 12 && Math.random() < (real.length >= 60 ? 0.95 : 0.7)) {
+      let s = realNew.length >= 4 && Math.random() < 0.6 ? pick(realNew) : pick(real);
+      if (out.includes(s)) continue;
+      // Tatoeba has almost no quotes, so some sentences become dialogue.
+      if (has('"') && Math.random() < 0.15) {
+        s = who.length && has(',') && /\.$/.test(s) ? `"${s.slice(0, -1)}," ${pick(who)} said.`
+          : who.length && /[?!]$/.test(s) ? `"${s}" ${pick(who)} said.` : `"${s}"`;
+      }
+      out.push(s);
       continue;
     }
     const n = 4 + rand(5), s = [];
@@ -843,8 +851,9 @@ function ngramText(newC, unlocked, len, WORDS){
     const g = pick(groups), x = g[Math.floor(Math.random() ** 2 * g.length)];
     if (out.includes(x) && Math.random() < 0.5) continue;
     out.push(x);
-    const ws = ok.filter(w => w.length > x.length && w.includes(x) && !out.includes(w)).slice(0, 30);
-    if (ws.length && Math.random() < 0.7) out.push(pick(ws));
+    // then up to two words using it, so the group is seen in different spots: "ment moment mental"
+    const ws = shuffle(ok.filter(w => w.length > x.length && w.includes(x) && !out.includes(w)).slice(0, 30));
+    out.push(...ws.slice(0, 2));
   }
   return out.join(' ');
 }
