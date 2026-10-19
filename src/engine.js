@@ -88,7 +88,7 @@ function tapInfo(t){
     label = modsLabel(mods) + (PRETTY[code] || code.replace(/^(C_|K_)/, '').replace(/_/g, ' '));
   }
   if (ch) label = ch === ' ' ? 'Space' : (/[a-z]/.test(ch) ? ch.toUpperCase() : ch);
-  return { code, ch, key, mod, label, ambiguous: AMBIGUOUS.has(code) };
+  return { code, ch, key, mod, bareMod: mod && !mods.size ? mod : null, label, ambiguous: AMBIGUOUS.has(code) };
 }
 
 function isNum(p){ return p != null && /^\d+$/.test(String(p.value)); }
@@ -337,11 +337,29 @@ function pickHolder(L, list, p, pref){
   return best == null ? null : { pos: best, cost: bc };
 }
 
-function buildRoutes(L, pref){
+/* Modifier keys come in two kinds: hold-taps that type a letter when tapped (home row mods)
+   and dedicated keys (&kp LSHFT, sticky keys). modPref picks a kind; the other is the fallback
+   so a layout with only one kind still gets capitals and shortcuts. */
+function modifierKeys(L){
+  const kinds = { homerow: {}, dedicated: {} };
+  for (const k of Object.values(kinds)) for (const m of MOD_ORDER) k[m] = [];
+  L.layers[0].forEach((k, p) => {
+    if (k.hold && k.hold.mod) kinds[k.hold.sticky ? 'dedicated' : 'homerow'][k.hold.mod].push(p);
+    else if (k.tap && k.tap.bareMod) kinds.dedicated[k.tap.bareMod].push(p);
+  });
+  const both = MOD_ORDER.some(m => kinds.homerow[m].length && kinds.dedicated[m].length);
+  return Object.assign(kinds, { both });
+}
+
+function buildRoutes(L, pref, modPref){
   const base = L.layers[0];
-  const shiftHolders = [], modHolders = { ctrl: [], alt: [], meta: [], shift: shiftHolders }, layerActs = {};
+  const mk = modifierKeys(L), modHolders = {}, layerActs = {};
+  for (const m of MOD_ORDER) {
+    const h = mk.homerow[m], d = mk.dedicated[m];
+    modHolders[m] = modPref === 'homerow' ? (h.length ? h : d) : modPref === 'dedicated' ? (d.length ? d : h) : h.concat(d);
+  }
+  const shiftHolders = modHolders.shift;
   base.forEach((k, p) => {
-    if (k.hold && k.hold.mod && modHolders[k.hold.mod]) modHolders[k.hold.mod].push(p);
     if (k.hold && k.hold.layer != null) (layerActs[k.hold.layer] = layerActs[k.hold.layer] || []).push(p);
   });
   const chars = {}, keys = {};
@@ -371,7 +389,7 @@ function buildRoutes(L, pref){
       if (t.key) consider(keys, keyId(t.key), Object.assign({ key: t.key, label: t.label }, r));
     });
   });
-  return { chars, keys, modHolders, layerActs };
+  return { chars, keys, modHolders, layerActs, bothModKinds: mk.both };
 }
 function keyId(k){ return (k.mods || []).slice().sort().join('+') + (k.mods && k.mods.length ? '+' : '') + k.key; }
 
@@ -423,8 +441,8 @@ const CHORD_SETS = [
   { title: 'Control line editing', mods: ['ctrl'], letters: ['a', 'e', 'k'] }
 ];
 
-function buildCurriculum(L, pref){
-  const R = buildRoutes(L, pref);
+function buildCurriculum(L, pref, modPref){
+  const R = buildRoutes(L, pref, modPref);
   const units = [];
   const used = new Set();
   const rOf = c => R.chars[c];

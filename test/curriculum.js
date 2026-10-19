@@ -48,5 +48,24 @@ for (const file of presets) {
   }
 }
 
+// Dedicated Shift keys (&kp LSHFT) count as Shift, and modPref picks them or home row mods
+// when a layout has both (issue #2).
+{
+  const where = 'modifier keys';
+  const raw = JSON.parse(fs.readFileSync(path.join(presetDir, 'glove80-07-glove80-factory-default-layout.json'), 'utf8'));
+  const shiftOf = (L, pref) => { const r = E.buildCurriculum(L, 'layers', pref).routes.chars.A; return r && r.holds[0] && r.holds[0].pos; };
+  const L = E.buildLayout(JSON.stringify(raw));
+  const thumb = shiftOf(L);
+  if (thumb == null || !L.keys[thumb].thumb) fail(where, `factory default should shift A with a thumb key, got ${thumb}`);
+  const hrm = JSON.parse(JSON.stringify(raw));
+  const j = hrm.layers[0].findIndex(b => b.value === '&kp' && b.params[0].value === 'J');
+  hrm.layers[0][j] = { value: '&mt', params: [{ value: 'RSHFT' }, { value: 'J' }] };
+  const H = E.buildLayout(JSON.stringify(hrm));
+  if (!E.buildRoutes(H, 'layers').bothModKinds) fail(where, 'layout with &mt and &kp Shift should report both kinds');
+  if (shiftOf(H, 'homerow') !== j) fail(where, `homerow pref should shift A with J (${j}), got ${shiftOf(H, 'homerow')}`);
+  if (!H.keys[shiftOf(H, 'dedicated')].thumb) fail(where, 'dedicated pref should shift A with a thumb key');
+  console.log(`ok  ${where}`);
+}
+
 if (failures) { console.error(`\n${failures} failure(s).`); process.exit(1); }
 console.log(`\nAll ${presets.length} presets passed.`);
