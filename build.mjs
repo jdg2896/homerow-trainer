@@ -36,7 +36,7 @@ const head = `<meta charset="utf-8">
 
 const body = `<div id="app"></div>
 <script>${read('src/errors.js')}</script>
-<script>window.HOMEROW_TRAINER_BUILD=${JSON.stringify(build)};window.HOMEROW_TRAINER_WORDS=${read('data/words.json')};window.HOMEROW_TRAINER_PRESETS=${presets};</script>
+<script>window.HOMEROW_TRAINER_BUILD=${JSON.stringify(build)};window.HOMEROW_TRAINER_WORDS=${read('data/words.json')};window.HOMEROW_TRAINER_SENTENCES=${read('data/sentences.json')};window.HOMEROW_TRAINER_PRESETS=${presets};</script>
 <script>${read('src/engine.js')}</script>
 <script>${read('src/ui.js')}</script>`;
 

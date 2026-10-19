@@ -7,6 +7,7 @@ const path = require('path');
 
 const DATA = path.join(__dirname, '..', 'data');
 const W = JSON.parse(fs.readFileSync(path.join(DATA, 'words.json'), 'utf8'));
+const S = JSON.parse(fs.readFileSync(path.join(DATA, 'sentences.json'), 'utf8'));
 const presetDir = path.join(DATA, 'presets');
 const presets = fs.readdirSync(presetDir).filter(f => f.endsWith('.json')).sort();
 
@@ -36,7 +37,7 @@ for (const file of presets) {
     let noRoute = 0, items = 0;
     for (const l of C.lessons) {
       let stages;
-      try { stages = E.makeStages(C, l, W, 90); }
+      try { stages = E.makeStages(C, l, W, 90, S); }
       catch (e) { fail(`${file} [${pref}]`, `makeStages threw for "${l.title}": ${e.message}`); continue; }
       for (const st of stages) for (const it of st.items) {
         items++;
@@ -79,13 +80,14 @@ for (const file of presets) {
   const all = E.unlockedBefore(C, C.lessons[C.lessons.length - 1], true);
   const text = stages => stages.map(s => s.items.map(i => i.ch).join('')).join(' ');
   let practice = '', code = '';
-  for (let i = 0; i < 30; i++) practice += text(E.practiceStages(C, all, [], W, 90)) + ' ';
-  for (const l of C.lessons.filter(l => l.items.some(c => /[-:.\/]/.test(c)))) for (let i = 0; i < 5; i++) code += text(E.makeStages(C, l, W, 90)) + ' ';
+  for (let i = 0; i < 30; i++) practice += text(E.practiceStages(C, all, [], W, 90, S)) + ' ';
+  for (const l of C.lessons.filter(l => l.items.some(c => /[-:.\/]/.test(c)))) for (let i = 0; i < 5; i++) code += text(E.makeStages(C, l, W, 90, S)) + ' ';
   const nums = new Set(code.match(/\d+[-:.\/]\d+(?:[-:.\/]\d+)*/g) || []);
   if (nums.size < 10) fail(where, `only ${nums.size} distinct numbers with separators in code drills`);
   if (!practice.includes('"')) fail(where, 'practice sentences never use quotes');
   if (!/[a-z]'[a-z]/.test(practice)) fail(where, 'practice sentences never use contractions');
   if (!/\b(the|ing|tion)\b/.test(practice)) fail(where, 'practice has no common letter groups');
+  if (!S.some(s => practice.includes(s))) fail(where, 'practice never uses a real sentence from data/sentences.json');
   console.log(`ok  ${where}`);
 }
 

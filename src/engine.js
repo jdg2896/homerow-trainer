@@ -680,7 +680,36 @@ function wordsText(newC, unlocked, len, WORDS, caps){
   return out.join(' ');
 }
 function capPick(unlocked){ return [...unlocked].filter(c => /[A-Z]/.test(c)); }
-function sentenceText(newC, unlocked, len, WORDS){
+
+/* Real sentences (data/sentences.json) once every letter in them is unlocked. Capitals and
+   . , ? ! ; : that aren't unlocked yet are lowered or dropped; any other missing key rules a sentence out. */
+const letterMasks = new WeakMap(), realCache = new Map();
+const maskOf = s => { let m = 0; for (const c of s.toLowerCase()) if (c >= 'a' && c <= 'z') m |= 1 << (c.charCodeAt(0) - 97); return m; };
+function realSentences(SENTS, unlocked){
+  if (!SENTS || !SENTS.length) return [];
+  const key = [...unlocked].sort().join('');
+  if (realCache.has(key)) return realCache.get(key);
+  if (!letterMasks.has(SENTS)) letterMasks.set(SENTS, SENTS.map(maskOf));
+  const masks = letterMasks.get(SENTS), have = maskOf(lettersOf(unlocked).join(''));
+  const out = [];
+  SENTS.forEach((s, i) => {
+    if (masks[i] & ~have) return;
+    let t = '';
+    for (const c of s) {
+      if (unlocked.has(c)) t += c;
+      else if (/[A-Z]/.test(c)) t += c.toLowerCase();
+      else if (!'.,?!;:'.includes(c)) return;
+    }
+    out.push(t.replace(/\s+/g, ' ').trim());
+  });
+  if (realCache.size > 200) realCache.clear();
+  realCache.set(key, out);
+  return out;
+}
+
+function sentenceText(newC, unlocked, len, WORDS, SENTS){
+  const real = realSentences(SENTS, unlocked);
+  const realNew = newC.some(c => c !== ' ') ? real.filter(s => newC.some(c => c !== ' ' && s.toLowerCase().includes(c.toLowerCase()))) : real;
   const { ok, withNew } = wordPool(unlocked, newC, WORDS);
   const letters = lettersOf(unlocked);
   const caps = new Set(capPick(unlocked));
@@ -692,6 +721,11 @@ function sentenceText(newC, unlocked, len, WORDS){
   const out = [];
   let guard = 0;
   while (out.join(' ').length < len && guard++ < 50) {
+    if (real.length >= 12 && Math.random() < 0.7) {
+      const s = realNew.length >= 4 && Math.random() < 0.6 ? pick(realNew) : pick(real);
+      if (!out.includes(s)) out.push(s);
+      continue;
+    }
     const n = 4 + rand(5), s = [];
     for (let i = 0; i < n; i++) {
       const r0 = Math.random();
@@ -833,7 +867,7 @@ function keyStages(ids, len){
     .map(([name, a]) => ({ name, items: a.map(keyItem) }));
 }
 
-function makeStages(C, lesson, WORDS, len){
+function makeStages(C, lesson, WORDS, len, SENTS){
   len = len || 90;
   if (lesson.kind === 'keys' || lesson.kind === 'chords') return keyStages(lesson.items, len);
   const isReview = lesson.kind === 'review';
@@ -860,8 +894,8 @@ function makeStages(C, lesson, WORDS, len){
     const cw = wordsText(newC, unlocked, len, WORDS, caps);
     add('Capital words', cw);
     add('Mixed case', wordsText(newC, unlocked, len, WORDS, capPick(unlocked)));
-    add('Sentences', sentenceText(newC, unlocked, len * 1.3, WORDS));
-    add('Accuracy check', sentenceText(newC, unlocked, len * 1.6, WORDS));
+    add('Sentences', sentenceText(newC, unlocked, len * 1.3, WORDS, SENTS));
+    add('Accuracy check', sentenceText(newC, unlocked, len * 1.6, WORDS, SENTS));
   } else if (symOnly) {
     const lets = lettersOf(unlocked);
     if (!isReview) {
@@ -886,7 +920,7 @@ function makeStages(C, lesson, WORDS, len){
       add('Short words', shortWordsText(newC, unlocked, len * 0.8, WORDS));
       const w = wordsText(newC, unlocked, len, WORDS);
       add('Words', w);
-      if (lettersOf(unlocked).length >= 6) add('Sentences', sentenceText(newC, unlocked, len * 1.3, WORDS));
+      if (lettersOf(unlocked).length >= 6) add('Sentences', sentenceText(newC, unlocked, len * 1.3, WORDS, SENTS));
     } else if (lettersOf(unlocked).length >= 4) {
       add('Pseudo-words', wordsText(newC, unlocked, len, WORDS));
       add('Mixed drill 2', mixText(newC, [...before], len));
@@ -895,13 +929,13 @@ function makeStages(C, lesson, WORDS, len){
     }
     const extra = newC.filter(c => !/[a-z ]/.test(c));
     if (extra.length) add('Punctuation', symbolText(extra, unlocked, len, WORDS, 'prose'));
-    add('Accuracy check', enough ? sentenceText(newC, unlocked, len * 1.6, WORDS) : mixText(newC, [...before], len * 1.3));
+    add('Accuracy check', enough ? sentenceText(newC, unlocked, len * 1.6, WORDS, SENTS) : mixText(newC, [...before], len * 1.3));
   }
   return st.map(s => ({ name: s.name, items: textItems(s.text.replace(/\s+/g, ' ').trim()) }));
 }
 
 /* Free practice and problem keys */
-function practiceStages(C, unlocked, focus, WORDS, len){
+function practiceStages(C, unlocked, focus, WORDS, len, SENTS){
   const u = new Set(unlocked); u.add(' ');
   const letters = focus.filter(c => /[a-z]/.test(c));
   const syms = focus.filter(c => !/[a-z ]/.test(c));
@@ -910,7 +944,7 @@ function practiceStages(C, unlocked, focus, WORDS, len){
   if (letters.length) st.push({ name: 'Focus words', text: wordsText(letters, u, len, WORDS) });
   if (syms.length) st.push({ name: 'Focus symbols', text: symbolText(syms, u, len, WORDS, 'token') });
   if (letters.length || !focus.length) st.push({ name: 'Common combos', text: ngramText(letters, u, len, WORDS) });
-  st.push({ name: 'Sentences', text: sentenceText(letters, u, len * 1.4, WORDS) });
+  st.push({ name: 'Sentences', text: sentenceText(letters, u, len * 1.4, WORDS, SENTS) });
   return st.filter(s => s.text.trim()).map(s => ({ name: s.name, items: textItems(s.text.replace(/\s+/g, ' ').trim()) }));
 }
 
