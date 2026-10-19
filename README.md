@@ -49,10 +49,10 @@ which `tools/fetch_presets.mjs` downloads from the live Go60 and Glove80 editors
 Re-run it, then `node build.mjs`, to refresh the catalog.
 
 ```
+docs/           learning-principles.md — what drills and the curriculum are based on
 src/engine.js   layout parsing, routing, curriculum, drill generation (pure, runs in node)
 src/ui.js       views, typing engine, stats, storage
 src/style.css   styles and theme tokens (light/dark)
-docs/           learning-principles.md — what drills and the curriculum are based on
 data/           word list and presets/ (Starter layouts; first-run default is seeded from here)
 ```
 
