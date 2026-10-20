@@ -2,6 +2,10 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.7.2 — 2026-10-20
+
+- The footer shows who made Homerow Trainer, and Credits & licenses now notes that the app is MIT licensed.
+
 ## 0.7.1 — 2026-10-19
 
 - If your Mac types § instead of ` (or ± instead of ~), the lesson now explains why: macOS thinks the keyboard is ISO, which you can switch to ANSI in System Settings › Keyboard.

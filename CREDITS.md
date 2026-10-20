@@ -2,6 +2,10 @@
 
 Homerow Trainer is an independent, non-commercial project. It shares no code with the projects below, but it would not exist without them. Thank you to everyone listed here.
 
+## License
+
+Homerow Trainer is © 2026 Jasper Gabriel and released under the [MIT License](LICENSE). The word list, sentences and fonts below keep their own licenses.
+
 ## Inspiration
 
 - **[moosytype](https://github.com/moosylog/moosytype)** by moosylog: a typing trainer for split and ergonomic keyboards. Homerow Trainer's core ideas come from it: loading your own ZMK / MoErgo layout and adapting the trainer to it, an on-screen keyboard that shows the key you need on the right layer, practice that targets the keys you miss, and the overall feel of the typing interface.

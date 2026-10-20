@@ -376,7 +376,7 @@ const repoFile = f => `${BUILD.repo}/blob/main/${f}`;
 function footer(){
   const a = (href, text, cls) => `<a href="${href}" target="_blank" rel="noopener"${cls ? ` class="${cls}"` : ''}>${text}</a>`;
   const commit = BUILD.commit ? ' · ' + a(`${BUILD.repo}/commit/${BUILD.commit}`, BUILD.commit, 'mono') : '';
-  return `<footer class="credits"><p class="ver">${a(repoFile('CHANGELOG.md'), `Homerow Trainer v${esc(BUILD.version)}`)}${commit} · ${a(repoFile('CREDITS.md'), 'Credits &amp; licenses')} · <button class="linkbtn" data-act="feedback" data-fbtype="feedback">Send feedback</button> · <button class="linkbtn" data-act="feedback" data-fbtype="bug">Report a bug</button></p></footer>`;
+  return `<footer class="credits"><p class="ver">${a(repoFile('CHANGELOG.md'), `Homerow Trainer v${esc(BUILD.version)}`)}${commit} · © 2026 Jasper Gabriel · ${a(repoFile('CREDITS.md'), 'Credits &amp; licenses')} · <button class="linkbtn" data-act="feedback" data-fbtype="feedback">Send feedback</button> · <button class="linkbtn" data-act="feedback" data-fbtype="bug">Report a bug</button></p></footer>`;
 }
 function whatsNew(){
   if (!S.whatsNew) return '';
