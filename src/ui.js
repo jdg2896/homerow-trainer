@@ -429,11 +429,11 @@ function beginRun(o){
 function resetStage(){
   const r = S.run;
   Object.assign(r, { items: r.stages[r.si].items, idx: 0, tried: new Set(), wrong: new Set(), errCount: 0, t0: null, last: null,
-    misfires: { shift: 0, mod: 0, alt: 0 }, result: null, lastMisfire: null, saidMisfire: null, paused: null });
+    misfires: { shift: 0, mod: 0, alt: 0 }, result: null, lastMisfire: null, saidMisfire: null, paused: null, awayAt: null });
 }
 function liveNums(){
   const r = S.run;
-  const secs = r.t0 ? ((r.result ? r.tEnd : performance.now()) - r.t0) / 1000 : 0;
+  const secs = r.t0 ? ((r.result ? r.tEnd : r.awayAt != null ? r.awayAt : performance.now()) - r.t0) / 1000 : 0;
   const n = r.tried.size;
   const wpm = secs > 1 ? (r.idx / 5) / (secs / 60) : 0;
   const acc = n ? (n - r.errCount) / n * 100 : 100;
@@ -886,8 +886,17 @@ function copyText(text){
 }
 
 document.addEventListener('keydown', onKey);
-window.addEventListener('focus', () => { if (S.run) paintState(); });
-window.addEventListener('blur', () => { if (S.run) paintState(); });
+// The veil says typing is paused, so time away (resting a wrist, say) doesn't count toward speed, key latency or the daily goal.
+window.addEventListener('focus', () => {
+  const r = S.run; if (!r) return;
+  if (r.awayAt != null) { const d = performance.now() - r.awayAt; if (r.t0 != null) r.t0 += d; if (r.last != null) r.last += d; r.awayAt = null; }
+  paintState();
+});
+window.addEventListener('blur', () => {
+  const r = S.run; if (!r) return;
+  if (r.t0 != null && !r.result) r.awayAt = performance.now();
+  paintState();
+});
 document.addEventListener('click', e => {
   const t = e.target.closest('button, a[data-jump]'); if (!t) return;
   const d = t.dataset;
