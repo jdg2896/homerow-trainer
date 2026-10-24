@@ -4,7 +4,7 @@ What changed in each version of Homerow Trainer. The newest section is also show
 
 ## 0.10.0 — 2026-10-24
 
-- The app now notices letter pairs you fumble even when each letter is fine on its own, like "th" in "the". Common combos in reviews and practice drill your weakest pairs more often.
+- The app now notices letter pairs you fumble even when each letter is fine on its own, like "th" in "the". Common combos in reviews and practice drill your weakest pairs more often, and Practice lists them next to your problem keys.
 
 ## 0.9.0 — 2026-10-24
 
