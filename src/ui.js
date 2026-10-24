@@ -480,10 +480,11 @@ function paintState(){
   updateLive();
   // hint + keyboard
   const it = r.items[r.idx];
-  if (it && !r.result) {
-    paintHint(hintFor(it));
-  }
+  // Once a stage ends there's nothing left to press, so clear the hint and leave the keyboard unlit.
+  if (r.result) paintHint({ html: '' });
+  else if (it) paintHint(hintFor(it));
   // overlay
+  $('#typebox').classList.toggle('done', !!r.result);
   const ov = $('#overlay');
   if (r.result) ov.innerHTML = resultCard();
   else if (!document.hasFocus()) ov.innerHTML = `<button class="focusveil" data-act="focus">Click here, then start typing</button>`;
@@ -493,7 +494,7 @@ function paintState(){
 function revealed(){ const r = S.run; return !S.settings.hintOnMiss || r.wrong.has(r.idx); }
 function paintHint(h){
   const r = S.run, show = revealed(), kh = S.settings.keyHighlight, soft = kh === 'subtle';
-  $('#hint').innerHTML = (show ? h.html : '') + (r.lastMisfire ? ` <span class="misfire">${esc(r.lastMisfire)}</span>` : '');
+  $('#hint').innerHTML = (show ? h.html : '') + (r.lastMisfire && !r.result ? ` <span class="misfire">${esc(r.lastMisfire)}</span>` : '');
   const kb = $('#kb'); if (!kb) return;
   kb.innerHTML = kbSVG(h.r ? h.r.layer : 0, h.r && show && kh !== 'off' ? { target: h.r.pos, holds: h.r.holds, soft } : {}) + legendHtml(kh !== 'off', soft);
   // On narrow screens the keyboard scrolls horizontally; keep the target key in view.
@@ -520,11 +521,11 @@ function resultCard(){
   const lastStage = r.si === r.stages.length - 1;
   const mf = res.misfires.shift + res.misfires.mod + res.misfires.alt;
   if (res.lessonDone) {
-    return `<div class="result"><h3>${res.stars ? 'Lesson complete' : 'Lesson finished'}</h3>${starsHtml(res.stars)}
+    return `<div class="result"><h3>${res.stars ? 'Lesson complete' : 'Lesson finished'}</h3>${res.stars ? starsHtml(res.stars) : ''}
       <div class="nums"><div class="stat"><small>Speed</small><b>${Math.round(res.wpm)}<em>wpm</em></b></div><div class="stat"><small>Accuracy</small><b>${Math.round(res.acc)}<em>%</em></b></div></div>
       <div class="row">${r.lesson && r.lessonIdx < S.C.lessons.length - 1 ? `<button class="btn go" data-act="next-lesson"><span class="tri"></span>Next lesson (Enter)</button>` : ''}<button class="btn" data-act="redo-lesson">Redo lesson</button><button class="btn ghost" data-act="exit">Back to lessons</button></div></div>`;
   }
-  return `<div class="result"><h3>${res.pass ? 'Stage passed' : 'Not quite'}</h3>${starsHtml(res.stars)}
+  return `<div class="result"><h3>${res.pass ? 'Stage passed' : 'Not quite'}</h3>${res.pass ? starsHtml(res.stars) : ''}
     <div class="nums"><div class="stat"><small>Speed</small><b>${Math.round(res.wpm)}<em>wpm</em></b></div><div class="stat"><small>Accuracy</small><b>${Math.round(res.acc)}<em>%</em></b></div>${mf ? `<div class="stat"><small>Mod misfires</small><b>${mf}</b></div>` : ''}</div>
     ${res.pass ? '' : `<p class="muted" style="margin:0">You need ${S.settings.passAcc}% accuracy to move on. Slow down a little.</p>`}
     ${res.missed.length ? `<div class="newkeys">Missed ${res.missed.map(c => kc(c, 'warn')).join('')}</div>` : ''}
