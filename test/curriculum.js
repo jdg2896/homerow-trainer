@@ -91,5 +91,28 @@ for (const file of presets) {
   console.log(`ok  ${where}`);
 }
 
+// Weak letter pairs are weighted into Common combos, in practice and in reviews (learning principle 6).
+{
+  const where = 'weak pairs';
+  const L = E.buildLayout(fs.readFileSync(path.join(presetDir, 'glove80-07-glove80-factory-default-layout.json'), 'utf8'));
+  const C = E.buildCurriculum(L, 'layers');
+  const all = E.unlockedBefore(C, C.lessons[C.lessons.length - 1], true);
+  const combos = stages => (stages.find(s => s.name === 'Common combos') || { items: [] }).items.map(i => i.ch).join('');
+  // "wn" isn't one of the NGRAMS, so without weighting it only turns up inside words.
+  const count = (t, p) => t.split(p).length - 1;
+  let plain = 0, weighted = 0, review = 0;
+  // The last letters review, by which point w and n are unlocked. Only letter reviews have a Common combos stage.
+  const rv = C.lessons.filter(l => l.kind === 'review' && l.items.some(c => /[a-z]/.test(c))).pop();
+  for (let i = 0; i < 30; i++) {
+    plain += count(combos(E.practiceStages(C, all, [], W, 90, S)), 'wn');
+    weighted += count(combos(E.practiceStages(C, all, [], W, 90, S, ['wn'])), 'wn');
+    if (rv) review += count(combos(E.makeStages(C, rv, W, 90, S, ['wn'])), 'wn');
+  }
+  if (weighted < Math.max(30, plain * 3)) fail(where, `"wn" appeared ${weighted} times weighted vs ${plain} unweighted in 30 practice runs`);
+  if (rv && review < 15) fail(where, `"wn" appeared only ${review} times in 30 runs of review "${rv.title}"`);
+  if (!combos(E.practiceStages(C, all, ['q'], W, 90, S, ['wn'])).includes('wn')) fail(where, 'problem-key practice drops weak pairs that miss the focus keys');
+  console.log(`ok  ${where} (wn: ${plain} → ${weighted} in practice${rv ? `, ${review} in a review` : ''})`);
+}
+
 if (failures) { console.error(`\n${failures} failure(s).`); process.exit(1); }
 console.log(`\nAll ${presets.length} presets passed.`);
