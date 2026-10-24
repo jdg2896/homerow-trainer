@@ -178,23 +178,24 @@ function hintFor(item){
   const t = keyLabels(r.layer, r.pos);
   parts.push(`${r.holds.length ? 'then press' : 'Press'} <span class="kc">${esc(t.main || '?')}</span> <span class="muted">(${fingerName(r.pos)})</span>`);
   const layer = r.layer ? `<span class="layer">${esc(S.layout.layerNames[r.layer])}</span>` : '';
-  return { r, html: layer + parts.join(', ') };
+  return { r, html: layer + `<span>${parts.join(', ')}</span>` };
 }
 
 /* ---------- views ---------- */
-function header(){
+// During a run the header drops its stats, so the only numbers on screen are the drill's own.
+function header(inRun){
   const o = overall(), goal = S.settings.dailyGoal * 60, pct = Math.min(1, o.todaySecs / goal), C = 2 * Math.PI * 18;
   const L = S.layout;
   return `<header class="top"><div class="bar">
     <button class="brand" data-act="home" title="Back to lessons"><span class="brand-mark" aria-hidden="true">${[0,1,2,3,4,5,6,7,8].map(i => `<i class="${i >= 3 && i < 6 ? 'on' : ''}"></i>`).join('')}</span>Homerow Trainer</button>
     <div class="layout-chip"><b title="${esc(L.title)}">${esc(L.title)}</b><span>${esc(L.geo.name)} · ${L.layers.length} layers</span></div>
-    <div class="stats">
-      <div class="stat"><small>Avg speed</small><b>${o.wpm == null ? '–' : Math.round(o.wpm)}<em>wpm</em></b></div>
+    ${inRun ? '' : `<div class="stats">
       <div class="stat"><small>Avg accuracy</small><b>${o.acc == null ? '–' : Math.round(o.acc)}<em>%</em></b></div>
+      <div class="stat"><small>Avg speed</small><b>${o.wpm == null ? '–' : Math.round(o.wpm)}<em>wpm</em></b></div>
       <div class="stat"><small>Typing time</small><b>${fmtTime(o.total)}</b></div>
       <div class="goal"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="ring-bg" cx="22" cy="22" r="18"/><circle class="ring" cx="22" cy="22" r="18" stroke-dasharray="${(C * pct).toFixed(1)} ${C.toFixed(1)}"/></svg>
         <div class="stat"><small>Daily goal</small><b>${fmtTime(o.todaySecs)}<em>/ ${S.settings.dailyGoal}:00</em></b></div></div>
-    </div>
+    </div>`}
     <button class="btn ghost fb-open" data-act="feedback" data-fbtype="bug" title="Report a bug" aria-label="Report a bug"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="8" width="10" height="13" rx="5"/><path d="M9 8V7a3 3 0 0 1 6 0v1M12 12v9M7 12.5H3m14 0h4M7 17H4m13 0h3M7.6 9.6 5 7m11.4 2.6L19 7"/></svg><span>Report a bug</span></button></div></header>`;
 }
 function sidebar(){
@@ -222,7 +223,7 @@ function learnView(){
     <p>${done} of ${ls.length} lessons done on ${esc(S.layout.title)}</p></div>
     <div class="progress" aria-label="${Math.round(done / ls.length * 100)}% complete"><i style="width:${(done / ls.length * 100).toFixed(1)}%"></i></div>
     <button class="btn go" data-start="${nxt}"><span class="tri"></span>${done || resumeStage(nl) ? 'Continue' : 'Start'}</button></section>
-    <p class="muted keyhint"><span class="kc">↑</span><span class="kc">↓</span> move between lessons · <span class="kc">Enter</span> starts · <span class="kc">1</span>–<span class="kc">4</span> switch tabs · <span class="kc">Esc</span> leaves a lesson</p>`;
+    <p class="muted keyhint"><span class="kc">↑</span><span class="kc">↓</span> move between lessons · <span class="kc">Enter</span> starts · <span class="kc">1</span>–<span class="kc">4</span> switch tabs · <span class="kc">Esc</span> pauses a lesson</p>`;
   S.C.units.forEach(u => {
     const d = u.lessons.filter(isDone).length;
     const containsNext = u.lessons.includes(ls[nxt]);
@@ -238,7 +239,7 @@ function learnView(){
       html += `<div class="lesson ${isDone(l) ? 'done' : ''} ${isNext ? 'next' : ''} ${un ? '' : 'locked'}">
         <div class="num">${isDone(l) ? '✓' : l.num}</div>
         <div class="ttl"><b>${title}${title && keys ? ' ' : ''}${l.kind === 'review' ? '' : (title ? '' : keys)}</b>
-          <div class="meta">${l.kind === 'review' ? '<span class="badge">Review</span>' : ''}${(l.kind === 'keys' || l.kind === 'chords') ? keys : ''}<span class="segs">${Array.from({ length: segN }, (_, k) => `<i class="${k < segDone ? 'on' : ''}"></i>`).join('')}</span>${p && p.stars ? starsHtml(p.stars) + `<span>${Math.round(p.bestWpm || 0)} wpm · ${Math.round(p.bestAcc || 0)}%</span>` : ''}</div></div>
+          <div class="meta">${l.kind === 'review' ? '<span class="badge">Review</span>' : ''}${(l.kind === 'keys' || l.kind === 'chords') ? keys : ''}<span class="segs">${Array.from({ length: segN }, (_, k) => `<i class="${k < segDone ? 'on' : ''}"></i>`).join('')}</span>${p && p.stars ? starsHtml(p.stars) + `<span>${Math.round(p.bestAcc || 0)}% · ${Math.round(p.bestWpm || 0)} wpm</span>` : ''}</div></div>
         <div class="act">${un ? `<button class="btn ${isNext ? 'go' : 'ghost'}" data-start="${i}"><span class="tri"></span>${isDone(l) ? 'Redo' : resumeStage(l) ? 'Continue' : 'Start'}</button>` : `<button class="btn ghost" disabled>Locked</button>`}</div>
       </div>`;
     });
@@ -429,33 +430,36 @@ function beginRun(o){
 function resetStage(){
   const r = S.run;
   Object.assign(r, { items: r.stages[r.si].items, idx: 0, tried: new Set(), wrong: new Set(), errCount: 0, t0: null, last: null,
-    misfires: { shift: 0, mod: 0, alt: 0 }, result: null, lastMisfire: null, saidMisfire: null, paused: null, awayAt: null });
+    misfires: { shift: 0, mod: 0, alt: 0 }, result: null, note: null, saidNote: null, paused: null, awayAt: null, escPaused: false });
 }
-function liveNums(){
-  const r = S.run;
-  const secs = r.t0 ? ((r.result ? r.tEnd : r.awayAt != null ? r.awayAt : performance.now()) - r.t0) / 1000 : 0;
-  const n = r.tried.size;
-  const wpm = secs > 1 ? (r.idx / 5) / (secs / 60) : 0;
-  const acc = n ? (n - r.errCount) / n * 100 : 100;
-  return { secs, wpm, acc };
+// Pausing (Esc, or the window losing focus) stops the clock, so the rest doesn't count toward speed, key latency or the daily goal.
+function pauseClock(){ const r = S.run; if (r.t0 != null && !r.result && r.awayAt == null) r.awayAt = performance.now(); }
+function resumeClock(){
+  const r = S.run; if (r.awayAt == null) return;
+  const d = performance.now() - r.awayAt; if (r.t0 != null) r.t0 += d; if (r.last != null) r.last += d; r.awayAt = null;
 }
+const itemText = it => it.t === 'k' ? E.keyItemLabel(it) + ' ' : it.ch;
 function renderRun(full){
   const r = S.run;
   if (full) {
     r.shown = null;
     const newKeys = r.lesson && r.lesson.kind !== 'review' ? r.lesson.items.map(c => kc(c, 'big')).join('') : '';
-    $('#app').innerHTML = header() + `<div class="wrap" style="padding-block:20px 60px"><div class="run">
+    // Speed stays off screen until the result: a ticking wpm and clock push you to rush, and passing is about accuracy.
+    $('#app').innerHTML = header(true) + `<div class="wrap" style="padding-block:20px 60px"><div class="run">
       <div class="runbar"><button class="btn ghost" data-act="exit">← Lessons</button><h2>${esc(r.title)}</h2>
-        <div class="live"><div class="stat"><small>Speed</small><b id="lvW">0<em>wpm</em></b></div><div class="stat"><small>Accuracy</small><b id="lvA">100<em>%</em></b></div><div class="stat"><small>Time</small><b id="lvT">0:00</b></div></div></div>
+        <div class="live"><div class="stat"><small>Accuracy</small><b id="lvA">100<em>%</em></b></div></div></div>
       <div class="stagechips" id="chips"></div>
       ${newKeys ? `<div class="newkeys">New keys ${newKeys}</div>` : ''}
-      <div class="typebox" id="typebox"><div class="viewport"><div class="textline" id="textline"></div></div><div id="overlay"></div></div>
+      <div class="typebox" id="typebox"><div class="viewport" aria-hidden="true"><div class="textline" id="textline"></div></div><p class="sr-only">Text to type: ${esc(r.items.map(itemText).join(''))}</p><div id="overlay"></div></div>
       <div class="hint" id="hint"></div>
       ${S.settings.showKeyboard ? `<div class="kbwrap" id="kb"></div>` : ''}
       <p class="sr-only" id="runSr" aria-live="polite"></p>
-      <p class="muted" style="font-size:13px;margin:0">Esc leaves the lesson. Homerow Trainer can't block every browser shortcut, like ⌘W, so watch for accidental Command holds.</p>
+      <p class="muted" style="font-size:13px;margin:0"><span class="kc">Esc</span> pauses, and <span class="kc">Esc</span> again leaves the lesson. Homerow Trainer can't block every browser shortcut, like ⌘W, so watch for accidental Command holds.</p>
     </div></div>` + footer();
     paintText();
+    // A live region inserted with its text is often skipped, so announce the stage once it's in the page.
+    const stage = r.stages[r.si];
+    setTimeout(() => { if (S.run === r && !r.result) say(`Stage ${r.si + 1} of ${r.stages.length}, ${stage.name}. Type: ${r.items.map(itemText).join('')}`); }, 150);
   }
   paintChips();
   paintState();
@@ -502,18 +506,20 @@ function paintState(){
     // Only on a new result, so a window blur/focus repaint doesn't yank focus back from Retry.
     if (r.shown !== r.result) { r.shown = r.result; ov.innerHTML = resultCard(); announceResult(); }
   }
+  else if (r.escPaused) ov.innerHTML = `<button class="focusveil" data-act="resume"><span>Paused. Press any key to keep typing, or <span class="kc">Esc</span> again to leave the lesson.</span></button>`;
   else if (!document.hasFocus()) ov.innerHTML = `<button class="focusveil" data-act="focus">Paused while this window is in the background. Click here or switch back to keep typing.</button>`;
   else ov.innerHTML = '';
-  if (r.lastMisfire && r.lastMisfire !== r.saidMisfire) say(r.lastMisfire);
-  r.saidMisfire = r.lastMisfire;
+  if (r.note && r.note !== r.saidNote) say(htmlText(r.note.html));
+  r.saidNote = r.note;
 }
 function say(text){ const el = $('#runSr'); if (el) el.textContent = text; }
+function htmlText(html){ const tmp = document.createElement('div'); tmp.innerHTML = html; return tmp.textContent.replace(/\s+/g, ' ').trim(); }
 function announceResult(){
   const card = $('#overlay .result'); if (!card) return;
-  const res = S.run.result, p = card.querySelector('p');
+  const res = S.run.result;
   say([card.querySelector('h3').textContent, res.stars ? `${res.stars} of 3 stars` : '',
-    `Speed ${Math.round(res.wpm)} words per minute`, `Accuracy ${Math.round(res.acc)} percent`,
-    p ? p.textContent.replace(/\.$/, '') : '', res.missed.length ? 'Missed ' + res.missed.map(itemLabel).join(', ') : ''
+    `Accuracy ${Math.round(res.acc)} percent`, `Speed ${Math.round(res.wpm)} words per minute`,
+    ...[...card.querySelectorAll('p, .newkeys')].map(el => el.textContent.replace(/\s+/g, ' ').trim().replace(/\.$/, ''))
   ].filter(Boolean).join('. ') + '.');
   const go = card.querySelector('.btn'); if (go) go.focus({ preventScroll: true });
 }
@@ -540,11 +546,10 @@ function paintHint(h){
     pauseTimer = setTimeout(() => { if (S.run === r && !r.result && r.idx === at) { r.paused = at; paintHint(hintFor(r.items[at])); } }, PAUSE_MS);
   }
   $('#hint').innerHTML = (show ? h.html : st === 'fade' ? '<span class="muted">From memory. Pause for a hint.</span>' : '')
-    + (r.lastMisfire && !r.result ? ` <span class="misfire">${esc(r.lastMisfire)}</span>` : '');
+    + (r.note && !r.result ? `<span class="${r.note.err ? 'misfire' : 'note'}">${r.note.html}</span>` : '');
   const kb = $('#kb'); if (!kb) return;
   // The hint as plain text, so the keyboard's accessible name says what to press, not just which layer is shown.
-  const tmp = document.createElement('div'); tmp.innerHTML = show ? h.html : '';
-  const label = tmp.textContent.replace(/\s+/g, ' ').trim();
+  const label = show ? htmlText(h.html) : '';
   // A hidden hint also hides the target's layer, since switching the diagram to it would give the answer away.
   kb.innerHTML = kbSVG(h.r && show ? h.r.layer : 0, h.r && show && kh !== 'off' ? { target: h.r.pos, holds: h.r.holds, soft, label } : { label }) + legendHtml(kh !== 'off', soft);
   // On narrow screens the keyboard scrolls horizontally; keep the target key in view.
@@ -555,35 +560,39 @@ function paintHint(h){
   }
 }
 function updateLive(){
-  const n = liveNums();
-  const w = $('#lvW'), a = $('#lvA'), t = $('#lvT');
-  if (w) w.innerHTML = `${Math.round(n.wpm)}<em>wpm</em>`;
-  if (a) a.innerHTML = `${Math.round(n.acc)}<em>%</em>`;
-  if (t) t.textContent = fmtTime(n.secs);
+  const r = S.run, n = r.tried.size, a = $('#lvA');
+  if (a) a.innerHTML = `${Math.round(n ? (n - r.errCount) / n * 100 : 100)}<em>%</em>`;
 }
-// Tick the live speed/accuracy readout only while a timed run is in progress; self-stops otherwise.
-let liveTimer = null;
-function startLiveTimer(){ if (liveTimer == null) liveTimer = setInterval(() => { if (S.run && S.run.t0 && !S.run.result) updateLive(); else stopLiveTimer(); }, 500); }
-function stopLiveTimer(){ if (liveTimer != null) { clearInterval(liveTimer); liveTimer = null; } }
 
+const numsHtml = res => `<div class="nums"><div class="stat"><small>Accuracy</small><b>${Math.round(res.acc)}<em>%</em></b></div><div class="stat"><small>Speed</small><b>${Math.round(res.wpm)}<em>wpm</em></b></div></div>`;
+// Once today's goal is met, the lesson end steers toward stopping rather than chaining into the next lesson.
+function goalMet(){ return overall().todaySecs >= S.settings.dailyGoal * 60; }
 function resultCard(){
   const r = S.run, res = r.result;
   const lastStage = r.si === r.stages.length - 1;
-  const mf = res.misfires.shift + res.misfires.mod + res.misfires.alt;
+  const mf = res.misfires, mfParts = [['⌘ or ⌃', mf.mod], ['Shift', mf.shift], ['⌥', mf.alt]].filter(x => x[1]).map(([m, n]) => `${m} ${n}×`);
   if (res.lessonDone) {
+    const hasNext = r.lesson && r.lessonIdx < S.C.lessons.length - 1, rest = goalMet(), today = overall().todaySecs;
+    const learned = r.lesson && r.lesson.kind === 'learn' ? `<div class="newkeys">Learned ${r.lesson.items.map(c => kc(c)).join('')}</div>` : '';
+    const change = ` <button class="linkbtn" data-act="change-goal">Change goal</button>`;
+    const goal = rest ? `<p class="muted" style="margin:0">That's your ${S.settings.dailyGoal}-minute goal for today. A good place to stop and rest your hands.${change}</p>`
+      : `<p class="muted" style="margin:0">${fmtTime(today)} of your ${S.settings.dailyGoal} minutes today.${change}</p>`;
+    const next = hasNext ? `<button class="btn ${rest ? '' : 'go'}" data-act="next-lesson">${rest ? '' : '<span class="tri"></span>'}Next lesson${rest ? '' : ' (Enter)'}</button>` : '';
+    const back = `<button class="btn ${rest || !hasNext ? 'go' : 'ghost'}" data-act="exit">Back to lessons${rest || !hasNext ? ' (Enter)' : ''}</button>`;
     return `<div class="result"><h3>${res.stars ? 'Lesson complete' : 'Lesson finished'}</h3>${res.stars ? starsHtml(res.stars) : ''}
-      <div class="nums"><div class="stat"><small>Speed</small><b>${Math.round(res.wpm)}<em>wpm</em></b></div><div class="stat"><small>Accuracy</small><b>${Math.round(res.acc)}<em>%</em></b></div></div>
-      <div class="row">${r.lesson && r.lessonIdx < S.C.lessons.length - 1 ? `<button class="btn go" data-act="next-lesson"><span class="tri"></span>Next lesson (Enter)</button>` : ''}<button class="btn" data-act="redo-lesson">Redo lesson</button><button class="btn ghost" data-act="exit">Back to lessons</button></div></div>`;
+      ${numsHtml(res)}${learned}${goal}
+      <div class="row">${rest ? back + next : next + back}<button class="btn ghost" data-act="redo-lesson">Redo lesson</button></div></div>`;
   }
   return `<div class="result"><h3>${res.pass ? 'Stage passed' : 'Not quite'}</h3>${res.pass ? starsHtml(res.stars) : ''}
-    <div class="nums"><div class="stat"><small>Speed</small><b>${Math.round(res.wpm)}<em>wpm</em></b></div><div class="stat"><small>Accuracy</small><b>${Math.round(res.acc)}<em>%</em></b></div>${mf ? `<div class="stat"><small>Mod misfires</small><b>${mf}</b></div>` : ''}</div>
+    ${numsHtml(res)}
     ${res.pass ? '' : `<p class="muted" style="margin:0">You need ${S.settings.passAcc}% accuracy to move on. Slow down a little.</p>`}
     ${res.missed.length ? `<div class="newkeys">Missed ${res.missed.map(c => kc(c, 'warn')).join('')}</div>` : ''}
+    ${mfParts.length ? `<p class="muted" style="margin:0">Modifiers fired by accident: ${mfParts.join(', ')}. Tap home-row keys and let go before the next key.</p>` : ''}
     <div class="row">${res.pass ? `<button class="btn go" data-act="next-stage"><span class="tri"></span>${lastStage ? 'Finish lesson' : 'Next stage'} (Enter)</button><button class="btn" data-act="retry-stage">Retry</button>` : `<button class="btn go" data-act="retry-stage"><span class="tri"></span>Try again (Enter)</button>`}</div></div>`;
 }
 
 function finishStage(now){
-  const r = S.run; r.tEnd = now;
+  const r = S.run;
   const secs = Math.max(1, (now - r.t0) / 1000);
   const n = r.items.length;
   const acc = (n - r.errCount) / n * 100;
@@ -633,7 +642,7 @@ function nextStage(){
   if (r.si >= r.stages.length - 1) { finishLesson(); return; }
   r.si++; resetStage(); renderRun(true);
 }
-function exitRun(){ stopLiveTimer(); S.run = null; render(); }
+function exitRun(){ S.run = null; render(); }
 
 /* ---------- keyboard navigation (outside a run) ---------- */
 const VIEW_KEYS = { 1: 'learn', 2: 'practice', 3: 'layout', 4: 'settings' };
@@ -665,6 +674,27 @@ function onNavKey(e){
 // macOS swaps ` and § when it thinks the keyboard is ISO, which it often guesses for new keyboards.
 const ISO_SWAP = { '`': '§', '~': '±' };
 
+// Name the key behind a misfire, so the fix is about one finger rather than "a modifier".
+const cap = lab => `<span class="kc">${esc(lab || '?')}</span>`;
+function modKeys(mod){
+  return S.layout.keys.filter(g => { const k = S.layout.layers[0][g.pos]; return k && k.hold && k.hold.mod === mod && !k.hold.sticky; })
+    .map(g => cap(keyLabels(0, g.pos).main));
+}
+function misfireHtml(kind, it){
+  const want = kc(it.ch);
+  if (kind === 'wrongmod') return `Wrong modifier held. This shortcut is ${cap(E.keyItemLabel(it))}.`;
+  if (kind === 'shift-missing') {
+    const rt = E.routeFor(S.layout, S.C, it, S.settings.routePref), h = rt && rt.holds.find(x => x.mod === 'shift');
+    return h ? `Shift wasn't held. Hold ${cap(keyLabels(0, h.pos).main)} (${fingerName(h.pos)}) for ${want}.` : `Shift wasn't held for ${want}.`;
+  }
+  const mod = kind === 'shift-extra' ? 'shift' : kind, sym = mod === 'shift' ? 'Shift' : E.MOD_SYM[mod];
+  // A home-row key held a little too long fires its own modifier instead of its letter.
+  const rt = E.routeFor(S.layout, S.C, it, S.settings.routePref), own = rt && !rt.layer && !rt.holds.length && S.layout.layers[0][rt.pos];
+  if (own && own.hold && own.hold.mod === mod) return `${sym} fired instead of ${want}: it was held a little long. Tap it and let go before the next key.`;
+  const ks = modKeys(mod);
+  return ks.length ? `${sym} fired: ${ks.join(' or ')} was still held when you pressed ${want}. Let it go before the next key.` : `${sym} was held when you pressed ${want}.`;
+}
+
 function onKey(e){
   if (fbOpen()) return;
   const r = S.run; if (!r) { onNavKey(e); return; }
@@ -673,13 +703,20 @@ function onKey(e){
     if (e.key === 'Enter' && document.activeElement.closest('button, a')) return;
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (r.result.lessonDone) { if (r.lesson && r.lessonIdx < S.C.lessons.length - 1) startLesson(r.lessonIdx + 1); else exitRun(); }
+      if (r.result.lessonDone) { if (r.lesson && r.lessonIdx < S.C.lessons.length - 1 && !goalMet()) startLesson(r.lessonIdx + 1); else exitRun(); }
       else if (r.result.pass) nextStage(); else { resetStage(); renderRun(true); }
     } else if (e.key === 'Escape') { e.preventDefault(); exitRun(); }
     return;
   }
-  if (e.key === 'Escape') { e.preventDefault(); exitRun(); return; }
+  // Esc sits next to A on many split layouts, so the first press only pauses; a second one leaves.
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    if (r.escPaused) { exitRun(); return; }
+    r.escPaused = true; pauseClock(); paintState(); say('Paused. Press any key to keep typing, or Escape again to leave the lesson.');
+    return;
+  }
   if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Fn', 'Hyper', 'Super', 'OS', 'AltGraph'].includes(e.key)) return;
+  if (r.escPaused) { e.preventDefault(); r.escPaused = false; resumeClock(); paintState(); return; }
   const it = r.items[r.idx]; if (!it) return;
   e.preventDefault();
   const now = performance.now();
@@ -690,22 +727,22 @@ function onKey(e){
       return;
     }
     let typed = e.key === 'Enter' ? '\n' : e.key;
-    if (e.metaKey || e.ctrlKey) misfire = e.metaKey ? '⌘ fired instead of a letter' : '⌃ fired instead of a letter';
-    else if (e.key === 'Dead' || (e.altKey && typed !== it.ch)) misfire = '⌥ fired instead of a letter';
-    else if (typed.length === 1 && typed !== it.ch && typed.toLowerCase() === it.ch.toLowerCase() && /[a-z]/i.test(typed)) misfire = typed === typed.toUpperCase() ? 'Shift fired by accident' : 'Shift was not held';
+    if (e.metaKey || e.ctrlKey) misfire = e.metaKey ? 'meta' : 'ctrl';
+    else if (e.key === 'Dead' || (e.altKey && typed !== it.ch)) misfire = 'alt';
+    else if (typed.length === 1 && typed !== it.ch && typed.toLowerCase() === it.ch.toLowerCase() && /[a-z]/i.test(typed)) misfire = typed === typed.toUpperCase() ? 'shift-extra' : 'shift-missing';
     if (typed.length !== 1 && !misfire) return; // stray navigation key: ignore
     ok = !misfire && typed === it.ch;
-    if (!misfire && ISO_SWAP[it.ch] === typed) note = `Your Mac typed ${typed}: it thinks this keyboard is ISO. Set the keyboard type to ANSI in System Settings › Keyboard.`;
-    if (misfire) { const t = misfire.startsWith('⌘') || misfire.startsWith('⌃') ? 'mod' : misfire.startsWith('⌥') ? 'alt' : 'shift'; r.misfires[t]++; S.stats.misfires[t] = (S.stats.misfires[t] || 0) + 1; }
+    if (!misfire && ISO_SWAP[it.ch] === typed) note = { err: false, html: `Your Mac typed ${esc(typed)}: it thinks this keyboard is ISO. Set the keyboard type to ANSI in System Settings › Keyboard.` };
+    if (misfire) { const t = misfire === 'meta' || misfire === 'ctrl' ? 'mod' : misfire === 'alt' ? 'alt' : 'shift'; r.misfires[t]++; S.stats.misfires[t] = (S.stats.misfires[t] || 0) + 1; }
   } else {
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     const want = new Set(it.mods);
     const modsOk = ['ctrl', 'alt', 'meta', 'shift'].every(m => !!e[m + 'Key'] === want.has(m));
     ok = k === it.key && modsOk;
-    if (k === it.key && !modsOk) misfire = 'Wrong modifier held';
+    if (k === it.key && !modsOk) misfire = 'wrongmod';
   }
-  r.lastMisfire = misfire || note;
-  if (!r.t0) { r.t0 = now; r.last = now; startLiveTimer(); }
+  r.note = misfire ? { err: true, html: misfireHtml(misfire, it) } : note;
+  if (!r.t0) { r.t0 = now; r.last = now; }
   const id = it.t === 'c' ? it.ch : E.keyId(it);
   const ks = S.stats.keys[id] || (S.stats.keys[id] = { n: 0, err: 0, lat: 0, ln: 0 });
   if (!r.tried.has(r.idx)) {
@@ -886,15 +923,14 @@ function copyText(text){
 }
 
 document.addEventListener('keydown', onKey);
-// The veil says typing is paused, so time away (resting a wrist, say) doesn't count toward speed, key latency or the daily goal.
 window.addEventListener('focus', () => {
   const r = S.run; if (!r) return;
-  if (r.awayAt != null) { const d = performance.now() - r.awayAt; if (r.t0 != null) r.t0 += d; if (r.last != null) r.last += d; r.awayAt = null; }
+  if (!r.escPaused) resumeClock();
   paintState();
 });
 window.addEventListener('blur', () => {
   const r = S.run; if (!r) return;
-  if (r.t0 != null && !r.result) r.awayAt = performance.now();
+  pauseClock();
   paintState();
 });
 document.addEventListener('click', e => {
@@ -915,13 +951,15 @@ document.addEventListener('click', e => {
     render(); return;
   }
   switch (d.act) {
-    case 'home': if (S.run) stopLiveTimer(); S.run = null; S.view = 'learn'; S.msg = null; S.confirmDel = null; render(); scrollTo(0, 0); break;
+    case 'home': S.run = null; S.view = 'learn'; S.msg = null; S.confirmDel = null; render(); scrollTo(0, 0); break;
     case 'whats-new-ok': store.set('seenVersion', BUILD.version); S.whatsNew = false; render(); break;
     case 'feedback': openFeedback(d.fbtype); break;
     case 'fb-cancel': fbDialog.close(); break;
     case 'fb-submit': submitFeedback(); break;
     case 'exit': exitRun(); break;
+    case 'change-goal': S.run = null; S.view = 'settings'; render(); $('#dailyGoal').focus(); break;
     case 'focus': window.focus(); paintState(); break;
+    case 'resume': S.run.escPaused = false; resumeClock(); paintState(); break;
     case 'next-stage': nextStage(); break;
     case 'retry-stage': resetStage(); renderRun(true); break;
     case 'next-lesson': startLesson(S.run.lessonIdx + 1); break;

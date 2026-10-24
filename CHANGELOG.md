@@ -2,6 +2,15 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.9.0 — 2026-10-24
+
+- During a lesson the only live number is accuracy. Speed shows on the result, and accuracy now comes first everywhere.
+- Esc pauses a lesson instead of ending it, so a stray press next to A doesn't cost you the stage. Press Esc again to leave.
+- Misfire notes name the key: "⌘ fired: S or E was still held when you pressed Space", or "Shift wasn't held. Hold N for T."
+- The keyboard shrinks to fit the window during a drill, so the thumb keys stay on screen.
+- The end of a lesson shows the keys you learned and today's practice time, with a link to change your daily goal. Once your daily goal is met, Enter takes you back to the lessons instead of starting another.
+- Screen readers hear each stage's name and text when it starts. Typed text and finished stage chips are easier to read, especially in dark mode.
+
 ## 0.8.0 — 2026-10-24
 
 - Hints fade as you learn: once you type a key accurately, its hint and highlight stay hidden until you pause or miss, so you recall it from memory. Change this under Settings › Hints.

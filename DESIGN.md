@@ -8,6 +8,7 @@ colors:
   go-amber: "#F2B705"
   go-amber-ink: "#241A00"
   ok-green: "#127A51"
+  ok-green-ink: "#FFFFFF"
   err-red: "#C13029"
   err-red-soft: "#FBE0DD"
   desk: "#E8ECF2"
@@ -28,6 +29,7 @@ colors:
   keycap-blue-soft-dark: "#223060"
   keycap-blue-ink-dark: "#0D121C"
   ok-green-dark: "#41C78E"
+  ok-green-ink-dark: "#0D121C"
   err-red-dark: "#FF6A60"
   err-red-soft-dark: "#48201E"
   desk-dark: "#0D121C"
@@ -189,8 +191,8 @@ A cool neutral desk with two working accents and pastel finger colors on the key
 - **Go Amber** (`go-amber`): the target key on the keyboard, the next-lesson border, the Start button, the progress fill, the daily-goal ring, earned stars, and the lit middle row of the brand mark. It's the same in both themes. Text on it is always `go-amber-ink`, never white.
 
 ### Tertiary
-- **Done Green** (`ok-green`): completed lessons (number disc), finished stage chips, and the filled lesson segments.
-- **Miss Red** (`err-red` on `err-red-soft`): mistyped characters, error messages, misfire notes, problem-key warnings and danger buttons.
+- **Done Green** (`ok-green`): completed lessons (number disc), finished stage chips, and the filled lesson segments. Text on it is `ok-green-ink`: white in light mode, near-black in dark, where the green lightens.
+- **Miss Red** (`err-red` on `err-red-soft`): mistyped characters, error messages, misfire notes (a soft red pill beside the hint), problem-key warnings and danger buttons.
 
 ### Neutral
 - **Desk** (`desk`): the page background.
@@ -221,7 +223,7 @@ A cool neutral desk with two working accents and pastel finger colors on the key
 - **Title** (700, 17px): lesson names, What's new heading. Dialog titles use the display face at 21px.
 - **Body** (400, 15px, 1.5): everything else. Meta and secondary lines use 13–14px in Muted. The footer's line length is capped at 112ch.
 - **Label** (700, 11px, 0.06–0.08em, uppercase): stat captions, sidebar group headings, table headers and badges.
-- **Stat** (700, 22px, tabular figures): header and run-bar stats (speed, accuracy, typing time), with units at 12px in the body face.
+- **Stat** (700, 22px, tabular figures): header stats and result numbers, with units at 12px in the body face. Accuracy always comes before speed. During a drill the header drops its stats and the run bar shows accuracy only; speed appears on the result.
 - **Drill** (Plex Mono 500, clamp(19px, 2.5vw, 27px), 1.9em lines): the typing viewport, three lines tall.
 
 ### Named Rules
@@ -235,7 +237,7 @@ A cool neutral desk with two working accents and pastel finger colors on the key
 - **Main column:** a vertical stack with 28px between sections and 16px between cards. Grids use `auto-fit, minmax(280px, 1fr)`. Practice uses two equal columns that each stack their own cards, collapsing to one column at 760px.
 - **Rhythm:** gaps cluster at 4/6/8 inside components, 12–16 between siblings, and 22–28 between sections. Card padding is 16px. The type box is roomier (22px 26px).
 - **≤860px:** the sidebar folds above the content and the nav becomes a wrapping row. Unit links, the sidebar card, nav shortcut numbers and the key hint are hidden. The report-a-bug button stays top right as an icon only, and lessons drop their action column under the title.
-- **Keyboard diagram:** an SVG at least 560px wide that scrolls horizontally inside its card rather than shrinking past legibility.
+- **Keyboard diagram:** an SVG at least 560px wide that scrolls horizontally inside its card rather than shrinking past legibility. In a drill its height is capped by the window (at least 260px), so the thumb keys stay on screen; it shrinks and centres rather than overflowing.
 
 ## Elevation & Depth
 
@@ -271,7 +273,7 @@ The signature primitive: an inline key legend that looks like a physical cap.
 - `big` scales it to 1.4em for new keys. `warn` turns the border and legend Miss Red for problem keys.
 
 ### Chips, Badges and Tabs
-- **Stage chips:** pills with 12px text and a Line border. The current stage gets a Keycap Blue border and text, and done stages get a solid Done Green fill with white text.
+- **Stage chips:** pills with 12px text and a Line border. The current stage gets a Keycap Blue border and text, and done stages get a solid Done Green fill with Done Green Ink text.
 - **Badge:** an uppercase 11px label pill on Sunken Surface.
 - **Tabs (layer picker):** 13px bold pills. The active tab inverts to an Ink fill with Desk text.
 - **Layer pill:** a Keycap Blue pill in the hint line naming the layer to hold.
@@ -297,7 +299,7 @@ A three-column grid: a number disc, the title with its meta line, and the action
 A vertical list of bold 15px rows with 10px 12px padding and an 8px radius, each with its number-key shortcut in faded mono on the right. Hover shows a Surface fill, and the active row is a solid Keycap Blue fill. At ≤860px it becomes a wrapping row and the shortcut numbers are hidden.
 
 ### Drill Viewport
-Three mono lines in a roomy, shadowed card, scrolling one line at a time (a 0.15s transform). Upcoming characters are Muted. Typed characters are Ink at 45% opacity. A miss is Miss Red on its soft tint, including on the current character, where it also turns the cursor underline red, and a miss that was then fixed stays Miss Red at 60%. The current character gets a Keycap Blue Soft tint and a 3px Keycap Blue underline, and the current space shows a centered blue dot. A miss also triggers a 3px horizontal shake (0.18s), which reduced motion turns off. When the box loses focus, a translucent surface veil covers it with "Paused while this window is in the background. Click here or switch back to keep typing." The clock really stops while it shows.
+Three mono lines in a roomy, shadowed card, scrolling one line at a time (a 0.15s transform). Upcoming characters are Ink, since they are what you read next. Typed characters step back to Muted, which still clears 4.5:1 in both themes. A miss is Miss Red on its soft tint, including on the current character, where it also turns the cursor underline red, and a miss that was then fixed stays Miss Red at 60%. The current character gets a Keycap Blue Soft tint and a 3px Keycap Blue underline, and the current space shows a centered blue dot. A miss also triggers a 3px horizontal shake (0.18s), which reduced motion turns off. When the box loses focus, a translucent surface veil covers it with "Paused while this window is in the background. Click here or switch back to keep typing." Esc shows the same veil with "Paused. Press any key to keep typing, or Esc again to leave the lesson." The clock really stops while either shows.
 
 ### Keyboard Diagram
 An SVG of the user's board. Keys are Key fills with a Key Edge stroke, and home-row keys get a 2px stroke. Finger colors fill the keys when "show fingers" is on. The target key is a solid Go Amber fill with a Go Amber Ink stroke and legend, and held keys are a solid Keycap Blue fill. In the subtle-highlight setting, the finger color stays and the key only gets a 3px blue outline (dashed for held keys). Empty keys sit at 45% opacity. A small legend sits below.
