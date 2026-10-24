@@ -40,7 +40,7 @@ const S = {
 };
 
 function today(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
-function freshStats(){ return { progress: {}, keys: {}, misfires: { shift: 0, mod: 0, alt: 0 }, sessions: [], daily: {} }; }
+function freshStats(){ return { progress: {}, keys: {}, misfires: { shift: 0, mod: 0, alt: 0 }, sessions: [], daily: {}, pairs: {} }; }
 
 /* ---------- layout loading ---------- */
 // Saved layouts are save slots: the id belongs to the slot, not the file, so updating a slot with a
@@ -122,6 +122,15 @@ function problemKeys(limit){
   const med = lats.length ? lats[Math.floor(lats.length / 2)] : 0;
   rows.forEach(r => { r.score = r.er * 100 + Math.max(0, r.lat - med) / 40; });
   return rows.filter(r => r.score > 1.5).sort((a, b) => b.score - a.score).slice(0, limit || 4);
+}
+// Letter pairs missed more often than their second letter is overall, weakest first. A miss counts against the pair
+// it completes. Measuring against the letter keeps one weak key from flagging every pair it's in; Problem keys covers that.
+function weakPairs(limit){
+  const ps = S.stats.pairs, ks = S.stats.keys, unlocked = unlockedChars();
+  const keyRate = c => { const k = ks[c]; return k && k.n ? k.err / k.n : 0; };
+  return Object.keys(ps).filter(p => ps[p].n >= 8 && ps[p].err >= 2 && [...p].every(c => unlocked.has(c)))
+    .map(p => ({ p, score: ps[p].err / (ps[p].n + 5) - keyRate(p[1]) })).filter(x => x.score > 0.05)
+    .sort((a, b) => b.score - a.score).slice(0, limit || 6).map(x => x.p);
 }
 function fmtTime(s){ s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60; return h ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`; }
 function starsHtml(n, max){ let s = ''; for (let i = 0; i < (max || 3); i++) s += `<span class="${i < n ? 'on' : ''}">★</span>`; return `<span class="stars" aria-label="${n} of 3 stars">${s}</span>`; }
@@ -415,7 +424,7 @@ function computeStars(acc, wpm, kind){
 function resumeStage(l){ const p = lessonProg(l); return p && !p.stars && p.stagesDone ? p.stagesDone : 0; }
 function startLesson(i){
   const l = S.C.lessons[i], p = lessonProg(l);
-  const stages = E.makeStages(S.C, l, WORDS, +S.settings.stageLen, SENTENCES);
+  const stages = E.makeStages(S.C, l, WORDS, +S.settings.stageLen, SENTENCES, weakPairs());
   // Clamped so a lesson saved with every stage passed but never finished (before 0.3.1) redoes its last stage instead of restarting.
   let si = Math.min(resumeStage(l), stages.length - 1), results = [];
   if (si && p.stageCount === stages.length) results = (p.stageRes || []).map(x => x && Object.assign({ pass: true }, x));
@@ -748,6 +757,12 @@ function onKey(e){
   if (!r.tried.has(r.idx)) {
     r.tried.add(r.idx); ks.n++;
     if (!ok) { ks.err++; r.errCount++; }
+    // In-word pairs only: the previous item and this one are both letters, so "th" in "the" but not "e t".
+    const prev = r.items[r.idx - 1];
+    if (prev && prev.t === 'c' && it.t === 'c' && /[a-z]/i.test(prev.ch) && /[a-z]/i.test(it.ch)) {
+      const pair = (prev.ch + it.ch).toLowerCase(), pr = S.stats.pairs[pair] || (S.stats.pairs[pair] = { n: 0, err: 0 });
+      pr.n++; if (!ok) pr.err++;
+    }
     else if (r.idx > 0) { const lat = now - r.last; if (lat < 3000) { ks.lat += lat; ks.ln++; } }
   }
   if (ok) { r.idx++; r.last = now; }
@@ -767,11 +782,11 @@ function startPractice(kind){
     const pk = problemKeys(4).map(r => r.k);
     const chars = pk.filter(k => k.length === 1);
     const keys = pk.filter(k => k.length > 1);
-    stages = chars.length ? E.practiceStages(S.C, unlocked, chars, WORDS, +S.settings.stageLen, SENTENCES) : [];
+    stages = chars.length ? E.practiceStages(S.C, unlocked, chars, WORDS, +S.settings.stageLen, SENTENCES, weakPairs()) : [];
     if (keys.length) stages.push({ name: 'Focus keys', items: Array.from({ length: 12 }, () => E.keyItem(keys[Math.floor(Math.random() * keys.length)])) });
     title = 'Problem keys: ' + pk.map(itemLabel).join(' ');
   } else if (kind === 'free') {
-    stages = E.practiceStages(S.C, unlocked, [], WORDS, +S.settings.stageLen * 1.5, SENTENCES);
+    stages = E.practiceStages(S.C, unlocked, [], WORDS, +S.settings.stageLen * 1.5, SENTENCES, weakPairs());
     title = 'Free practice';
   } else {
     const t = (S.customText || '').replace(/\s+/g, ' ').trim();

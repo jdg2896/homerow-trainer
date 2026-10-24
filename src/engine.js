@@ -838,17 +838,21 @@ function bigramText(newC, known, len){
   }
   return out.join(' ');
 }
-function ngramText(newC, unlocked, len, WORDS){
+function ngramText(newC, unlocked, len, WORDS, weak){
   // common letter groups that use a new key, each followed by a word containing it: "ing thing th the"
   const lset = new Set(lettersOf(unlocked));
   const nl = newC.filter(c => /[a-z]/.test(c));
-  const groups = NGRAMS.map(g => g.filter(x => [...x].every(c => lset.has(c)) && (!nl.length || nl.some(c => x.includes(c))))).filter(g => g.length);
-  if (groups.reduce((n, g) => n + g.length, 0) < 6) return '';
+  const typeable = x => [...x].every(c => lset.has(c));
+  const groups = NGRAMS.map(g => g.filter(x => typeable(x) && (!nl.length || nl.some(c => x.includes(c))))).filter(g => g.length);
+  // Weak pairs (weakest first) and the longer groups that contain them, whatever the new keys are.
+  const wp = (weak || []).filter(typeable);
+  const wg = [...wp, ...NGRAMS.slice(1).flat().filter(x => typeable(x) && wp.some(p => x.includes(p)))];
+  if (!wg.length && groups.reduce((n, g) => n + g.length, 0) < 6) return '';
   const ok = WORDS ? wordPool(unlocked, [], WORDS).ok : [];
   const out = [];
   let guard = 0;
   while (out.join(' ').length < len && guard++ < 400) {
-    const g = pick(groups), x = g[Math.floor(Math.random() ** 2 * g.length)];
+    const g = wg.length && (!groups.length || Math.random() < 0.4) ? wg : pick(groups), x = g[Math.floor(Math.random() ** 2 * g.length)];
     if (out.includes(x) && Math.random() < 0.5) continue;
     out.push(x);
     // then up to two words using it, so the group is seen in different spots: "ment moment mental"
@@ -876,7 +880,8 @@ function keyStages(ids, len){
     .map(([name, a]) => ({ name, items: a.map(keyItem) }));
 }
 
-function makeStages(C, lesson, WORDS, len, SENTS){
+// weak: the learner's weakest letter pairs, weakest first, which reviews mix into Common combos.
+function makeStages(C, lesson, WORDS, len, SENTS, weak){
   len = len || 90;
   if (lesson.kind === 'keys' || lesson.kind === 'chords') return keyStages(lesson.items, len);
   const isReview = lesson.kind === 'review';
@@ -924,7 +929,7 @@ function makeStages(C, lesson, WORDS, len, SENTS){
       if (knownLetters.length) add('With known keys', ngramText(newC, unlocked, len * 0.8) || bigramText(newC, knownLetters, len * 0.8));
     }
     add('Mixed drill', mixText(newC, [...before], len));
-    if (isReview) add('Common combos', ngramText(newC, unlocked, len, WORDS));
+    if (isReview) add('Common combos', ngramText(newC, unlocked, len, WORDS, weak));
     if (enough) {
       add('Short words', shortWordsText(newC, unlocked, len * 0.8, WORDS));
       const w = wordsText(newC, unlocked, len, WORDS);
@@ -944,7 +949,7 @@ function makeStages(C, lesson, WORDS, len, SENTS){
 }
 
 /* Free practice and problem keys */
-function practiceStages(C, unlocked, focus, WORDS, len, SENTS){
+function practiceStages(C, unlocked, focus, WORDS, len, SENTS, weak){
   const u = new Set(unlocked); u.add(' ');
   const letters = focus.filter(c => /[a-z]/.test(c));
   const syms = focus.filter(c => !/[a-z ]/.test(c));
@@ -952,7 +957,7 @@ function practiceStages(C, unlocked, focus, WORDS, len, SENTS){
   if (focus.length) st.push({ name: 'Focus drill', text: mixText(focus, [], len) });
   if (letters.length) st.push({ name: 'Focus words', text: wordsText(letters, u, len, WORDS) });
   if (syms.length) st.push({ name: 'Focus symbols', text: symbolText(syms, u, len, WORDS, 'token') });
-  if (letters.length || !focus.length) st.push({ name: 'Common combos', text: ngramText(letters, u, len, WORDS) });
+  if (letters.length || !focus.length || (weak && weak.length)) st.push({ name: 'Common combos', text: ngramText(letters, u, len, WORDS, weak) });
   st.push({ name: 'Sentences', text: sentenceText(letters, u, len * 1.4, WORDS, SENTS) });
   return st.filter(s => s.text.trim()).map(s => ({ name: s.name, items: textItems(s.text.replace(/\s+/g, ' ').trim()) }));
 }

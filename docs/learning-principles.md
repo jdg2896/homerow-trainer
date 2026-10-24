@@ -38,9 +38,7 @@ Letter pairs that are common in English are typed faster than rare ones, because
 
 Practice that targets current weaknesses improves faster than even practice across everything. keybr's adaptive drills are the familiar example.
 
-**In the app:** per-key miss rate and latency are stored per layout (`stats.<layoutId>`) and drive the "Problem keys" practice.
-
-**Gap:** stats are per key, so a weak *pair* (fumbling `th` even though `t` and `h` are fine alone) goes unnoticed. Tracking misses per letter pair and weighting combos toward them is the next planned change.
+**In the app:** per-key miss rate and latency are stored per layout (`stats.<layoutId>`) and drive the "Problem keys" practice. Misses are also counted per in-word letter pair (`stats.<layoutId>.pairs`), against the pair the missed letter completes. A pair is weak when it's missed more often than its second letter is overall, so a weak *pair* (fumbling `th` even though `t` and `h` are fine alone) shows up without a weak key flagging every pair it's in. The "Common combos" stage in reviews and practice gives the weakest pairs about 40% of its picks, along with the longer letter groups and words that contain them.
 
 ## 7. Bring back old material over time
 

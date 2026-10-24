@@ -16,7 +16,7 @@ I only learned to touch type QWERTY around 2019, and [typing.com](https://www.ty
 - **Staged drills.** Meet the keys → mixed drill → words → sentences (code-style snippets for symbol layers). Words only use keys you've already unlocked, and real sentences from Tatoeba take over once you know every letter in them.
 - **Hints from the keymap.** "Hold Enter for Symbols (right thumb), then press `(` (left thumb)", with the target and held keys lit on an on-screen keyboard.
 - **Home-row mod aware.** Capitals use the opposite-hand shift. Accidental ⌘/⌃/⌥/Shift firing while typing letters is counted as a misfire.
-- **Adaptive practice.** Per-key miss rate and latency drive a "problem keys" drill. Also free practice and custom text.
+- **Adaptive practice.** Per-key miss rate and latency drive a "problem keys" drill, and letter pairs you fumble get drilled more in common combos. Also free practice and custom text.
 - **Grounded in how people learn to type.** Accuracy before speed, short daily sessions, real words early and common letter combinations. See [docs/learning-principles.md](docs/learning-principles.md).
 - **Local only.** Layouts, progress and stats live in `localStorage`, kept separately per layout.
 
