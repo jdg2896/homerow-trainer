@@ -1,0 +1,828 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-24T14:06:49.928Z",
+  "title": "Design System: Homerow Trainer",
+  "extensions": {
+    "colorMeta": {
+      "keycap-blue": {
+        "role": "primary",
+        "displayName": "Keycap Blue",
+        "canonical": "#2B57D9",
+        "tonalRamp": [
+          "#010035",
+          "#041566",
+          "#143395",
+          "#2850C6",
+          "#4372F0",
+          "#6F9AFE",
+          "#A9C4FE",
+          "#E7EFFE"
+        ]
+      },
+      "keycap-blue-soft": {
+        "role": "primary",
+        "displayName": "Keycap Blue Soft",
+        "canonical": "#DCE5FB",
+        "tonalRamp": [
+          "#080B13",
+          "#1F242F",
+          "#3A3F4D",
+          "#565D6F",
+          "#757D90",
+          "#979EAF",
+          "#BEC4D3",
+          "#E9EEFB"
+        ]
+      },
+      "keycap-blue-ink": {
+        "role": "primary",
+        "displayName": "Keycap Blue Ink",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#7D7D7D",
+          "#9E9E9E",
+          "#C4C4C4",
+          "#EEEEEE"
+        ]
+      },
+      "go-amber": {
+        "role": "secondary",
+        "displayName": "Go Amber",
+        "canonical": "#F2B705",
+        "tonalRamp": [
+          "#110A00",
+          "#302100",
+          "#523C02",
+          "#775804",
+          "#9E7602",
+          "#C69617",
+          "#E7BE66",
+          "#FFEDC7"
+        ]
+      },
+      "go-amber-ink": {
+        "role": "secondary",
+        "displayName": "Go Amber Ink",
+        "canonical": "#241A00",
+        "tonalRamp": [
+          "#0F0A01",
+          "#2A2312",
+          "#473F29",
+          "#675D42",
+          "#887C60",
+          "#A89E84",
+          "#CCC4AD",
+          "#F5EEDC"
+        ]
+      },
+      "ok-green": {
+        "role": "tertiary",
+        "displayName": "Done Green",
+        "canonical": "#127A51",
+        "tonalRamp": [
+          "#000F07",
+          "#012C1A",
+          "#024D30",
+          "#126F4A",
+          "#399068",
+          "#68B08B",
+          "#98D4B3",
+          "#CBFCE1"
+        ]
+      },
+      "err-red": {
+        "role": "tertiary",
+        "displayName": "Miss Red",
+        "canonical": "#C13029",
+        "tonalRamp": [
+          "#1F0000",
+          "#4B0002",
+          "#7B0608",
+          "#A8241F",
+          "#D1483D",
+          "#EE7467",
+          "#FFABA0",
+          "#FFE9E5"
+        ]
+      },
+      "err-red-soft": {
+        "role": "tertiary",
+        "displayName": "Err Red Soft",
+        "canonical": "#FBE0DD",
+        "tonalRamp": [
+          "#120808",
+          "#2D201F",
+          "#4C3B39",
+          "#6D5856",
+          "#8E7775",
+          "#AE9996",
+          "#D2BFBD",
+          "#FAEAE9"
+        ]
+      },
+      "desk": {
+        "role": "neutral",
+        "displayName": "Desk",
+        "canonical": "#E8ECF2",
+        "tonalRamp": [
+          "#0A0B0D",
+          "#222427",
+          "#3D4044",
+          "#5B5E62",
+          "#7A7D83",
+          "#9B9FA3",
+          "#C1C4C8",
+          "#ECEFF2"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#7D7D7D",
+          "#9E9E9E",
+          "#C4C4C4",
+          "#EEEEEE"
+        ]
+      },
+      "surface-sunken": {
+        "role": "neutral",
+        "displayName": "Sunken Surface",
+        "canonical": "#F3F5F9",
+        "tonalRamp": [
+          "#0A0B0D",
+          "#232426",
+          "#3E4042",
+          "#5C5E61",
+          "#7C7D81",
+          "#9D9EA1",
+          "#C3C4C7",
+          "#EDEEF1"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#141C2F",
+        "tonalRamp": [
+          "#070B14",
+          "#1E2431",
+          "#384051",
+          "#545D72",
+          "#737D94",
+          "#959EB3",
+          "#BCC4D7",
+          "#E8EFFE"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#56627C",
+        "tonalRamp": [
+          "#060B16",
+          "#1D2433",
+          "#374053",
+          "#525D75",
+          "#717D97",
+          "#939FB6",
+          "#BAC4D9",
+          "#E7EFFE"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#D2D9E5",
+        "tonalRamp": [
+          "#090B10",
+          "#21242A",
+          "#3B4048",
+          "#585E67",
+          "#787E88",
+          "#999FA8",
+          "#BFC4CD",
+          "#EBEFF6"
+        ]
+      },
+      "key": {
+        "role": "neutral",
+        "displayName": "Key",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#7D7D7D",
+          "#9E9E9E",
+          "#C4C4C4",
+          "#EEEEEE"
+        ]
+      },
+      "key-edge": {
+        "role": "neutral",
+        "displayName": "Key Edge",
+        "canonical": "#B8C1D2",
+        "tonalRamp": [
+          "#080B11",
+          "#20242D",
+          "#3A404B",
+          "#575E6C",
+          "#767E8D",
+          "#979FAC",
+          "#BEC4D0",
+          "#E9EFF9"
+        ]
+      },
+      "key-ink": {
+        "role": "neutral",
+        "displayName": "Key Ink",
+        "canonical": "#1B2438",
+        "tonalRamp": [
+          "#070B15",
+          "#1E2431",
+          "#374051",
+          "#545E73",
+          "#727D95",
+          "#949FB4",
+          "#BBC4D7",
+          "#E7EFFE"
+        ]
+      },
+      "finger-pinky": {
+        "role": "neutral",
+        "displayName": "Finger Pinky",
+        "canonical": "#E6DCFA",
+        "tonalRamp": [
+          "#0D0913",
+          "#262130",
+          "#423C4F",
+          "#615970",
+          "#817892",
+          "#A29AB1",
+          "#C7C0D5",
+          "#F1EBFC"
+        ]
+      },
+      "finger-ring": {
+        "role": "neutral",
+        "displayName": "Finger Ring",
+        "canonical": "#D4E6FA",
+        "tonalRamp": [
+          "#060C13",
+          "#1C252F",
+          "#35414E",
+          "#515F6F",
+          "#707F90",
+          "#92A0B0",
+          "#B9C6D3",
+          "#E6F0FB"
+        ]
+      },
+      "finger-middle": {
+        "role": "neutral",
+        "displayName": "Finger Middle",
+        "canonical": "#D3F0E0",
+        "tonalRamp": [
+          "#040E08",
+          "#192820",
+          "#32453B",
+          "#4D6457",
+          "#6B8477",
+          "#8EA598",
+          "#B6CABF",
+          "#E3F3EA"
+        ]
+      },
+      "finger-index": {
+        "role": "neutral",
+        "displayName": "Finger Index",
+        "canonical": "#FBE6C4",
+        "tonalRamp": [
+          "#110A01",
+          "#2D2210",
+          "#4B3D27",
+          "#6C5B40",
+          "#8C7A5D",
+          "#AC9C82",
+          "#D0C2AB",
+          "#F9EDDA"
+        ]
+      },
+      "finger-thumb": {
+        "role": "neutral",
+        "displayName": "Finger Thumb",
+        "canonical": "#E3E1DB",
+        "tonalRamp": [
+          "#0C0B09",
+          "#252421",
+          "#41403C",
+          "#5F5D59",
+          "#7F7D78",
+          "#A09E9A",
+          "#C5C4C0",
+          "#EFEEEB"
+        ]
+      },
+      "keycap-blue-dark": {
+        "role": "primary",
+        "displayName": "Keycap Blue (dark)",
+        "canonical": "#7393FF",
+        "tonalRamp": [
+          "#030230",
+          "#101B58",
+          "#253783",
+          "#3D54B1",
+          "#5975D9",
+          "#7D99F3",
+          "#ADC2FE",
+          "#E8EEFF"
+        ]
+      },
+      "keycap-blue-soft-dark": {
+        "role": "primary",
+        "displayName": "Keycap Blue Soft (dark)",
+        "canonical": "#223060",
+        "tonalRamp": [
+          "#04091F",
+          "#182240",
+          "#313E65",
+          "#4B5B8B",
+          "#697BAF",
+          "#8C9DCC",
+          "#B4C3ED",
+          "#E8EEFE"
+        ]
+      },
+      "keycap-blue-ink-dark": {
+        "role": "primary",
+        "displayName": "Keycap Blue Ink (dark)",
+        "canonical": "#0D121C",
+        "tonalRamp": [
+          "#090B10",
+          "#20242C",
+          "#3B4049",
+          "#585E6A",
+          "#777D8A",
+          "#999FAA",
+          "#BFC4CF",
+          "#EAEFF7"
+        ]
+      },
+      "ok-green-dark": {
+        "role": "tertiary",
+        "displayName": "Done Green (dark)",
+        "canonical": "#41C78E",
+        "tonalRamp": [
+          "#000F07",
+          "#012C1B",
+          "#034C31",
+          "#036F4A",
+          "#039463",
+          "#4EB586",
+          "#86D9AF",
+          "#C3FFDF"
+        ]
+      },
+      "err-red-dark": {
+        "role": "tertiary",
+        "displayName": "Miss Red (dark)",
+        "canonical": "#FF6A60",
+        "tonalRamp": [
+          "#1F0001",
+          "#4B0004",
+          "#7B040C",
+          "#A82323",
+          "#D14740",
+          "#EF7469",
+          "#FEABA2",
+          "#FEE9E6"
+        ]
+      },
+      "err-red-soft-dark": {
+        "role": "tertiary",
+        "displayName": "Err Red Soft (dark)",
+        "canonical": "#48201E",
+        "tonalRamp": [
+          "#170505",
+          "#361C1A",
+          "#573533",
+          "#7B514E",
+          "#9E706C",
+          "#BD928F",
+          "#DFBAB6",
+          "#FFE9E6"
+        ]
+      },
+      "desk-dark": {
+        "role": "neutral",
+        "displayName": "Desk (dark)",
+        "canonical": "#0D121C",
+        "tonalRamp": [
+          "#090B10",
+          "#20242C",
+          "#3B4049",
+          "#585E6A",
+          "#777D8A",
+          "#999FAA",
+          "#BFC4CF",
+          "#EAEFF7"
+        ]
+      },
+      "surface-dark": {
+        "role": "neutral",
+        "displayName": "Surface (dark)",
+        "canonical": "#151C2A",
+        "tonalRamp": [
+          "#080B12",
+          "#1F242E",
+          "#39404D",
+          "#565E6D",
+          "#757E8F",
+          "#979FAE",
+          "#BDC4D2",
+          "#E9EFFA"
+        ]
+      },
+      "surface-sunken-dark": {
+        "role": "neutral",
+        "displayName": "Sunken Surface (dark)",
+        "canonical": "#1B2333",
+        "tonalRamp": [
+          "#070B13",
+          "#1E242F",
+          "#39404E",
+          "#555E6F",
+          "#747E90",
+          "#969FB0",
+          "#BDC4D3",
+          "#E8EFFB"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Ink (dark)",
+        "canonical": "#E4E9F2",
+        "tonalRamp": [
+          "#090B0E",
+          "#222429",
+          "#3D4046",
+          "#5A5E65",
+          "#797D85",
+          "#9B9FA6",
+          "#C1C4CA",
+          "#ECEFF4"
+        ]
+      },
+      "muted-dark": {
+        "role": "neutral",
+        "displayName": "Muted (dark)",
+        "canonical": "#94A1BA",
+        "tonalRamp": [
+          "#070B15",
+          "#1D2431",
+          "#374051",
+          "#535E73",
+          "#727E94",
+          "#949FB4",
+          "#BBC4D7",
+          "#E7EFFE"
+        ]
+      },
+      "line-dark": {
+        "role": "neutral",
+        "displayName": "Line (dark)",
+        "canonical": "#283247",
+        "tonalRamp": [
+          "#070B15",
+          "#1D2432",
+          "#374051",
+          "#535E73",
+          "#727D95",
+          "#949FB4",
+          "#BBC4D7",
+          "#E7EFFE"
+        ]
+      },
+      "key-dark": {
+        "role": "neutral",
+        "displayName": "Key (dark)",
+        "canonical": "#1E2637",
+        "tonalRamp": [
+          "#070B13",
+          "#1E242F",
+          "#39404E",
+          "#555E70",
+          "#747D91",
+          "#969FB1",
+          "#BCC4D4",
+          "#E8EFFC"
+        ]
+      },
+      "key-edge-dark": {
+        "role": "neutral",
+        "displayName": "Key Edge (dark)",
+        "canonical": "#37425A",
+        "tonalRamp": [
+          "#070B16",
+          "#1D2433",
+          "#374053",
+          "#535E75",
+          "#717D97",
+          "#939FB6",
+          "#BAC4D9",
+          "#E7EFFE"
+        ]
+      },
+      "finger-pinky-dark": {
+        "role": "neutral",
+        "displayName": "Finger Pinky (dark)",
+        "canonical": "#342A50",
+        "tonalRamp": [
+          "#0C0819",
+          "#251F38",
+          "#413A59",
+          "#60577D",
+          "#7F76A0",
+          "#A098BE",
+          "#C5BFE0",
+          "#EFECFE"
+        ]
+      },
+      "finger-ring-dark": {
+        "role": "neutral",
+        "displayName": "Finger Ring (dark)",
+        "canonical": "#1F364E",
+        "tonalRamp": [
+          "#030C17",
+          "#172535",
+          "#2F4155",
+          "#496078",
+          "#67809A",
+          "#8BA1B9",
+          "#B3C6DC",
+          "#E3F0FE"
+        ]
+      },
+      "finger-middle-dark": {
+        "role": "neutral",
+        "displayName": "Finger Middle (dark)",
+        "canonical": "#1D3D2F",
+        "tonalRamp": [
+          "#020E08",
+          "#152920",
+          "#2D463A",
+          "#476557",
+          "#668676",
+          "#89A698",
+          "#B2CBBE",
+          "#E0F4EA"
+        ]
+      },
+      "finger-index-dark": {
+        "role": "neutral",
+        "displayName": "Finger Index (dark)",
+        "canonical": "#47391B",
+        "tonalRamp": [
+          "#100A01",
+          "#2C2310",
+          "#493E27",
+          "#6A5C40",
+          "#8A7B5D",
+          "#AA9D82",
+          "#CFC3AB",
+          "#F7EEDA"
+        ]
+      },
+      "finger-thumb-dark": {
+        "role": "neutral",
+        "displayName": "Finger Thumb (dark)",
+        "canonical": "#2B2E37",
+        "tonalRamp": [
+          "#0A0B0F",
+          "#22242A",
+          "#3D3F47",
+          "#5A5D67",
+          "#797D87",
+          "#9B9EA7",
+          "#C1C4CC",
+          "#ECEEF5"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Lessons hero and section titles."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Unit headings, run bar, result card."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Lesson names and small card headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All running text and controls."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase captions, table headers, badges."
+      },
+      "stat": {
+        "displayName": "Stat",
+        "purpose": "Live numbers in the header and run bar; tabular."
+      },
+      "drill": {
+        "displayName": "Drill",
+        "purpose": "The three-line typing viewport."
+      },
+      "keycap": {
+        "displayName": "Keycap",
+        "purpose": "Key legends in chips and on the keyboard diagram."
+      }
+    },
+    "shadows": [
+      {
+        "name": "focus-lift",
+        "value": "0 1px 2px rgba(20,28,47,.06),0 4px 14px rgba(20,28,47,.06)",
+        "purpose": "Type box, next lesson, dialogs (light)."
+      },
+      {
+        "name": "focus-lift-dark",
+        "value": "0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25)",
+        "purpose": "Same roles in dark mode."
+      },
+      {
+        "name": "cursor-underline",
+        "value": "inset 0 -3px 0 var(--accent)",
+        "purpose": "Current drill character."
+      }
+    ],
+    "motion": [
+      {
+        "name": "line-scroll",
+        "value": "transform .15s ease",
+        "purpose": "Drill viewport advancing a line; unit chevron."
+      },
+      {
+        "name": "miss-shake",
+        "value": "shake .18s (±3px translateX)",
+        "purpose": "Feedback on a mistyped key; removed under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "practice-stack",
+        "value": "760px"
+      },
+      {
+        "name": "narrow",
+        "value": "860px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Bordered surface button for most actions.",
+      "html": "<button class=\"ds-btn\">Practice problem keys</button>",
+      "css": ".ds-btn{font-family:var(--body);display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:8px 16px;font-weight:700;font-size:15px;cursor:pointer}.ds-btn:hover{border-color:var(--accent)}.ds-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}"
+    },
+    {
+      "name": "Go Button",
+      "kind": "button",
+      "refersTo": "button-go",
+      "description": "Amber call to start or continue the next lesson; one per screen.",
+      "html": "<button class=\"ds-btn-go\"><span class=\"ds-tri\"></span>Start lesson</button>",
+      "css": ".ds-btn-go{font-family:var(--body);display:inline-flex;align-items:center;gap:8px;border:1px solid var(--go);background:var(--go);color:var(--go-ink);border-radius:8px;padding:8px 16px;font-weight:700;font-size:15px;cursor:pointer}.ds-btn-go:hover{filter:brightness(1.05)}.ds-btn-go:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.ds-tri{width:0;height:0;border-left:8px solid currentColor;border-top:5px solid transparent;border-bottom:5px solid transparent}"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Keycap Blue confirm action.",
+      "html": "<button class=\"ds-btn-primary\">Use this layout</button>",
+      "css": ".ds-btn-primary{font-family:var(--body);display:inline-flex;align-items:center;gap:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:8px 16px;font-weight:700;font-size:15px;cursor:pointer}.ds-btn-primary:hover{filter:brightness(1.08)}.ds-btn-primary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Field with bold label and muted help.",
+      "html": "<label class=\"ds-field\"><span>Daily goal (minutes)</span><input class=\"ds-input\" type=\"number\" value=\"15\"><small>Short daily sessions beat long ones.</small></label>",
+      "css": ".ds-field{font-family:var(--body);display:flex;flex-direction:column;gap:6px;color:var(--ink)}.ds-field span{font-weight:700;font-size:14px}.ds-field small{color:var(--muted);font-size:13px}.ds-input{font:inherit;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}.ds-input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}"
+    },
+    {
+      "name": "Sidebar Nav",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Vertical nav with number-key shortcuts; active row is solid blue.",
+      "html": "<nav class=\"ds-nav\"><button class=\"on\">Lessons<span>1</span></button><button>Practice<span>2</span></button><button>Layout<span>3</span></button><button>Settings<span>4</span></button></nav>",
+      "css": ".ds-nav{font-family:var(--body);display:flex;flex-direction:column;gap:4px;width:250px}.ds-nav button{font:inherit;display:flex;justify-content:space-between;align-items:center;border:0;background:transparent;color:var(--ink);padding:10px 12px;border-radius:8px;font-weight:700;cursor:pointer}.ds-nav button:hover{background:var(--surface)}.ds-nav button.on{background:var(--accent);color:var(--accent-ink)}.ds-nav button span{font-family:var(--mono);font-weight:400;font-size:12px;opacity:.55}.ds-nav button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}"
+    },
+    {
+      "name": "Keycap Chip",
+      "kind": "chip",
+      "refersTo": "keycap-chip",
+      "description": "Inline key legend with a raised 3px bottom edge.",
+      "html": "<span class=\"ds-kc\">a</span> <span class=\"ds-kc\">⇧</span> <span class=\"ds-kc ds-big\">r</span> <span class=\"ds-kc ds-warn\">;</span>",
+      "css": ".ds-kc{display:inline-flex;align-items:center;justify-content:center;min-width:1.9em;height:1.9em;padding:0 .4em;border:1px solid var(--key-edge);border-bottom-width:3px;border-radius:6px;background:var(--key);color:var(--key-ink);font-family:var(--mono);font-weight:600;font-size:.86em;line-height:1}.ds-big{font-size:1.4em}.ds-warn{border-color:var(--err);color:var(--err)}"
+    },
+    {
+      "name": "Stage Chips",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Lesson stage progress: done (green), current (blue outline), upcoming.",
+      "html": "<div class=\"ds-stages\"><span class=\"done\">Meet the keys</span><span class=\"on\">Mixed drill</span><span>Words</span><span>Sentences</span></div>",
+      "css": ".ds-stages{font-family:var(--body);display:flex;gap:6px;flex-wrap:wrap}.ds-stages span{font-size:12px;padding:3px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}.ds-stages span.on{border-color:var(--accent);color:var(--accent);font-weight:700}.ds-stages span.done{background:var(--ok);border-color:var(--ok);color:#fff}"
+    },
+    {
+      "name": "Lesson Row",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Lesson list item; the next lesson gets the amber border and lift.",
+      "html": "<div class=\"ds-lesson ds-next\"><span class=\"ds-num\">3</span><div class=\"ds-ttl\"><b>New keys <span class=\"ds-kc\">t</span><span class=\"ds-kc\">n</span></b><span class=\"ds-meta\"><span class=\"ds-stars\"><i class=\"on\">★</i><i class=\"on\">★</i><i>★</i></span>4 stages</span></div><button class=\"ds-btn-go\">Start</button></div>",
+      "css": ".ds-lesson{font-family:var(--body);display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:14px;align-items:center;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px 14px}.ds-next{border-color:var(--go);box-shadow:var(--shadow)}.ds-num{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}.ds-ttl{display:flex;flex-direction:column;gap:6px}.ds-ttl b{font-size:17px;display:flex;gap:6px;align-items:center}.ds-meta{display:flex;gap:12px;font-size:13px;color:var(--muted)}.ds-stars i{font-style:normal;color:var(--line)}.ds-stars i.on{color:var(--go)}.ds-kc{display:inline-flex;align-items:center;justify-content:center;min-width:1.9em;height:1.9em;padding:0 .4em;border:1px solid var(--key-edge);border-bottom-width:3px;border-radius:6px;background:var(--key);color:var(--key-ink);font-family:var(--mono);font-weight:600;font-size:.86em}.ds-btn-go{font:inherit;border:1px solid var(--go);background:var(--go);color:var(--go-ink);border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer}.ds-btn-go:hover{filter:brightness(1.05)}.ds-btn-go:focus-visible{outline:2px solid var(--accent);outline-offset:2px}"
+    },
+    {
+      "name": "Drill Viewport",
+      "kind": "custom",
+      "description": "Mono typing line: typed, missed, current and upcoming characters.",
+      "html": "<div class=\"ds-typebox\"><span class=\"ok\">the</span><span class=\"ok\"> </span><span class=\"bad\">r</span><span class=\"ok\">at</span><span class=\"cur\">e</span><span> is right</span></div>",
+      "css": ".ds-typebox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 26px;box-shadow:var(--shadow);font-family:var(--mono);font-size:24px;line-height:1.9em;color:var(--muted)}.ds-typebox span{border-radius:3px}.ds-typebox .ok{color:var(--ink);opacity:.45}.ds-typebox .bad{color:var(--err);background:var(--err-soft)}.ds-typebox .cur{color:var(--ink);background:var(--accent-soft);box-shadow:inset 0 -3px 0 var(--accent)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Keycap Workbench",
+    "overview": "The app is a calm workbench, and the user's own keyboard is the object on it. The ground is a cool, slightly blue-grey desk. White cards sit on it with hairline borders, and the drill text and the on-screen keyboard are the only things that ask for attention. Visual vocabulary comes from keycaps: mono legends, a thicker bottom edge that reads as a raised cap, and finger colors pastel enough that the legend stays readable.\n\nTwo accents carry all the meaning. Keycap Blue marks where you are: the current view, the cursor, the layer you're holding. Go Amber marks the one thing to do next: the key to press, the lesson to start, the goal ring that is filling up. Everything else is neutral, so the amber stays easy to spot.\n\nDensity is moderate and working-tool-like. Text is plain and set in Atkinson Hyperlegible. Bricolage Grotesque gives headings and numbers a little warmth without turning the app into a game.",
+    "keyCharacteristics": [
+      "A cool desk-grey ground with flat white cards and 1px borders.",
+      "Blue for \"where you are\", amber for \"what's next\", green for \"done\", red for errors (always on a soft red tint).",
+      "A keycap motif: mono legends and a 3px bottom edge on key chips.",
+      "Finger colors appear only on the keyboard diagram.",
+      "Full light and dark themes driven by the same token names."
+    ],
+    "rules": [
+      {
+        "name": "The Two Signals Rule",
+        "body": "Blue means \"you are here\", amber means \"do this next\". Don't use amber for decoration or as a second brand color. If more than one or two amber things are visible, one of them is wrong.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fingers Stay On The Keyboard Rule",
+        "body": "Finger colors appear only on the keyboard diagram and its legend. They are never used for UI state.",
+        "section": "colors"
+      },
+      {
+        "name": "The Paired Token Rule",
+        "body": "Every color token has a light and a dark value under the same name, set in `:root`, the `prefers-color-scheme: dark` block and `[data-theme=\"dark\"]`. A new token needs all three.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Numbers Rule",
+        "body": "Every number that changes while you type (stats, counts, table cells, lesson numbers) uses `font-variant-numeric: tabular-nums` so it doesn't jitter.",
+        "section": "typography"
+      },
+      {
+        "name": "The Mono Means Keys Rule",
+        "body": "Plex Mono is for things you type: drill text, key legends, keycap chips, shortcut hints and code. Prose is never set in mono.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Lifted Thing Rule",
+        "body": "Shadows mark the one place to look: the drill, the next lesson or an open dialog. Cards at rest don't get a shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do route every color through the tokens in `src/style.css`, with a light and a dark value for each.",
+      "Do keep amber for the single next action or target, and blue for location and selection.",
+      "Do show keys as keycap chips (mono, 3px bottom edge) wherever a key is named in UI text.",
+      "Do use tabular figures for every live number.",
+      "Do keep cards flat with 1px Line borders, and save the one shadow for what needs attention now.",
+      "Do check each screen in light, dark and ≤860px widths, and turn off motion under `prefers-reduced-motion`."
+    ],
+    "donts": [
+      "Don't use finger colors outside the keyboard diagram.",
+      "Don't put white text on Go Amber. Use Go Amber Ink.",
+      "Don't show errors in red text alone without the soft red tint, and don't make error feedback louder than the existing short shake.",
+      "Don't add shadows to resting cards, or gradients or glows anywhere.",
+      "Don't set prose in mono, or drill text in the body face."
+    ]
+  }
+}
