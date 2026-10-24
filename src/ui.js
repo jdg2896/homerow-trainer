@@ -15,7 +15,7 @@ const store = {
   del(k){ try { localStorage.removeItem('homerow-trainer.' + k); } catch (e) {} }
 };
 const DEFAULT_SETTINGS = { passAcc: 95, targetWpm: 20, stopOnError: true, stageLen: 90, routePref: 'layers', modPref: 'auto',
-  showFingers: true, showKeyboard: true, keyHighlight: 'bright', hintOnMiss: false, dailyGoal: 15, unlockAll: false, theme: 'system' };
+  showFingers: true, showKeyboard: true, keyHighlight: 'bright', hints: 'fade', dailyGoal: 15, unlockAll: false, theme: 'system' };
 
 /* ---------- theme ---------- */
 function applyTheme(t){
@@ -24,10 +24,18 @@ function applyTheme(t){
   else el.removeAttribute('data-theme');
 }
 
+// hints replaced the hintOnMiss checkbox in 0.8.0; carry a ticked box over as 'miss'.
+function loadSettings(){
+  const saved = store.get('settings', {});
+  if (saved.hintOnMiss && !saved.hints) saved.hints = 'miss';
+  delete saved.hintOnMiss;
+  return Object.assign({}, DEFAULT_SETTINGS, saved);
+}
+
 const S = {
   layouts: store.get('layouts', {}),
   activeId: store.get('active', null),
-  settings: Object.assign({}, DEFAULT_SETTINGS, store.get('settings', {})),
+  settings: loadSettings(),
   view: 'learn', layerView: 0, run: null, msg: null, confirmDel: null, renaming: null, updating: null, customText: '', presetSel: 0
 };
 
@@ -136,7 +144,7 @@ function kbSVG(li, hl){
   hl = hl || {};
   const geo = S.layout.geo, holds = new Set((hl.holds || []).map(h => h.pos));
   const W = geo.width * U, H = geo.height * U;
-  let out = `<svg class="kb ${S.settings.showFingers ? 'fingers' : ''}" viewBox="-6 -6 ${W + 12} ${H + 12}" role="img" aria-label="${esc(S.layout.layerNames[li] || '')} layer of ${esc(geo.name)}">`;
+  let out = `<svg class="kb ${S.settings.showFingers ? 'fingers' : ''}" viewBox="-6 -6 ${W + 12} ${H + 12}" role="img" aria-label="${esc(S.layout.layerNames[li] || '')} layer of ${esc(geo.name)}${hl.label ? esc('. ' + hl.label) : ''}">`;
   for (const g of S.layout.keys) {
     const isT = hl.target === g.pos, isH = holds.has(g.pos), soft = hl.soft ? '-soft' : '';
     const lab = isH ? keyLabels(0, g.pos) : keyLabels(li, g.pos);
@@ -358,7 +366,9 @@ function settingsView(){
       <div class="check"><input type="checkbox" id="showKeyboard" ${s.showKeyboard ? 'checked' : ''}><label for="showKeyboard">Show the keyboard during lessons</label></div>
       <label for="keyHighlight">Next-key highlight</label>
       ${sel('keyHighlight', [['bright', 'Fill the key'], ['subtle', 'Outline the key'], ['off', 'Off']], s.keyHighlight)}
-      <div class="check"><input type="checkbox" id="hintOnMiss" ${s.hintOnMiss ? 'checked' : ''}><label for="hintOnMiss">Only show hints after a miss<br><small>Hides the hint and key highlight until you press a wrong key, which helps you rely on touch typing.</small></label></div>
+      <label for="hints">Hints</label>
+      ${sel('hints', [['fade', 'Fade as you learn each key'], ['always', 'Always show'], ['miss', 'Only after a miss']], s.hints)}
+      <small>Fading hides the hint and key highlight for keys you type accurately until you pause or miss, so you recall them from memory.</small>
       <div class="check"><input type="checkbox" id="showFingers" ${s.showFingers ? 'checked' : ''}><label for="showFingers">Colour keys by finger</label></div>
       <div class="check"><input type="checkbox" id="unlockAll" ${s.unlockAll ? 'checked' : ''}><label for="unlockAll">Unlock every lesson</label></div></div>
     <div class="card field"><h3 style="font-size:19px">Appearance</h3>
@@ -419,11 +429,11 @@ function beginRun(o){
 function resetStage(){
   const r = S.run;
   Object.assign(r, { items: r.stages[r.si].items, idx: 0, tried: new Set(), wrong: new Set(), errCount: 0, t0: null, last: null,
-    misfires: { shift: 0, mod: 0, alt: 0 }, result: null, lastMisfire: null });
+    misfires: { shift: 0, mod: 0, alt: 0 }, result: null, lastMisfire: null, saidMisfire: null, paused: null, awayAt: null });
 }
 function liveNums(){
   const r = S.run;
-  const secs = r.t0 ? ((r.result ? r.tEnd : performance.now()) - r.t0) / 1000 : 0;
+  const secs = r.t0 ? ((r.result ? r.tEnd : r.awayAt != null ? r.awayAt : performance.now()) - r.t0) / 1000 : 0;
   const n = r.tried.size;
   const wpm = secs > 1 ? (r.idx / 5) / (secs / 60) : 0;
   const acc = n ? (n - r.errCount) / n * 100 : 100;
@@ -432,6 +442,7 @@ function liveNums(){
 function renderRun(full){
   const r = S.run;
   if (full) {
+    r.shown = null;
     const newKeys = r.lesson && r.lesson.kind !== 'review' ? r.lesson.items.map(c => kc(c, 'big')).join('') : '';
     $('#app').innerHTML = header() + `<div class="wrap" style="padding-block:20px 60px"><div class="run">
       <div class="runbar"><button class="btn ghost" data-act="exit">← Lessons</button><h2>${esc(r.title)}</h2>
@@ -441,6 +452,7 @@ function renderRun(full){
       <div class="typebox" id="typebox"><div class="viewport"><div class="textline" id="textline"></div></div><div id="overlay"></div></div>
       <div class="hint" id="hint"></div>
       ${S.settings.showKeyboard ? `<div class="kbwrap" id="kb"></div>` : ''}
+      <p class="sr-only" id="runSr" aria-live="polite"></p>
       <p class="muted" style="font-size:13px;margin:0">Esc leaves the lesson. Homerow Trainer can't block every browser shortcut, like ⌘W, so watch for accidental Command holds.</p>
     </div></div>` + footer();
     paintText();
@@ -480,22 +492,61 @@ function paintState(){
   updateLive();
   // hint + keyboard
   const it = r.items[r.idx];
-  if (it && !r.result) {
-    paintHint(hintFor(it));
-  }
+  // Once a stage ends there's nothing left to press, so clear the hint and leave the keyboard unlit.
+  if (r.result) paintHint({ html: '' });
+  else if (it) paintHint(hintFor(it));
   // overlay
+  $('#typebox').classList.toggle('done', !!r.result);
   const ov = $('#overlay');
-  if (r.result) ov.innerHTML = resultCard();
-  else if (!document.hasFocus()) ov.innerHTML = `<button class="focusveil" data-act="focus">Click here, then start typing</button>`;
-  else ov.innerHTML = r.t0 ? '' : '';
+  if (r.result) {
+    // Only on a new result, so a window blur/focus repaint doesn't yank focus back from Retry.
+    if (r.shown !== r.result) { r.shown = r.result; ov.innerHTML = resultCard(); announceResult(); }
+  }
+  else if (!document.hasFocus()) ov.innerHTML = `<button class="focusveil" data-act="focus">Paused while this window is in the background. Click here or switch back to keep typing.</button>`;
+  else ov.innerHTML = '';
+  if (r.lastMisfire && r.lastMisfire !== r.saidMisfire) say(r.lastMisfire);
+  r.saidMisfire = r.lastMisfire;
 }
-// keyHighlight: 'bright' fills the keys, 'subtle' outlines them, 'off' leaves them unlit. hintOnMiss holds the hint and highlight back until a miss.
-function revealed(){ const r = S.run; return !S.settings.hintOnMiss || r.wrong.has(r.idx); }
+function say(text){ const el = $('#runSr'); if (el) el.textContent = text; }
+function announceResult(){
+  const card = $('#overlay .result'); if (!card) return;
+  const res = S.run.result, p = card.querySelector('p');
+  say([card.querySelector('h3').textContent, res.stars ? `${res.stars} of 3 stars` : '',
+    `Speed ${Math.round(res.wpm)} words per minute`, `Accuracy ${Math.round(res.acc)} percent`,
+    p ? p.textContent.replace(/\.$/, '') : '', res.missed.length ? 'Missed ' + res.missed.map(itemLabel).join(', ') : ''
+  ].filter(Boolean).join('. ') + '.');
+  const go = card.querySelector('.btn'); if (go) go.focus({ preventScroll: true });
+}
+// keyHighlight: 'bright' fills the keys, 'subtle' outlines them, 'off' leaves them unlit.
+// hints: 'fade' holds the hint and highlight back for keys you already know until a miss or a pause, 'miss' holds them back
+// for every key until a miss, 'always' never does. Fading is what moves you from reading the hint to recalling the key.
+const PAUSE_MS = 1500;
+let pauseTimer = null;
+function knownKey(it){
+  const s = S.stats.keys[it.t === 'c' ? it.ch : E.keyId(it)];
+  return !!s && s.n >= 40 && s.err / s.n <= 0.04 && (!s.ln || s.lat / s.ln <= 800);
+}
+function hintState(){
+  const r = S.run, it = r.items[r.idx], mode = S.settings.hints;
+  if (mode === 'always' || r.wrong.has(r.idx)) return 'show';
+  if (mode === 'miss') return 'hide';
+  return !it || r.paused === r.idx || !knownKey(it) ? 'show' : 'fade';
+}
 function paintHint(h){
-  const r = S.run, show = revealed(), kh = S.settings.keyHighlight, soft = kh === 'subtle';
-  $('#hint').innerHTML = (show ? h.html : '') + (r.lastMisfire ? ` <span class="misfire">${esc(r.lastMisfire)}</span>` : '');
+  const r = S.run, st = r.result ? 'show' : hintState(), show = st === 'show', kh = S.settings.keyHighlight, soft = kh === 'subtle';
+  clearTimeout(pauseTimer);
+  if (st === 'fade') {
+    const at = r.idx;
+    pauseTimer = setTimeout(() => { if (S.run === r && !r.result && r.idx === at) { r.paused = at; paintHint(hintFor(r.items[at])); } }, PAUSE_MS);
+  }
+  $('#hint').innerHTML = (show ? h.html : st === 'fade' ? '<span class="muted">From memory. Pause for a hint.</span>' : '')
+    + (r.lastMisfire && !r.result ? ` <span class="misfire">${esc(r.lastMisfire)}</span>` : '');
   const kb = $('#kb'); if (!kb) return;
-  kb.innerHTML = kbSVG(h.r ? h.r.layer : 0, h.r && show && kh !== 'off' ? { target: h.r.pos, holds: h.r.holds, soft } : {}) + legendHtml(kh !== 'off', soft);
+  // The hint as plain text, so the keyboard's accessible name says what to press, not just which layer is shown.
+  const tmp = document.createElement('div'); tmp.innerHTML = show ? h.html : '';
+  const label = tmp.textContent.replace(/\s+/g, ' ').trim();
+  // A hidden hint also hides the target's layer, since switching the diagram to it would give the answer away.
+  kb.innerHTML = kbSVG(h.r && show ? h.r.layer : 0, h.r && show && kh !== 'off' ? { target: h.r.pos, holds: h.r.holds, soft, label } : { label }) + legendHtml(kh !== 'off', soft);
   // On narrow screens the keyboard scrolls horizontally; keep the target key in view.
   const tg = kb.querySelector('.tgtg');
   if (tg && kb.scrollWidth > kb.clientWidth + 4) {
@@ -520,11 +571,11 @@ function resultCard(){
   const lastStage = r.si === r.stages.length - 1;
   const mf = res.misfires.shift + res.misfires.mod + res.misfires.alt;
   if (res.lessonDone) {
-    return `<div class="result"><h3>${res.stars ? 'Lesson complete' : 'Lesson finished'}</h3>${starsHtml(res.stars)}
+    return `<div class="result"><h3>${res.stars ? 'Lesson complete' : 'Lesson finished'}</h3>${res.stars ? starsHtml(res.stars) : ''}
       <div class="nums"><div class="stat"><small>Speed</small><b>${Math.round(res.wpm)}<em>wpm</em></b></div><div class="stat"><small>Accuracy</small><b>${Math.round(res.acc)}<em>%</em></b></div></div>
       <div class="row">${r.lesson && r.lessonIdx < S.C.lessons.length - 1 ? `<button class="btn go" data-act="next-lesson"><span class="tri"></span>Next lesson (Enter)</button>` : ''}<button class="btn" data-act="redo-lesson">Redo lesson</button><button class="btn ghost" data-act="exit">Back to lessons</button></div></div>`;
   }
-  return `<div class="result"><h3>${res.pass ? 'Stage passed' : 'Not quite'}</h3>${starsHtml(res.stars)}
+  return `<div class="result"><h3>${res.pass ? 'Stage passed' : 'Not quite'}</h3>${res.pass ? starsHtml(res.stars) : ''}
     <div class="nums"><div class="stat"><small>Speed</small><b>${Math.round(res.wpm)}<em>wpm</em></b></div><div class="stat"><small>Accuracy</small><b>${Math.round(res.acc)}<em>%</em></b></div>${mf ? `<div class="stat"><small>Mod misfires</small><b>${mf}</b></div>` : ''}</div>
     ${res.pass ? '' : `<p class="muted" style="margin:0">You need ${S.settings.passAcc}% accuracy to move on. Slow down a little.</p>`}
     ${res.missed.length ? `<div class="newkeys">Missed ${res.missed.map(c => kc(c, 'warn')).join('')}</div>` : ''}
@@ -618,6 +669,8 @@ function onKey(e){
   if (fbOpen()) return;
   const r = S.run; if (!r) { onNavKey(e); return; }
   if (r.result) {
+    // A focused button (Retry, Redo, Back) handles its own Enter; only an Enter with nothing focused means the primary action.
+    if (e.key === 'Enter' && document.activeElement.closest('button, a')) return;
     if (e.key === 'Enter') {
       e.preventDefault();
       if (r.result.lessonDone) { if (r.lesson && r.lessonIdx < S.C.lessons.length - 1) startLesson(r.lessonIdx + 1); else exitRun(); }
@@ -833,8 +886,17 @@ function copyText(text){
 }
 
 document.addEventListener('keydown', onKey);
-window.addEventListener('focus', () => { if (S.run) paintState(); });
-window.addEventListener('blur', () => { if (S.run) paintState(); });
+// The veil says typing is paused, so time away (resting a wrist, say) doesn't count toward speed, key latency or the daily goal.
+window.addEventListener('focus', () => {
+  const r = S.run; if (!r) return;
+  if (r.awayAt != null) { const d = performance.now() - r.awayAt; if (r.t0 != null) r.t0 += d; if (r.last != null) r.last += d; r.awayAt = null; }
+  paintState();
+});
+window.addEventListener('blur', () => {
+  const r = S.run; if (!r) return;
+  if (r.t0 != null && !r.result) r.awayAt = performance.now();
+  paintState();
+});
 document.addEventListener('click', e => {
   const t = e.target.closest('button, a[data-jump]'); if (!t) return;
   const d = t.dataset;
@@ -902,9 +964,9 @@ document.addEventListener('change', e => {
     rd.onload = () => { try { const L = loadLayoutText(String(rd.result), f.name.replace(/\.[^.]+$/, '')); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${L.title} from ${f.name}. Lessons rebuilt for this layout.` }; } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); };
     rd.readAsText(f); return;
   }
-  const keys = ['routePref', 'modPref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'hintOnMiss', 'showFingers', 'unlockAll', 'theme'];
+  const keys = ['routePref', 'modPref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'hints', 'showFingers', 'unlockAll', 'theme'];
   if (keys.includes(t.id)) {
-    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && ['routePref', 'modPref', 'keyHighlight', 'theme'].includes(t.id)) ? t.value : Math.max(1, +t.value || DEFAULT_SETTINGS[t.id]);
+    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && ['routePref', 'modPref', 'keyHighlight', 'hints', 'theme'].includes(t.id)) ? t.value : Math.max(1, +t.value || DEFAULT_SETTINGS[t.id]);
     S.settings[t.id] = v; store.set('settings', S.settings);
     if (t.id === 'routePref' || t.id === 'modPref') rebuild();
     if (t.id === 'theme') applyTheme(v);

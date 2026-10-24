@@ -34,8 +34,10 @@ button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
 .mono{font-family:var(--mono)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .muted{color:var(--muted)}
-.wrap{max-width:1240px;margin:0 auto;padding-inline:16px}
+/* width:100% because auto side margins in #app's flex column would shrink it to its content, so the run narrowed when the drill text hid. */
+.wrap{width:100%;max-width:1240px;margin:0 auto;padding-inline:16px}
 
 /* Header */
 .top{background:var(--surface);border-bottom:1px solid var(--line)}
@@ -149,8 +151,12 @@ details.unit[open]>summary .chev{transform:rotate(45deg)}
 .c.fixed{color:var(--err);opacity:.6}
 .c.cur{color:var(--ink);background:var(--accent-soft);box-shadow:inset 0 -3px 0 var(--accent)}
 .c.sp.cur::after,.c.sp.bad::after{content:'·';position:absolute;left:0;right:0;text-align:center;color:var(--accent)}
+/* A miss on the current character must out-rank .c.cur, or the only sign of it is the shake, which reduced motion removes. */
+.c.cur.bad{color:var(--err);background:var(--err-soft);box-shadow:inset 0 -3px 0 var(--err)}
+.c.sp.cur.bad::after{color:var(--err)}
 .c.kchip{display:inline-block;margin-right:.35em;padding:0 .3em;border:1px solid var(--line);border-radius:6px;font-size:.85em}
 .c.kchip.cur{border-color:var(--accent)}
+.c.kchip.cur.bad{border-color:var(--err)}
 .c.kchip.ok{border-color:var(--ok);color:var(--ok);opacity:1}
 .shake{animation:shake .18s}
 @keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
@@ -159,8 +165,11 @@ details.unit[open]>summary .chev{transform:rotate(45deg)}
 .hint{display:flex;gap:10px;align-items:center;flex-wrap:wrap;min-height:30px;font-size:15px}
 .hint .layer{font-size:12px;padding:3px 10px;border-radius:99px;background:var(--accent);color:var(--accent-ink);font-weight:700}
 .misfire{font-size:13px;color:var(--err)}
-.result{position:absolute;inset:0;background:var(--surface);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;text-align:center}
+/* The result replaces the drill text in flow, so the box grows to fit it instead of the card spilling over its edges. */
+.typebox.done .viewport,.typebox.done+.hint{display:none}
+.result{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
 .result h3{font-size:24px}
+.result .row{margin-top:6px}
 .result .nums{display:flex;gap:28px;flex-wrap:wrap;justify-content:center}
 .result .stars{font-size:26px}
 .result .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
