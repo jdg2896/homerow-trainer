@@ -429,7 +429,7 @@ function beginRun(o){
 function resetStage(){
   const r = S.run;
   Object.assign(r, { items: r.stages[r.si].items, idx: 0, tried: new Set(), wrong: new Set(), errCount: 0, t0: null, last: null,
-    misfires: { shift: 0, mod: 0, alt: 0 }, result: null, lastMisfire: null });
+    misfires: { shift: 0, mod: 0, alt: 0 }, result: null, lastMisfire: null, saidMisfire: null, paused: null });
 }
 function liveNums(){
   const r = S.run;
