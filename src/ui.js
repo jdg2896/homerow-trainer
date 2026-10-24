@@ -15,7 +15,7 @@ const store = {
   del(k){ try { localStorage.removeItem('homerow-trainer.' + k); } catch (e) {} }
 };
 const DEFAULT_SETTINGS = { passAcc: 95, targetWpm: 20, stopOnError: true, stageLen: 90, routePref: 'layers', modPref: 'auto',
-  showFingers: true, showKeyboard: true, keyHighlight: 'bright', hintOnMiss: false, dailyGoal: 15, unlockAll: false, theme: 'system' };
+  showFingers: true, showKeyboard: true, keyHighlight: 'bright', hints: 'fade', dailyGoal: 15, unlockAll: false, theme: 'system' };
 
 /* ---------- theme ---------- */
 function applyTheme(t){
@@ -24,10 +24,18 @@ function applyTheme(t){
   else el.removeAttribute('data-theme');
 }
 
+// hints replaced the hintOnMiss checkbox in 0.8.0; carry a ticked box over as 'miss'.
+function loadSettings(){
+  const saved = store.get('settings', {});
+  if (saved.hintOnMiss && !saved.hints) saved.hints = 'miss';
+  delete saved.hintOnMiss;
+  return Object.assign({}, DEFAULT_SETTINGS, saved);
+}
+
 const S = {
   layouts: store.get('layouts', {}),
   activeId: store.get('active', null),
-  settings: Object.assign({}, DEFAULT_SETTINGS, store.get('settings', {})),
+  settings: loadSettings(),
   view: 'learn', layerView: 0, run: null, msg: null, confirmDel: null, renaming: null, updating: null, customText: '', presetSel: 0
 };
 
@@ -358,7 +366,9 @@ function settingsView(){
       <div class="check"><input type="checkbox" id="showKeyboard" ${s.showKeyboard ? 'checked' : ''}><label for="showKeyboard">Show the keyboard during lessons</label></div>
       <label for="keyHighlight">Next-key highlight</label>
       ${sel('keyHighlight', [['bright', 'Fill the key'], ['subtle', 'Outline the key'], ['off', 'Off']], s.keyHighlight)}
-      <div class="check"><input type="checkbox" id="hintOnMiss" ${s.hintOnMiss ? 'checked' : ''}><label for="hintOnMiss">Only show hints after a miss<br><small>Hides the hint and key highlight until you press a wrong key, which helps you rely on touch typing.</small></label></div>
+      <label for="hints">Hints</label>
+      ${sel('hints', [['fade', 'Fade as you learn each key'], ['always', 'Always show'], ['miss', 'Only after a miss']], s.hints)}
+      <small>Fading hides the hint and key highlight for keys you type accurately until you pause or miss, so you recall them from memory.</small>
       <div class="check"><input type="checkbox" id="showFingers" ${s.showFingers ? 'checked' : ''}><label for="showFingers">Colour keys by finger</label></div>
       <div class="check"><input type="checkbox" id="unlockAll" ${s.unlockAll ? 'checked' : ''}><label for="unlockAll">Unlock every lesson</label></div></div>
     <div class="card field"><h3 style="font-size:19px">Appearance</h3>
@@ -507,16 +517,36 @@ function announceResult(){
   ].filter(Boolean).join('. ') + '.');
   const go = card.querySelector('.btn'); if (go) go.focus({ preventScroll: true });
 }
-// keyHighlight: 'bright' fills the keys, 'subtle' outlines them, 'off' leaves them unlit. hintOnMiss holds the hint and highlight back until a miss.
-function revealed(){ const r = S.run; return !S.settings.hintOnMiss || r.wrong.has(r.idx); }
+// keyHighlight: 'bright' fills the keys, 'subtle' outlines them, 'off' leaves them unlit.
+// hints: 'fade' holds the hint and highlight back for keys you already know until a miss or a pause, 'miss' holds them back
+// for every key until a miss, 'always' never does. Fading is what moves you from reading the hint to recalling the key.
+const PAUSE_MS = 1500;
+let pauseTimer = null;
+function knownKey(it){
+  const s = S.stats.keys[it.t === 'c' ? it.ch : E.keyId(it)];
+  return !!s && s.n >= 40 && s.err / s.n <= 0.04 && (!s.ln || s.lat / s.ln <= 800);
+}
+function hintState(){
+  const r = S.run, it = r.items[r.idx], mode = S.settings.hints;
+  if (mode === 'always' || r.wrong.has(r.idx)) return 'show';
+  if (mode === 'miss') return 'hide';
+  return !it || r.paused === r.idx || !knownKey(it) ? 'show' : 'fade';
+}
 function paintHint(h){
-  const r = S.run, show = revealed(), kh = S.settings.keyHighlight, soft = kh === 'subtle';
-  $('#hint').innerHTML = (show ? h.html : '') + (r.lastMisfire && !r.result ? ` <span class="misfire">${esc(r.lastMisfire)}</span>` : '');
+  const r = S.run, st = r.result ? 'show' : hintState(), show = st === 'show', kh = S.settings.keyHighlight, soft = kh === 'subtle';
+  clearTimeout(pauseTimer);
+  if (st === 'fade') {
+    const at = r.idx;
+    pauseTimer = setTimeout(() => { if (S.run === r && !r.result && r.idx === at) { r.paused = at; paintHint(hintFor(r.items[at])); } }, PAUSE_MS);
+  }
+  $('#hint').innerHTML = (show ? h.html : st === 'fade' ? '<span class="muted">From memory. Pause for a hint.</span>' : '')
+    + (r.lastMisfire && !r.result ? ` <span class="misfire">${esc(r.lastMisfire)}</span>` : '');
   const kb = $('#kb'); if (!kb) return;
   // The hint as plain text, so the keyboard's accessible name says what to press, not just which layer is shown.
   const tmp = document.createElement('div'); tmp.innerHTML = show ? h.html : '';
   const label = tmp.textContent.replace(/\s+/g, ' ').trim();
-  kb.innerHTML = kbSVG(h.r ? h.r.layer : 0, h.r && show && kh !== 'off' ? { target: h.r.pos, holds: h.r.holds, soft, label } : { label }) + legendHtml(kh !== 'off', soft);
+  // A hidden hint also hides the target's layer, since switching the diagram to it would give the answer away.
+  kb.innerHTML = kbSVG(h.r && show ? h.r.layer : 0, h.r && show && kh !== 'off' ? { target: h.r.pos, holds: h.r.holds, soft, label } : { label }) + legendHtml(kh !== 'off', soft);
   // On narrow screens the keyboard scrolls horizontally; keep the target key in view.
   const tg = kb.querySelector('.tgtg');
   if (tg && kb.scrollWidth > kb.clientWidth + 4) {
@@ -925,9 +955,9 @@ document.addEventListener('change', e => {
     rd.onload = () => { try { const L = loadLayoutText(String(rd.result), f.name.replace(/\.[^.]+$/, '')); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${L.title} from ${f.name}. Lessons rebuilt for this layout.` }; } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); };
     rd.readAsText(f); return;
   }
-  const keys = ['routePref', 'modPref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'hintOnMiss', 'showFingers', 'unlockAll', 'theme'];
+  const keys = ['routePref', 'modPref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'hints', 'showFingers', 'unlockAll', 'theme'];
   if (keys.includes(t.id)) {
-    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && ['routePref', 'modPref', 'keyHighlight', 'theme'].includes(t.id)) ? t.value : Math.max(1, +t.value || DEFAULT_SETTINGS[t.id]);
+    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && ['routePref', 'modPref', 'keyHighlight', 'hints', 'theme'].includes(t.id)) ? t.value : Math.max(1, +t.value || DEFAULT_SETTINGS[t.id]);
     S.settings[t.id] = v; store.set('settings', S.settings);
     if (t.id === 'routePref' || t.id === 'modPref') rebuild();
     if (t.id === 'theme') applyTheme(v);

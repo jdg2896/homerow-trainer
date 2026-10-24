@@ -2,6 +2,12 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.8.0 — 2026-10-24
+
+- Hints fade as you learn: once you type a key accurately, its hint and highlight stay hidden until you pause or miss, so you recall it from memory. Change this under Settings › Hints.
+- The end-of-stage result fits inside the drill box instead of spilling over the hint, and a failed stage no longer shows empty stars.
+- Enter on a focused Retry, Redo or Back button now does that, and results and modifier misfires are announced to screen readers.
+
 ## 0.7.2 — 2026-10-20
 
 - The footer shows who made Homerow Trainer, and Credits & licenses now notes that the app is MIT licensed.

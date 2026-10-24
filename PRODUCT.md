@@ -32,7 +32,7 @@ Other split-keyboard trainers (moosytype, monkeytype-style tools) offer free pra
 
 - Parses MoErgo `.json` (custom `holdTaps` resolved to mod-tap or layer-tap) and ZMK `.keymap` (`&kp`, `&mt`, `&lt`, `&mo`, `&sk`, `&trans`, custom hold-tap behaviors). Other key counts work, drawn as a plain grid. Go60/Glove80 key geometry is approximate. Key codes assume a US ANSI host layout.
 - Home-row-mod aware: capitals use the opposite-hand shift, and accidental ⌘/⌃/⌥/Shift firing is counted as a misfire.
-- Progress gates on accuracy (95% pass by default). WPM only earns extra stars. Settings include stop on error, hint after a miss, daily goal minutes, stage length, and showing or hiding the keyboard and finger colors.
+- Progress gates on accuracy (95% pass by default). WPM only earns extra stars. Hints fade per key as it's learned, coming back after a miss or a pause. Settings include stop on error, how hints show, daily goal minutes, stage length, and showing or hiding the keyboard and finger colors.
 - Per-key miss rate and latency, stored per layout, drive the Problem keys drill.
 - Light and dark themes, and a narrow (≤860px) layout.
 - Technical: zero dependencies, no bundler, no modules. `build.mjs` inlines everything into one `dist/index.html`. `src/engine.js` stays pure and DOM-free. Storage keys are prefixed `homerow-trainer.` and must not be renamed without a migration.
