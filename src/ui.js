@@ -136,7 +136,7 @@ function kbSVG(li, hl){
   hl = hl || {};
   const geo = S.layout.geo, holds = new Set((hl.holds || []).map(h => h.pos));
   const W = geo.width * U, H = geo.height * U;
-  let out = `<svg class="kb ${S.settings.showFingers ? 'fingers' : ''}" viewBox="-6 -6 ${W + 12} ${H + 12}" role="img" aria-label="${esc(S.layout.layerNames[li] || '')} layer of ${esc(geo.name)}">`;
+  let out = `<svg class="kb ${S.settings.showFingers ? 'fingers' : ''}" viewBox="-6 -6 ${W + 12} ${H + 12}" role="img" aria-label="${esc(S.layout.layerNames[li] || '')} layer of ${esc(geo.name)}${hl.label ? esc('. ' + hl.label) : ''}">`;
   for (const g of S.layout.keys) {
     const isT = hl.target === g.pos, isH = holds.has(g.pos), soft = hl.soft ? '-soft' : '';
     const lab = isH ? keyLabels(0, g.pos) : keyLabels(li, g.pos);
@@ -432,6 +432,7 @@ function liveNums(){
 function renderRun(full){
   const r = S.run;
   if (full) {
+    r.shown = null;
     const newKeys = r.lesson && r.lesson.kind !== 'review' ? r.lesson.items.map(c => kc(c, 'big')).join('') : '';
     $('#app').innerHTML = header() + `<div class="wrap" style="padding-block:20px 60px"><div class="run">
       <div class="runbar"><button class="btn ghost" data-act="exit">← Lessons</button><h2>${esc(r.title)}</h2>
@@ -441,6 +442,7 @@ function renderRun(full){
       <div class="typebox" id="typebox"><div class="viewport"><div class="textline" id="textline"></div></div><div id="overlay"></div></div>
       <div class="hint" id="hint"></div>
       ${S.settings.showKeyboard ? `<div class="kbwrap" id="kb"></div>` : ''}
+      <p class="sr-only" id="runSr" aria-live="polite"></p>
       <p class="muted" style="font-size:13px;margin:0">Esc leaves the lesson. Homerow Trainer can't block every browser shortcut, like ⌘W, so watch for accidental Command holds.</p>
     </div></div>` + footer();
     paintText();
@@ -486,9 +488,24 @@ function paintState(){
   // overlay
   $('#typebox').classList.toggle('done', !!r.result);
   const ov = $('#overlay');
-  if (r.result) ov.innerHTML = resultCard();
-  else if (!document.hasFocus()) ov.innerHTML = `<button class="focusveil" data-act="focus">Click here, then start typing</button>`;
-  else ov.innerHTML = r.t0 ? '' : '';
+  if (r.result) {
+    // Only on a new result, so a window blur/focus repaint doesn't yank focus back from Retry.
+    if (r.shown !== r.result) { r.shown = r.result; ov.innerHTML = resultCard(); announceResult(); }
+  }
+  else if (!document.hasFocus()) ov.innerHTML = `<button class="focusveil" data-act="focus">Paused while this window is in the background. Click here or switch back to keep typing.</button>`;
+  else ov.innerHTML = '';
+  if (r.lastMisfire && r.lastMisfire !== r.saidMisfire) say(r.lastMisfire);
+  r.saidMisfire = r.lastMisfire;
+}
+function say(text){ const el = $('#runSr'); if (el) el.textContent = text; }
+function announceResult(){
+  const card = $('#overlay .result'); if (!card) return;
+  const res = S.run.result, p = card.querySelector('p');
+  say([card.querySelector('h3').textContent, res.stars ? `${res.stars} of 3 stars` : '',
+    `Speed ${Math.round(res.wpm)} words per minute`, `Accuracy ${Math.round(res.acc)} percent`,
+    p ? p.textContent.replace(/\.$/, '') : '', res.missed.length ? 'Missed ' + res.missed.map(itemLabel).join(', ') : ''
+  ].filter(Boolean).join('. ') + '.');
+  const go = card.querySelector('.btn'); if (go) go.focus({ preventScroll: true });
 }
 // keyHighlight: 'bright' fills the keys, 'subtle' outlines them, 'off' leaves them unlit. hintOnMiss holds the hint and highlight back until a miss.
 function revealed(){ const r = S.run; return !S.settings.hintOnMiss || r.wrong.has(r.idx); }
@@ -496,7 +513,10 @@ function paintHint(h){
   const r = S.run, show = revealed(), kh = S.settings.keyHighlight, soft = kh === 'subtle';
   $('#hint').innerHTML = (show ? h.html : '') + (r.lastMisfire && !r.result ? ` <span class="misfire">${esc(r.lastMisfire)}</span>` : '');
   const kb = $('#kb'); if (!kb) return;
-  kb.innerHTML = kbSVG(h.r ? h.r.layer : 0, h.r && show && kh !== 'off' ? { target: h.r.pos, holds: h.r.holds, soft } : {}) + legendHtml(kh !== 'off', soft);
+  // The hint as plain text, so the keyboard's accessible name says what to press, not just which layer is shown.
+  const tmp = document.createElement('div'); tmp.innerHTML = show ? h.html : '';
+  const label = tmp.textContent.replace(/\s+/g, ' ').trim();
+  kb.innerHTML = kbSVG(h.r ? h.r.layer : 0, h.r && show && kh !== 'off' ? { target: h.r.pos, holds: h.r.holds, soft, label } : { label }) + legendHtml(kh !== 'off', soft);
   // On narrow screens the keyboard scrolls horizontally; keep the target key in view.
   const tg = kb.querySelector('.tgtg');
   if (tg && kb.scrollWidth > kb.clientWidth + 4) {
@@ -619,6 +639,8 @@ function onKey(e){
   if (fbOpen()) return;
   const r = S.run; if (!r) { onNavKey(e); return; }
   if (r.result) {
+    // A focused button (Retry, Redo, Back) handles its own Enter; only an Enter with nothing focused means the primary action.
+    if (e.key === 'Enter' && document.activeElement.closest('button, a')) return;
     if (e.key === 'Enter') {
       e.preventDefault();
       if (r.result.lessonDone) { if (r.lesson && r.lessonIdx < S.C.lessons.length - 1) startLesson(r.lessonIdx + 1); else exitRun(); }
