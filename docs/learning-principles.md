@@ -18,9 +18,9 @@ Errors practiced become habits, and speed follows once the movements are right. 
 
 Postal workers learning to type learned most per hour of training at one hour a day; two two-hour sessions a day was the least efficient schedule ([Baddeley & Longman, 1978](https://www.gwern.net/doc/psychology/spaced-repetition/1978-baddeley.pdf); see also [distributed practice](https://en.wikipedia.org/wiki/Distributed_practice)).
 
-**In the app:** a daily goal in minutes (`dailyGoal`, 15 by default) with a progress ring, and short stages (`stageLen`).
+**In the app:** a daily goal in minutes (`dailyGoal`, 15 by default) with a progress ring, and short stages (`stageLen`). The end of a lesson shows today's minutes, and once the goal is met it suggests stopping: Enter goes back to the lessons instead of starting the next one.
 
-**Gap:** nothing suggests stopping once the goal is met, or brings you back the next day.
+**Gap:** nothing brings you back the next day.
 
 ## 4. Move to real words and text as early as possible
 

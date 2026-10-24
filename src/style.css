@@ -2,7 +2,7 @@
 :root{
   --bg:#E8ECF2; --surface:#FFFFFF; --surface-2:#F3F5F9; --ink:#141C2F; --muted:#56627C; --line:#D2D9E5;
   --accent:#2B57D9; --accent-soft:#DCE5FB; --accent-ink:#FFFFFF;
-  --go:#F2B705; --go-ink:#241A00; --ok:#127A51; --err:#C13029; --err-soft:#FBE0DD;
+  --go:#F2B705; --go-ink:#241A00; --ok:#127A51; --ok-ink:#FFFFFF; --err:#C13029; --err-soft:#FBE0DD;
   --f-pinky:#E6DCFA; --f-ring:#D4E6FA; --f-middle:#D3F0E0; --f-index:#FBE6C4; --f-thumb:#E3E1DB;
   --key:#FFFFFF; --key-edge:#B8C1D2; --key-ink:#1B2438; --shadow:0 1px 2px rgba(20,28,47,.06),0 4px 14px rgba(20,28,47,.06);
   --display:'Bricolage Grotesque','Avenir Next',system-ui,sans-serif;
@@ -12,13 +12,13 @@
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#0D121C; --surface:#151C2A; --surface-2:#1B2333; --ink:#E4E9F2; --muted:#94A1BA; --line:#283247;
   --accent:#7393FF; --accent-soft:#223060; --accent-ink:#0D121C;
-  --go:#F2B705; --go-ink:#241A00; --ok:#41C78E; --err:#FF6A60; --err-soft:#48201E;
+  --go:#F2B705; --go-ink:#241A00; --ok:#41C78E; --ok-ink:#0D121C; --err:#FF6A60; --err-soft:#48201E;
   --f-pinky:#342A50; --f-ring:#1F364E; --f-middle:#1D3D2F; --f-index:#47391B; --f-thumb:#2B2E37;
   --key:#1E2637; --key-edge:#37425A; --key-ink:#E4E9F2; --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25); color-scheme:dark }}
 :root[data-theme="dark"]{
   --bg:#0D121C; --surface:#151C2A; --surface-2:#1B2333; --ink:#E4E9F2; --muted:#94A1BA; --line:#283247;
   --accent:#7393FF; --accent-soft:#223060; --accent-ink:#0D121C;
-  --go:#F2B705; --go-ink:#241A00; --ok:#41C78E; --err:#FF6A60; --err-soft:#48201E;
+  --go:#F2B705; --go-ink:#241A00; --ok:#41C78E; --ok-ink:#0D121C; --err:#FF6A60; --err-soft:#48201E;
   --f-pinky:#342A50; --f-ring:#1F364E; --f-middle:#1D3D2F; --f-index:#47391B; --f-thumb:#2B2E37;
   --key:#1E2637; --key-edge:#37425A; --key-ink:#E4E9F2; --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25); color-scheme:dark }
 
@@ -45,6 +45,7 @@ h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
 .brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:21px;letter-spacing:-.01em;background:none;border:0;padding:0;color:inherit}
 .brand:hover .brand-mark i.on{filter:brightness(1.1)}
 .fb-open{padding:6px 12px;font-size:14px;gap:6px}
+.layout-chip+.fb-open{margin-left:auto} /* no stats during a run */
 .fb-open svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .brand-mark{display:grid;grid-template-columns:repeat(3,9px);gap:3px}
 .brand-mark i{width:9px;height:9px;border-radius:2px;background:var(--line)}
@@ -120,7 +121,7 @@ details.unit[open]>summary .chev{transform:rotate(45deg)}
 .lesson.next{border-color:var(--go);box-shadow:var(--shadow)}
 .lesson.locked{opacity:.55}
 .lesson .num{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
-.lesson.done .num{background:var(--ok);border-color:var(--ok);color:#fff}
+.lesson.done .num{background:var(--ok);border-color:var(--ok);color:var(--ok-ink)}
 .lesson .ttl{display:flex;flex-direction:column;gap:6px;min-width:0}
 .lesson .ttl b{font-size:17px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .lesson .meta{display:flex;gap:12px;align-items:center;font-size:13px;color:var(--muted);flex-wrap:wrap}
@@ -139,14 +140,15 @@ details.unit[open]>summary .chev{transform:rotate(45deg)}
 .stagechips{display:flex;gap:6px;flex-wrap:wrap}
 .stagechips span{font-size:12px;padding:3px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
 .stagechips span.on{border-color:var(--accent);color:var(--accent);font-weight:700}
-.stagechips span.done{background:var(--ok);border-color:var(--ok);color:#fff}
+.stagechips span.done{background:var(--ok);border-color:var(--ok);color:var(--ok-ink)}
 .newkeys{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:13px}
 .typebox{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 26px;box-shadow:var(--shadow)}
 .viewport{height:calc(3 * 1.9em);overflow:hidden;font-family:var(--mono);font-size:clamp(19px,2.5vw,27px);line-height:1.9em}
 .textline{position:relative;transition:transform .15s ease}
 .w{display:inline-block;white-space:nowrap}
-.c{position:relative;color:var(--muted);border-radius:3px}
-.c.ok{color:var(--ink);opacity:.45}
+/* Upcoming text is full ink because it's what you read next; typed text steps back to Muted, which still clears 4.5:1. */
+.c{position:relative;color:var(--ink);border-radius:3px}
+.c.ok{color:var(--muted)}
 .c.bad{color:var(--err);background:var(--err-soft);opacity:1}
 .c.fixed{color:var(--err);opacity:.6}
 .c.cur{color:var(--ink);background:var(--accent-soft);box-shadow:inset 0 -3px 0 var(--accent)}
@@ -164,7 +166,10 @@ details.unit[open]>summary .chev{transform:rotate(45deg)}
 .focusveil{position:absolute;inset:0;display:grid;place-items:center;background:color-mix(in srgb,var(--surface) 82%,transparent);border-radius:14px;font-weight:700;border:0;width:100%;color:var(--ink)}
 .hint{display:flex;gap:10px;align-items:center;flex-wrap:wrap;min-height:30px;font-size:15px}
 .hint .layer{font-size:12px;padding:3px 10px;border-radius:99px;background:var(--accent);color:var(--accent-ink);font-weight:700}
-.misfire{font-size:13px;color:var(--err)}
+.misfire,.hint .note{font-size:13px;padding:3px 10px;border-radius:99px;display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap}
+.misfire{color:var(--err);background:var(--err-soft)}
+.hint .note{background:var(--surface-2);border:1px solid var(--line)}
+.focusveil .kc{margin-inline:.3em}
 /* The result replaces the drill text in flow, so the box grows to fit it instead of the card spilling over its edges. */
 .typebox.done .viewport,.typebox.done+.hint{display:none}
 .result{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
@@ -177,6 +182,8 @@ details.unit[open]>summary .chev{transform:rotate(45deg)}
 /* Keyboard */
 .kbwrap{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;overflow-x:auto}
 .kb{width:100%;min-width:560px;height:auto;display:block}
+/* In a drill the diagram is capped by the window's height, so the thumb keys stay on screen; it shrinks (centred) rather than overflowing. */
+.run .kb{max-height:max(260px,calc(100dvh - 560px))}
 .kb .k{fill:var(--key);stroke:var(--key-edge);stroke-width:1.2}
 .kb.fingers .k.f-pinky{fill:var(--f-pinky)} .kb.fingers .k.f-ring{fill:var(--f-ring)}
 .kb.fingers .k.f-middle{fill:var(--f-middle)} .kb.fingers .k.f-index{fill:var(--f-index)}
