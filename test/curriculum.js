@@ -136,5 +136,28 @@ for (const file of presets) {
   console.log(`ok  ${where} ("${old}" in mixed drills: ${plain} → ${weighted})`);
 }
 
+// Punctuation reads the way it's used: apostrophes as contractions or possessives outside code, and code
+// drills without prose fragments like "share." between snippets.
+{
+  const where = 'punctuation in context';
+  const L = E.buildLayout(fs.readFileSync(path.join(presetDir, 'glove80-07-glove80-factory-default-layout.json'), 'utf8'));
+  const C = E.buildCurriculum(L, 'layers');
+  const text = st => st.items.map(i => i.ch).join('');
+  let prose = '', code = '';
+  for (const l of C.lessons.filter(l => l.kind !== 'review' && l.items.some(c => /['.,;:!?]/.test(c)))) for (let i = 0; i < 10; i++)
+    for (const st of E.makeStages(C, l, W, 90, S)) {
+      if (/In context|Prose/.test(st.name) && l.items.includes("'")) prose += text(st) + ' ';
+      if (st.name === 'Code') code += text(st) + ' ';
+    }
+  const quoted = prose.match(/(^|\s)'[a-z]+'(?=\s|$)/g), poss = prose.match(/\b[a-z]*s's\b/g);
+  if (quoted) fail(where, `prose apostrophes used as quotes: ${quoted.slice(0, 3).join(' ')}`);
+  if (poss) fail(where, `possessive on a word ending in s: ${poss.slice(0, 3).join(' ')}`);
+  if (!/[a-z]'[a-z]/.test(prose)) fail(where, 'no contractions or possessives in apostrophe prose');
+  // A statement (`ask;`) or a key (`city: cup`) is fine; a word ending in . , ! or ? reads as prose.
+  const stray = code.match(/(^|\s)[a-z]{2,}[.,!?](?=\s|$)/g);
+  if (stray) fail(where, `prose-style tokens in code drills: ${stray.slice(0, 4).join(' ')}`);
+  console.log(`ok  ${where}`);
+}
+
 if (failures) { console.error(`\n${failures} failure(s).`); process.exit(1); }
 console.log(`\nAll ${presets.length} presets passed.`);

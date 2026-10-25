@@ -751,18 +751,22 @@ function sentenceText(newC, unlocked, len, WORDS, SENTS){
     }
     const p = 1 + rand(n - 2);
     if (has('(') && has(')') && Math.random() < 0.1 && /[a-z]$/.test(s[p])) s[p] = '(' + s[p] + ')';
+    // A quoted word mid-sentence, the way people quote a term; such a sentence isn't also turned into dialogue.
+    const q = 1 + rand(n - 2);
+    const quoted = has('"') && Math.random() < 0.12 && /^[a-z]+$/.test(s[q]);
+    if (quoted) s[q] = '"' + s[q] + '"';
     let end = '';
     if (has('.')) { const r = Math.random(); end = has('?') && r < 0.15 ? '?' : has('!') && r < 0.22 ? '!' : '.'; }
     let sent = s.join(' ');
-    if (has('"') && Math.random() < 0.15) {
+    if (!quoted && has('"') && Math.random() < 0.15) {
       sent = who.length && has(',') && end === '.' && Math.random() < 0.6 ? `"${sent}," ${pick(who)} said.` : `"${sent}${end}"`;
     } else sent += end;
     out.push(sent);
   }
   return out.join(' ');
 }
-function symbolToken(s, unlocked, word){
-  const w = word();
+function symbolToken(s, unlocked, word, mode){
+  const w = word(), has = c => unlocked.has(c);
   if (/[0-9]/.test(s)) {
     const ds = [...unlocked].filter(c => /[0-9]/.test(c));
     let n = s; const L = 1 + rand(3);
@@ -771,7 +775,25 @@ function symbolToken(s, unlocked, word){
   }
   if (PAIRS[s] && unlocked.has(PAIRS[s])) return s + w + PAIRS[s];
   if (CLOSERS[s] && unlocked.has(CLOSERS[s])) return CLOSERS[s] + w + s;
+  // Code drills use punctuation the way code does, so a token never reads as a stray sentence ("share.").
+  if (mode === 'code' && ".,;:!?".includes(s)) {
+    if (s === '.') return w + '.' + word();
+    if (s === ',') return has('(') && has(')') ? `${w}(${word()}, ${word()})` : has('[') && has(']') ? `[${w}, ${word()}]` : `${w},${word()}`;
+    if (s === ';') return has('(') && has(')') ? w + '();' : has('=') ? `${w} = ${word()};` : w + ';';
+    if (s === ':') return `${w}: ${word()}`;
+    if (s === '!') return '!' + w;
+    return has('.') ? `${w}?.${word()}` : w + '?';
+  }
   if (".,;:!?".includes(s)) return w + s;
+  // Outside code an apostrophe is a contraction or a possessive, not a quote mark.
+  if (s === "'" && mode !== 'code') {
+    const contr = CONTRACTIONS.filter(c => [...c].every(has));
+    if (contr.length && (Math.random() < 0.5 || !has('s'))) return pick(contr);
+    if (!has('s')) return s + w + s; // neither a contraction nor 's is typeable yet
+    // Possessives on words that don't already end in s, so no "has's".
+    let o = w; for (let i = 0; i < 8 && (o.length < 3 || /s$/.test(o)); i++) o = word();
+    return /s$/.test(o) ? (contr.length ? pick(contr) : o) : o + "'s";
+  }
   if ("'\"`".includes(s)) return s + w + s;
   if ("@#$~".includes(s)) return s + w;
   if ("-_".includes(s)) return w + s + word();
@@ -793,7 +815,7 @@ function symbolText(newC, unlocked, len, WORDS, mode){
       out.push(Math.random() < 0.5 ? s + s + t : s + t + s);
     } else if (mode === 'code' && snips.length && Math.random() < 0.6) out.push(pick(snips));
     else if (mode === 'prose' && Math.random() < 0.55) out.push(word());
-    else out.push(symbolToken(pick(syms), unlocked, word));
+    else out.push(symbolToken(pick(syms), unlocked, word, mode));
   }
   return out.join(' ');
 }
