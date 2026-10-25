@@ -114,5 +114,27 @@ for (const file of presets) {
   console.log(`ok  ${where} (wn: ${plain} → ${weighted} in practice${rv ? `, ${review} in a review` : ''})`);
 }
 
+// Keys not typed lately come back: free practice opens with them, and mixed drills weight them (learning principle 7).
+{
+  const where = 'stale keys';
+  const L = E.buildLayout(fs.readFileSync(path.join(presetDir, 'glove80-07-glove80-factory-default-layout.json'), 'utf8'));
+  const C = E.buildCurriculum(L, 'layers');
+  const all = E.unlockedBefore(C, C.lessons[C.lessons.length - 1], true);
+  const free = E.practiceStages(C, all, [], W, 90, S, [], ['q', 'z', ';']);
+  const first = free[0] && free[0].items.map(i => i.ch).join('');
+  if (!first || free[0].name !== 'Not typed lately') fail(where, `free practice should open with "Not typed lately", got "${free[0] && free[0].name}"`);
+  else if (!['q', 'z', ';'].every(c => first.includes(c))) fail(where, `"Not typed lately" misses some stale keys: ${first}`);
+  if (E.practiceStages(C, all, [], W, 90, S)[0].name === 'Not typed lately') fail(where, 'free practice adds the stale stage with no stale keys');
+  if (E.practiceStages(C, all, ['e'], W, 90, S, [], ['q']).some(s => s.name === 'Not typed lately')) fail(where, 'problem-key practice should stay on its focus keys');
+  // A later letter lesson's mixed drill: a stale earlier key shows up clearly more often than without weighting.
+  const l = C.lessons.filter(x => x.kind === 'learn' && x.items.some(c => /[a-z]/.test(c)))[6];
+  const old = [...E.unlockedBefore(C, l, false)].find(c => /[a-z]/.test(c));
+  const mixed = st => (st.find(s => s.name === 'Mixed drill') || { items: [] }).items.filter(i => i.ch === old).length;
+  let plain = 0, weighted = 0;
+  for (let i = 0; i < 40; i++) { plain += mixed(E.makeStages(C, l, W, 90, S)); weighted += mixed(E.makeStages(C, l, W, 90, S, [], [old])); }
+  if (weighted < plain * 1.8) fail(where, `stale "${old}" appeared ${weighted} times weighted vs ${plain} unweighted in "${l.title}" mixed drills`);
+  console.log(`ok  ${where} ("${old}" in mixed drills: ${plain} → ${weighted})`);
+}
+
 if (failures) { console.error(`\n${failures} failure(s).`); process.exit(1); }
 console.log(`\nAll ${presets.length} presets passed.`);

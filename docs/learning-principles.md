@@ -44,9 +44,7 @@ Practice that targets current weaknesses improves faster than even practice acro
 
 Skills fade without use. Spacing reviews out, and returning to older material, keeps it ([spaced practice for skills](https://www.learningscientists.org/blog/2018/11/15-1)).
 
-**In the app:** review lessons inside each unit, and free practice draws on everything unlocked.
-
-**Gap:** nothing tracks how long ago a key was last practiced, so keys from early units can go untouched for a long time. Mixing in keys not typed recently would close this.
+**In the app:** review lessons inside each unit, and free practice draws on everything unlocked. Each key's stats also record the day it was last typed. Keys typed at least 10 times but not for 7 days or more count as not typed lately (up to six, longest ago first). Lessons' mixed drills weight them three times as heavily as other known keys, and free practice opens with a "Not typed lately" stage: real words for letters, groups for digits, and symbols in context. The Practice page names those keys on the free practice card.
 
 ## 8. Stop looking at the keyboard
 

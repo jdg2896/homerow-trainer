@@ -629,9 +629,11 @@ function patternText(chars, len){
   }
   return out.join(' ');
 }
-function mixText(newC, known, len){
+function mixText(newC, known, len, stale){
   const nc = newC.filter(c => c !== ' '), kc = known.filter(c => c !== ' ' && /[a-z0-9]/i.test(c));
-  const pool = kc.length ? [...nc, ...nc, ...nc, ...kc] : nc;
+  // Known keys not typed lately count three times, so old keys come back without crowding out the new ones.
+  const sc = (stale || []).filter(c => kc.includes(c) && !nc.includes(c));
+  const pool = kc.length ? [...nc, ...nc, ...nc, ...kc, ...sc, ...sc] : nc;
   if (!pool.length) return '';
   const out = [];
   while (out.join(' ').length < len) {
@@ -881,7 +883,8 @@ function keyStages(ids, len){
 }
 
 // weak: the learner's weakest letter pairs, weakest first, which reviews mix into Common combos.
-function makeStages(C, lesson, WORDS, len, SENTS, weak){
+// stale: known keys not typed lately, which the mixed drills bring back more often.
+function makeStages(C, lesson, WORDS, len, SENTS, weak, stale){
   len = len || 90;
   if (lesson.kind === 'keys' || lesson.kind === 'chords') return keyStages(lesson.items, len);
   const isReview = lesson.kind === 'review';
@@ -928,7 +931,7 @@ function makeStages(C, lesson, WORDS, len, SENTS, weak){
       add('Back and forth', altText(newC, len * 0.7));
       if (knownLetters.length) add('With known keys', ngramText(newC, unlocked, len * 0.8) || bigramText(newC, knownLetters, len * 0.8));
     }
-    add('Mixed drill', mixText(newC, [...before], len));
+    add('Mixed drill', mixText(newC, [...before], len, stale));
     if (isReview) add('Common combos', ngramText(newC, unlocked, len, WORDS, weak));
     if (enough) {
       add('Short words', shortWordsText(newC, unlocked, len * 0.8, WORDS));
@@ -937,9 +940,9 @@ function makeStages(C, lesson, WORDS, len, SENTS, weak){
       if (lettersOf(unlocked).length >= 6) add('Sentences', sentenceText(newC, unlocked, len * 1.3, WORDS, SENTS));
     } else if (lettersOf(unlocked).length >= 4) {
       add('Pseudo-words', wordsText(newC, unlocked, len, WORDS));
-      add('Mixed drill 2', mixText(newC, [...before], len));
+      add('Mixed drill 2', mixText(newC, [...before], len, stale));
     } else {
-      add('Mixed drill 2', mixText(newC, [...before], len));
+      add('Mixed drill 2', mixText(newC, [...before], len, stale));
     }
     const extra = newC.filter(c => !/[a-z ]/.test(c));
     if (extra.length) add('Punctuation', symbolText(extra, unlocked, len, WORDS, 'prose'));
@@ -949,11 +952,18 @@ function makeStages(C, lesson, WORDS, len, SENTS, weak){
 }
 
 /* Free practice and problem keys */
-function practiceStages(C, unlocked, focus, WORDS, len, SENTS, weak){
+function practiceStages(C, unlocked, focus, WORDS, len, SENTS, weak, stale){
   const u = new Set(unlocked); u.add(' ');
   const letters = focus.filter(c => /[a-z]/.test(c));
   const syms = focus.filter(c => !/[a-z ]/.test(c));
   const st = [];
+  // Free practice opens with the keys not typed lately: letters in real words, digits in groups, symbols in context.
+  const old = !focus.length ? (stale || []).filter(c => u.has(c) && c !== ' ') : [];
+  if (old.length) {
+    const ol = old.filter(c => /[a-z]/.test(c)), od = old.filter(c => /[0-9]/.test(c)), os = old.filter(c => !/[a-z0-9]/.test(c));
+    st.push({ name: 'Not typed lately', text: [ol.length && wordsText(ol, u, len * 0.7, WORDS), od.length && mixText(od, [], len * 0.3),
+      os.length && symbolText(os, u, len * 0.6, WORDS, 'token')].filter(Boolean).join(' ') });
+  }
   if (focus.length) st.push({ name: 'Focus drill', text: mixText(focus, [], len) });
   if (letters.length) st.push({ name: 'Focus words', text: wordsText(letters, u, len, WORDS) });
   if (syms.length) st.push({ name: 'Focus symbols', text: symbolText(syms, u, len, WORDS, 'token') });
