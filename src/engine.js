@@ -986,8 +986,13 @@ function practiceStages(C, unlocked, focus, WORDS, len, SENTS, weak, stale){
   const old = !focus.length ? (stale || []).filter(c => u.has(c) && c !== ' ') : [];
   if (old.length) {
     const ol = old.filter(c => /[a-z]/.test(c)), od = old.filter(c => /[0-9]/.test(c)), os = old.filter(c => !/[a-z0-9]/.test(c));
-    st.push({ name: 'Not typed lately', text: [ol.length && wordsText(ol, u, len * 0.7, WORDS), od.length && mixText(od, [], len * 0.3),
-      os.length && symbolText(os, u, len * 0.6, WORDS, 'token')].filter(Boolean).join(' ') });
+    // The random fill can skip a key, and the stage promises to bring every one back, so each gets a guaranteed share first.
+    const { ok } = wordPool(u, [], WORDS);
+    const lead = shuffle(ol.flatMap(c => { const ws = ok.filter(w => w.includes(c)); return [0, 1].map(() => ws.length ? pick(ws) : pseudoWord(lettersOf(u), c)); })).join(' ');
+    const cover = (t, ks, make) => [t, ...ks.filter(c => !t.includes(c)).map(make)].join(' ');
+    st.push({ name: 'Not typed lately', text: [ol.length && lead + ' ' + wordsText(ol, u, len * 0.7 - lead.length, WORDS),
+      od.length && cover(mixText(od, [], len * 0.3), od, c => mixText([c], [], 1)),
+      os.length && cover(symbolText(os, u, len * 0.6, WORDS, 'token'), os, c => symbolText([c], u, 1, WORDS, 'token'))].filter(Boolean).join(' ') });
   }
   if (focus.length) st.push({ name: 'Focus drill', text: mixText(focus, [], len) });
   if (letters.length) st.push({ name: 'Focus words', text: wordsText(letters, u, len, WORDS) });

@@ -2,6 +2,10 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.18.0 — 2026-10-26
+
+- "Not typed lately" in free practice, and the suggested "Bring them back" session, now always include every key it lists, each in at least two real words.
+
 ## 0.17.0 — 2026-10-26
 
 - Practice suggests one short session at the top, such as bringing back keys you haven't typed in a week or working on weak letter pairs, and says why. Once today's goal is met it suggests resting instead.

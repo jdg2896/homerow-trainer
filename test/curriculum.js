@@ -120,10 +120,15 @@ for (const file of presets) {
   const L = E.buildLayout(fs.readFileSync(path.join(presetDir, 'glove80-07-glove80-factory-default-layout.json'), 'utf8'));
   const C = E.buildCurriculum(L, 'layers');
   const all = E.unlockedBefore(C, C.lessons[C.lessons.length - 1], true);
-  const free = E.practiceStages(C, all, [], W, 90, S, [], ['q', 'z', ';']);
-  const first = free[0] && free[0].items.map(i => i.ch).join('');
-  if (!first || free[0].name !== 'Not typed lately') fail(where, `free practice should open with "Not typed lately", got "${free[0] && free[0].name}"`);
-  else if (!['q', 'z', ';'].every(c => first.includes(c))) fail(where, `"Not typed lately" misses some stale keys: ${first}`);
+  // The random fill used to skip a key about once in 80 runs, so check enough runs to catch that.
+  const staleSets = [['q', 'z', ';'], ['q', 'z', 'x', 'j', 'k', 'v', '7', '0', '3', ';', '(', '[', '/']];
+  for (let i = 0; i < 200; i++) {
+    const keys = staleSets[i % 2], free = E.practiceStages(C, all, [], W, 90, S, [], keys);
+    const first = free[0] && free[0].items.map(i => i.ch).join('');
+    if (!first || free[0].name !== 'Not typed lately') { fail(where, `free practice should open with "Not typed lately", got "${free[0] && free[0].name}"`); break; }
+    const miss = keys.filter(c => !first.includes(c));
+    if (miss.length) { fail(where, `"Not typed lately" misses stale ${miss.join(' ')}: ${first}`); break; }
+  }
   if (E.practiceStages(C, all, [], W, 90, S)[0].name === 'Not typed lately') fail(where, 'free practice adds the stale stage with no stale keys');
   if (E.practiceStages(C, all, ['e'], W, 90, S, [], ['q']).some(s => s.name === 'Not typed lately')) fail(where, 'problem-key practice should stay on its focus keys');
   // A later letter lesson's mixed drill: a stale earlier key shows up clearly more often than without weighting.
