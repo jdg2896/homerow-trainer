@@ -88,10 +88,38 @@ typography:
     fontSize: "0.86em"
     fontWeight: 600
     lineHeight: 1
+  section:
+    fontFamily: "Bricolage Grotesque, Avenir Next, system-ui, sans-serif"
+    fontSize: "24px"
+    fontWeight: 700
+    lineHeight: 1.15
+  dialog:
+    fontFamily: "Bricolage Grotesque, Avenir Next, system-ui, sans-serif"
+    fontSize: "21px"
+    fontWeight: 700
+    lineHeight: 1.2
+  secondary:
+    fontFamily: "Atkinson Hyperlegible, system-ui, -apple-system, sans-serif"
+    fontSize: "14px"
+    fontWeight: 400
+    lineHeight: 1.4
+  meta:
+    fontFamily: "Atkinson Hyperlegible, system-ui, -apple-system, sans-serif"
+    fontSize: "13px"
+    fontWeight: 400
+    lineHeight: 1.4
+  caption:
+    fontFamily: "Atkinson Hyperlegible, system-ui, -apple-system, sans-serif"
+    fontSize: "12px"
+    fontWeight: 400
+    lineHeight: 1.3
 rounded:
+  mark: "2px"
   xs: "3px"
+  bar: "5px"
   sm: "6px"
   md: "8px"
+  row: "10px"
   lg: "12px"
   xl: "14px"
   pill: "99px"
@@ -198,7 +226,7 @@ A cool neutral desk with two working accents and pastel finger colors on the key
 - **Desk** (`desk`): the page background.
 - **Surface** (`surface`) and **Sunken Surface** (`surface-sunken`): cards, header and dialogs; inputs, badges, saved-layout rows and code blocks.
 - **Ink** (`ink`) and **Muted** (`muted`): body text; secondary text, upcoming drill characters, uppercase labels and meta lines.
-- **Line** (`line`): every border and divider, empty progress segments, and unearned stars.
+- **Line** (`line`): every border and divider, and unearned stars. Empty lesson segments are 70% Muted mixed into the surface, so they clear 3:1.
 - **Key / Key Edge / Key Ink**: the keycap material, used for the diagram and keycap chips.
 - **Finger colors** (`finger-pinky` lavender, `finger-ring` sky, `finger-middle` mint, `finger-index` apricot, `finger-thumb` stone): key fills on the keyboard diagram when "show fingers" is on.
 
@@ -252,7 +280,7 @@ The system is mostly flat. Depth comes from tone (desk → surface → sunken su
 
 ## Shapes
 
-Corners are softly rounded and get bigger with the size of the element: 3px for drill characters and progress segments, 6px for keycap chips and sidebar links, 8px for buttons, inputs and nav items, 10px for saved-layout rows, 12px for cards, lessons and dialogs, and 14px for the type box, keyboard card and hero. Pills (99px) are for chips, badges, tabs and the layer label. Circles are used only for lesson number discs and the goal ring. Every border is 1px in Line, except keycaps (3px bottom edge), lesson discs (2px) and home-row keys on the diagram (2px stroke).
+Corners are softly rounded and get bigger with the size of the element: 2px for the brand mark squares, 3px for drill characters and lesson segments, 5px for the hero progress bar, 6px for keycap chips and sidebar links, 8px for buttons, inputs and nav items, 10px for saved-layout rows, 12px for cards, lessons and dialogs, and 14px for the type box, keyboard card and hero. Pills (99px) are for chips, badges, tabs and the layer label. Circles are used only for lesson number discs and the goal ring. Every border is 1px in Line, except keycaps (3px bottom edge), lesson discs (2px) and home-row keys on the diagram (2px stroke).
 
 ## Components
 
@@ -287,7 +315,7 @@ The signature primitive: an inline key legend that looks like a physical cap.
 - **Starter-layout card:** on first run, while the bundled default layout is active and no lesson has been typed, a plain card above the hero names the layout and keyboard, says it's a stand-in, and explains a lesson in one line. "Choose a layout" is a default button and "Keep this one" a link button, so the hero's Start stays the only amber.
 
 ### Lesson Row
-A three-column grid: a number disc, the title with its meta line, and the action. A 2px Line circle holds the number, which fills Done Green when the lesson is complete. The next lesson gets a Keycap Blue border and the focus-lift shadow, and its button is ghost like the others, since the hero already carries the amber Start. Locked lessons sit at 55% opacity. The meta line holds stars (Ink when earned) and a 140px strip of stage segments that fill green.
+A three-column grid: a number disc, the title with its meta line, and the action. A 2px Line circle holds the number, which fills Done Green when the lesson is complete. The next lesson gets a Keycap Blue border and the focus-lift shadow, and its button is ghost like the others, since the hero already carries the amber Start. Locked lessons drop their fill to sit on the desk, with Muted text and keycaps, no segment strip, and a plain "Locked" label instead of a disabled button; they recede without falling below 4.5:1. The meta line holds stars (Ink when earned) and a 140px strip of stage segments that fill green.
 
 ### Inputs / Fields
 - **Style:** Sunken Surface fill, 1px Line border, 8px radius, 8px 10px padding, full width. Textareas are mono 13px except in the feedback dialog.
@@ -297,7 +325,7 @@ A three-column grid: a number disc, the title with its meta line, and the action
 - **Messages:** an error message is Miss Red on its soft tint, and a success message is Keycap Blue Soft.
 
 ### Navigation
-A vertical list of bold 15px rows with 10px 12px padding and an 8px radius, each with its number-key shortcut in faded mono on the right. Hover shows a Surface fill, and the active row is a solid Keycap Blue fill. At ≤860px it becomes a wrapping row and the shortcut numbers are hidden.
+A vertical list of bold 15px rows with 10px 12px padding and an 8px radius, each with its number-key shortcut in faded mono on the right (hidden from screen readers, which get `aria-keyshortcuts`; 85% on the active row so it clears 4.5:1). Hover shows a Surface fill, and the active row is a solid Keycap Blue fill. At ≤860px it becomes a wrapping row and the shortcut numbers are hidden.
 
 ### Drill Viewport
 Three mono lines in a roomy, shadowed card, scrolling one line at a time (a 0.15s transform). Upcoming characters are Ink, since they are what you read next. Typed characters step back to Muted, which still clears 4.5:1 in both themes. A miss is Miss Red on its soft tint, including on the current character, where it also turns the cursor underline red, and a miss that was then fixed stays Miss Red at 60%. The current character gets a Keycap Blue Soft tint and a 3px Keycap Blue underline, and the current space shows a centered blue dot. A miss also triggers a 3px horizontal shake (0.18s), which reduced motion turns off. When the box loses focus, a translucent surface veil covers it with "Paused while this window is in the background. Click here or switch back to keep typing." Esc shows the same veil with "Paused. Press any key to keep typing, or Esc again to leave the lesson." The clock really stops while either shows.
