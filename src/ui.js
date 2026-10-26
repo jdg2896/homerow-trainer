@@ -252,6 +252,11 @@ function welcomeCard(){
     <p class="muted">Each lesson is a few short drills: meet the new keys, then type them in words and sentences. You move on at ${S.settings.passAcc}% accuracy, and speed only earns extra stars.</p>
     <div class="actions"><button class="btn" data-view="layout">Choose a layout</button><button class="linkbtn" data-act="welcome-ok">Keep this one</button></div></section>`;
 }
+// The new keys across some lessons, as small chips: previews for units and the locked tail of a unit.
+function keyPreview(lessons, max){
+  const ks = [...new Set(lessons.filter(l => l.kind !== 'review').flatMap(l => l.items).filter(c => c !== ' '))];
+  return `<span class="kpreview">${ks.slice(0, max).map(c => kc(c)).join('')}${ks.length > max ? '<span aria-hidden="true">…</span>' : ''}</span>`;
+}
 function learnView(){
   const ls = S.C.lessons, done = ls.filter(isDone).length, nxt = nextLessonIdx();
   const nl = ls[nxt];
@@ -264,22 +269,27 @@ function learnView(){
     const d = u.lessons.filter(isDone).length;
     const containsNext = u.lessons.includes(ls[nxt]);
     // Keep the page short: open only the current unit and any that are part-done; collapse finished and not-yet-reached ones.
-    const open = containsNext || (d > 0 && d < u.lessons.length);
-    html += `<details class="unit" id="u-${u.id}"${open ? ' open' : ''}><summary aria-label="${esc(u.title)}. ${esc(u.blurb)} ${d} of ${u.lessons.length} done"><div class="uhead"><div><h3>${esc(u.title)}</h3><p>${esc(u.blurb)}</p></div><div class="uright"><span>${d} of ${u.lessons.length} done</span><span class="chev" aria-hidden="true"></span></div></div></summary><div class="lessons">`;
-    u.lessons.forEach(l => {
-      const i = ls.indexOf(l), p = lessonProg(l), un = isUnlocked(i), isNext = i === nxt;
+    const open = containsNext || (d > 0 && d < u.lessons.length), all = d === u.lessons.length;
+    // A finished unit says so in green; one not reached yet previews its keys instead of a bare "0 of 8".
+    const status = all ? `<span class="udone">✓ All ${d} done</span>` : `${!d && !containsNext ? keyPreview(u.lessons, 8) : ''}<span>${d} of ${u.lessons.length} done</span>`;
+    html += `<details class="unit" id="u-${u.id}"${open ? ' open' : ''}><summary aria-label="${esc(u.title)}. ${esc(u.blurb)} ${d} of ${u.lessons.length} done"><div class="uhead"><div><h3>${esc(u.title)}</h3><p>${esc(u.blurb)}</p></div><div class="uright">${status}<span class="chev" aria-hidden="true"></span></div></div></summary><div class="lessons">`;
+    // Lessons not unlocked yet fold into one line at the end, so a fresh course isn't a wall of locked rows.
+    const locked = u.lessons.filter(l => !isUnlocked(ls.indexOf(l)));
+    u.lessons.filter(l => !locked.includes(l)).forEach(l => {
+      const i = ls.indexOf(l), p = lessonProg(l), isNext = i === nxt;
       const verb = isDone(l) ? 'Redo' : resumeStage(l) ? 'Continue' : 'Start';
       const segN = (p && p.stageCount) || (l.kind === 'review' ? 6 : l.kind === 'learn' ? 8 : 4);
       const segDone = p ? (p.stars > 0 ? segN : (p.stagesDone || 0)) : 0;
       const keys = l.kind === 'review' ? '' : l.items.filter(c => c !== ' ' || l.items.length === 1).map(c => kc(c)).join('') + (l.items.includes(' ') ? kc(' ') : '');
       const title = l.kind === 'review' || l.title.startsWith('Capitals') || l.kind === 'keys' || l.kind === 'chords' ? esc(l.title) : '';
-      html += `<div class="lesson ${isDone(l) ? 'done' : ''} ${isNext ? 'next' : ''} ${un ? '' : 'locked'}">
+      html += `<div class="lesson ${isDone(l) ? 'done' : ''} ${isNext ? 'next' : ''}">
         <div class="num">${isDone(l) ? '✓' : l.num}</div>
         <div class="ttl"><b>${title}${title && keys ? ' ' : ''}${l.kind === 'review' ? '' : (title ? '' : keys)}</b>
-          <div class="meta">${l.kind === 'review' ? '<span class="badge">Review</span>' : ''}${(l.kind === 'keys' || l.kind === 'chords') ? keys : ''}${un ? `<span class="segs" role="img" aria-label="${segDone} of ${segN} stages done">${Array.from({ length: segN }, (_, k) => `<i class="${k < segDone ? 'on' : ''}"></i>`).join('')}</span>` : ''}${p && p.stars ? starsHtml(p.stars) + `<span>${Math.round(p.bestAcc || 0)}% · ${Math.round(p.bestWpm || 0)} wpm</span>` : ''}</div></div>
-        <div class="act">${un ? `<button class="btn ghost" data-start="${i}" aria-label="${verb} lesson ${l.num}: ${esc(l.title)}"><span class="tri"></span>${verb}</button>` : `<span class="locked-tag">Locked</span>`}</div>
+          <div class="meta">${l.kind === 'review' ? '<span class="badge">Review</span>' : ''}${(l.kind === 'keys' || l.kind === 'chords') ? keys : ''}<span class="segs" role="img" aria-label="${segDone} of ${segN} stages done">${Array.from({ length: segN }, (_, k) => `<i class="${k < segDone ? 'on' : ''}"></i>`).join('')}</span>${p && p.stars ? starsHtml(p.stars) : ''}</div></div>
+        <div class="act"><button class="btn ghost" data-start="${i}" aria-label="${verb} lesson ${l.num}: ${esc(l.title)}"><span class="tri"></span>${verb}</button></div>
       </div>`;
     });
+    if (locked.length) html += `<div class="lesson locked more"><div class="ttl"><b>${locked.length} more ${locked.length === 1 ? 'lesson' : 'lessons'}</b>${keyPreview(locked, 12)}</div><div class="act"><span class="locked-tag">Locked</span></div></div>`;
     html += `</div></details>`;
   });
   return html;
