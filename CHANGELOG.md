@@ -2,6 +2,12 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.14.0 — 2026-10-26
+
+- Screen readers name each lesson's button ("Start lesson 3: S and L"), read stars and stage progress as text instead of ★ symbols, and announce each unit with its progress. Nav items no longer read their shortcut number as part of the name.
+- Locked lessons are easier to read: they no longer fade out, and they show a plain "Locked" label instead of a greyed-out button.
+- Empty stage segments are easier to see.
+
 ## 0.13.0 — 2026-10-26
 
 - Apostrophes in prose drills are contractions and possessives ("don't", "dad's") instead of words wrapped in single quotes.

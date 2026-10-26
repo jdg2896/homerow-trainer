@@ -151,7 +151,7 @@ function staleKeys(limit){
     .sort((a, b) => ks[a].d < ks[b].d ? -1 : ks[a].d > ks[b].d ? 1 : 0).slice(0, limit || 6);
 }
 function fmtTime(s){ s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60; return h ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`; }
-function starsHtml(n, max){ let s = ''; for (let i = 0; i < (max || 3); i++) s += `<span class="${i < n ? 'on' : ''}">★</span>`; return `<span class="stars" aria-label="${n} of 3 stars">${s}</span>`; }
+function starsHtml(n, max){ let s = ''; for (let i = 0; i < (max || 3); i++) s += `<span class="${i < n ? 'on' : ''}">★</span>`; return `<span class="stars" role="img" aria-label="${n} of ${max || 3} stars">${s}</span>`; }
 function kc(c, cls){ const lab = c.length > 1 ? E.keyItemLabel(E.keyItem(c)) : E.charName(c); return `<span class="kc ${cls || ''}">${esc(lab)}</span>`; }
 function itemLabel(id){ return id.length > 1 ? E.keyItemLabel(E.keyItem(id)) : E.charName(id); }
 
@@ -237,7 +237,7 @@ function sidebar(){
     ? `<div class="card"><h4>Your problem keys</h4>${pk.length ? `<div class="probkeys">${pk.map(r => kc(r.k, 'warn')).join('')}</div><button class="btn" data-act="practice-problem">Practice these</button>` : `<p class="muted" style="margin:0;font-size:14px">Type a few lessons and the keys you miss or hesitate on show up here.</p>`}</div>`
     : '';
   return `<aside class="side">
-    <nav class="nav">${nav.map(([v, t], i) => `<button class="${S.view === v ? 'on' : ''}" data-view="${v}" aria-keyshortcuts="${i + 1}">${t}<span class="kbd">${i + 1}</span></button>`).join('')}</nav>
+    <nav class="nav">${nav.map(([v, t], i) => `<button class="${S.view === v ? 'on' : ''}" data-view="${v}" aria-keyshortcuts="${i + 1}">${t}<span class="kbd" aria-hidden="true">${i + 1}</span></button>`).join('')}</nav>
     ${units}
     ${probCard}
   </aside>`;
@@ -257,7 +257,7 @@ function learnView(){
   const nl = ls[nxt];
   let html = (S.msg ? `<div class="msg ${S.msg.t}" role="status">${esc(S.msg.m)}</div>` : '') + whatsNew() + welcomeCard() + `<section class="hero"><div><h2>${done === ls.length ? 'Every lesson complete' : 'Next: ' + esc(nl.title)}</h2>
     <p>${done} of ${ls.length} lessons done on ${esc(S.layout.title)}</p></div>
-    <div class="progress" aria-label="${Math.round(done / ls.length * 100)}% complete"><i style="width:${(done / ls.length * 100).toFixed(1)}%"></i></div>
+    <div class="progress" aria-hidden="true"><i style="width:${(done / ls.length * 100).toFixed(1)}%"></i></div>
     <button class="btn go" data-start="${nxt}"><span class="tri"></span>${done || resumeStage(nl) ? 'Continue' : 'Start'}</button></section>
     <p class="muted keyhint"><span class="kc">↑</span><span class="kc">↓</span> move between lessons · <span class="kc">Enter</span> starts · <span class="kc">1</span>–<span class="kc">4</span> switch tabs · <span class="kc">Esc</span> pauses a lesson</p>`;
   S.C.units.forEach(u => {
@@ -265,9 +265,10 @@ function learnView(){
     const containsNext = u.lessons.includes(ls[nxt]);
     // Keep the page short: open only the current unit and any that are part-done; collapse finished and not-yet-reached ones.
     const open = containsNext || (d > 0 && d < u.lessons.length);
-    html += `<details class="unit" id="u-${u.id}"${open ? ' open' : ''}><summary><div class="uhead"><div><h3>${esc(u.title)}</h3><p>${esc(u.blurb)}</p></div><div class="uright"><span>${d} of ${u.lessons.length} done</span><span class="chev" aria-hidden="true"></span></div></div></summary><div class="lessons">`;
+    html += `<details class="unit" id="u-${u.id}"${open ? ' open' : ''}><summary aria-label="${esc(u.title)}. ${esc(u.blurb)} ${d} of ${u.lessons.length} done"><div class="uhead"><div><h3>${esc(u.title)}</h3><p>${esc(u.blurb)}</p></div><div class="uright"><span>${d} of ${u.lessons.length} done</span><span class="chev" aria-hidden="true"></span></div></div></summary><div class="lessons">`;
     u.lessons.forEach(l => {
       const i = ls.indexOf(l), p = lessonProg(l), un = isUnlocked(i), isNext = i === nxt;
+      const verb = isDone(l) ? 'Redo' : resumeStage(l) ? 'Continue' : 'Start';
       const segN = (p && p.stageCount) || (l.kind === 'review' ? 6 : l.kind === 'learn' ? 8 : 4);
       const segDone = p ? (p.stars > 0 ? segN : (p.stagesDone || 0)) : 0;
       const keys = l.kind === 'review' ? '' : l.items.filter(c => c !== ' ' || l.items.length === 1).map(c => kc(c)).join('') + (l.items.includes(' ') ? kc(' ') : '');
@@ -275,8 +276,8 @@ function learnView(){
       html += `<div class="lesson ${isDone(l) ? 'done' : ''} ${isNext ? 'next' : ''} ${un ? '' : 'locked'}">
         <div class="num">${isDone(l) ? '✓' : l.num}</div>
         <div class="ttl"><b>${title}${title && keys ? ' ' : ''}${l.kind === 'review' ? '' : (title ? '' : keys)}</b>
-          <div class="meta">${l.kind === 'review' ? '<span class="badge">Review</span>' : ''}${(l.kind === 'keys' || l.kind === 'chords') ? keys : ''}<span class="segs">${Array.from({ length: segN }, (_, k) => `<i class="${k < segDone ? 'on' : ''}"></i>`).join('')}</span>${p && p.stars ? starsHtml(p.stars) + `<span>${Math.round(p.bestAcc || 0)}% · ${Math.round(p.bestWpm || 0)} wpm</span>` : ''}</div></div>
-        <div class="act">${un ? `<button class="btn ghost" data-start="${i}"><span class="tri"></span>${isDone(l) ? 'Redo' : resumeStage(l) ? 'Continue' : 'Start'}</button>` : `<button class="btn ghost" disabled>Locked</button>`}</div>
+          <div class="meta">${l.kind === 'review' ? '<span class="badge">Review</span>' : ''}${(l.kind === 'keys' || l.kind === 'chords') ? keys : ''}${un ? `<span class="segs" role="img" aria-label="${segDone} of ${segN} stages done">${Array.from({ length: segN }, (_, k) => `<i class="${k < segDone ? 'on' : ''}"></i>`).join('')}</span>` : ''}${p && p.stars ? starsHtml(p.stars) + `<span>${Math.round(p.bestAcc || 0)}% · ${Math.round(p.bestWpm || 0)} wpm</span>` : ''}</div></div>
+        <div class="act">${un ? `<button class="btn ghost" data-start="${i}" aria-label="${verb} lesson ${l.num}: ${esc(l.title)}"><span class="tri"></span>${verb}</button>` : `<span class="locked-tag">Locked</span>`}</div>
       </div>`;
     });
     html += `</div></details>`;
