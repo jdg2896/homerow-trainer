@@ -366,11 +366,13 @@ function buildRoutes(L, pref, modPref){
     if (k.hold && k.hold.layer != null) (layerActs[k.hold.layer] = layerActs[k.hold.layer] || []).push(p);
   });
   const chars = {}, keys = {};
+  // Characters a layer key and a base-layer number-row or reach key both type: the only ones the routing preference changes.
+  const viaLayer = new Set(), viaReach = new Set();
   const consider = (map, id, r) => { if (!map[id] || map[id].cost > r.cost) map[id] = r; };
   L.layers.forEach((layer, li) => {
     layer.forEach((k, p) => {
       if (!k || !k.tap || k.inherited) return;
-      const t = k.tap;
+      const t = k.tap, reach = li === 0 && L.keys[p] && (L.keys[p].role === 'num' || L.keys[p].role === 'extra');
       let c = keyCost(L, p, pref) + (t.ambiguous ? 1.5 : 0), holds = [];
       if (li > 0) {
         const a = pickHolder(L, layerActs[li] || [], p, pref);
@@ -381,9 +383,11 @@ function buildRoutes(L, pref, modPref){
       const r = { layer: li, pos: p, holds, cost: c };
       if (t.ch) {
         consider(chars, t.ch, r);
+        if (li > 0) viaLayer.add(t.ch); else if (reach) viaReach.add(t.ch);
         if (li === 0) {
           const sh = CH[t.code] && CH[t.code][1];
           if (sh && sh !== t.ch) {
+            if (reach) viaReach.add(sh);
             const s = pickHolder(L, shiftHolders, p, pref);
             if (s) consider(chars, sh, { layer: 0, pos: p, holds: [{ pos: s.pos, kind: 'mod', mod: 'shift' }], cost: c + 1.2 + (L.keys[s.pos].hand === L.keys[p].hand ? 1 : 0) });
           }
@@ -392,7 +396,7 @@ function buildRoutes(L, pref, modPref){
       if (t.key) consider(keys, keyId(t.key), Object.assign({ key: t.key, label: t.label }, r));
     });
   });
-  return { chars, keys, modHolders, layerActs, bothModKinds: mk.both };
+  return { chars, keys, modHolders, layerActs, bothModKinds: mk.both, bothRouteKinds: [...viaReach].some(c => viaLayer.has(c)) };
 }
 function keyId(k){ return (k.mods || []).slice().sort().join('+') + (k.mods && k.mods.length ? '+' : '') + k.key; }
 

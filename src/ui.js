@@ -37,7 +37,7 @@ const S = {
   activeId: store.get('active', null),
   settings: loadSettings(),
   welcomed: store.get('welcomed', false),
-  view: 'learn', layerView: 0, run: null, msg: null, confirmDel: null, renaming: null, updating: null, customText: '', presetSel: null, pending: null, pasteText: ''
+  view: 'learn', layerView: 0, run: null, msg: null, confirmDel: null, restore: null, renaming: null, updating: null, customText: '', presetSel: null, pending: null, pasteText: ''
 };
 
 function today(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -481,44 +481,71 @@ function layoutView(){
   </section>`;
 }
 
+// Grouped by what people come to change: how much to practise, what passing takes, help while typing,
+// then layout-specific routing, then their data. Help text is tied to its control with aria-describedby.
 function settingsView(){
-  const s = S.settings;
-  const sel = (id, opts, v) => `<select id="${id}">${opts.map(([val, t]) => `<option value="${val}" ${String(v) === String(val) ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+  const s = S.settings, R = S.C.routes, L = S.layout;
+  const sel = (id, opts, v, help) => `<select id="${id}"${help ? ` aria-describedby="${id}Help"` : ''}>${opts.map(([val, t]) => `<option value="${val}" ${String(v) === String(val) ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+  const help = (id, text) => `<small id="${id}Help">${text}</small>`;
+  const check = (id, label, text) => `<div class="check"><input type="checkbox" id="${id}" ${s[id] ? 'checked' : ''}${text ? ` aria-describedby="${id}Help"` : ''}><div><label for="${id}">${label}</label>${text ? help(id, text) : ''}</div></div>`;
+  // A goal set before these choices existed stays selectable.
+  const goals = [5, 10, 15, 20, 30]; if (!goals.includes(+s.dailyGoal)) goals.push(+s.dailyGoal); goals.sort((x, y) => x - y);
+  const n = lessonsDone(S.activeId), confirm = S.confirmDel === '__reset', R2 = S.restore;
+  const reset = confirm ? `<div class="confirm" role="group" aria-labelledby="resetQ"><b id="resetQ">Reset progress for ${esc(L.title)}?</b>
+      <p>${n ? `${n} ${n === 1 ? 'lesson' : 'lessons'} done and` : 'Lesson progress and'} key stats are cleared. Download a backup first if you might want them back. This can't be undone.</p>
+      <div class="actions"><button class="btn danger solid" data-act="reset">Reset</button><button class="btn ghost" data-act="reset-cancel">Cancel</button></div></div>`
+    : `<div class="actions"><button class="btn ghost danger" data-act="reset">Reset progress…</button></div>`;
+  const restore = R2 ? `<div class="confirm" role="group" aria-labelledby="restoreQ"><b id="restoreQ">Restore the backup from ${esc(new Date(R2.exportedAt).toLocaleDateString())}?</b>
+      <p>It has ${R2.names.length} ${R2.names.length === 1 ? 'layout' : 'layouts'} (${esc(R2.names.join(', '))}). Progress for those layouts and your settings are replaced; other layouts are kept.</p>
+      <div class="actions"><button class="btn primary" data-act="restore-ok">Restore</button><button class="btn ghost" data-act="restore-cancel">Cancel</button></div></div>` : '';
   return `<div class="section-title"><h2>Settings</h2></div>
-  <div class="grid2">
-    <div class="card field"><h3 style="font-size:19px">Key routing</h3>
-      <label for="routePref">Numbers &amp; symbols</label>
-      ${sel('routePref', [['layers', 'Thumb layers (Miryoku style)'], ['reach', 'Number row and reach keys']], s.routePref)}
-      <small>Changes where lessons send you for digits, brackets and punctuation when your layout has both.</small>
-      ${S.C.routes.bothModKinds ? `<label for="modPref">Shift and other modifiers</label>
-      ${sel('modPref', [['auto', 'Easiest to reach'], ['dedicated', 'Dedicated modifier keys'], ['homerow', 'Home row mods']], s.modPref)}
-      <small>Your layout has both, so pick which ones lessons tell you to hold.</small>` : ''}</div>
-    <div class="card field"><h3 style="font-size:19px">Scoring</h3>
+  ${msgHtml()}
+  <div class="grid2 settings">
+    <section class="card field" aria-labelledby="setPace"><h3 id="setPace">Daily practice</h3>
+      <label for="dailyGoal">Daily goal</label>
+      ${sel('dailyGoal', goals.map(m => [m, `${m} minutes`]), s.dailyGoal, true)}
+      ${help('dailyGoal', 'Short, regular sessions are easier on your hands than long ones.')}
+      <label for="stageLen">Drill length</label>
+      ${sel('stageLen', [[60, 'Short'], [90, 'Normal'], [140, 'Long']], s.stageLen)}</section>
+    <section class="card field" aria-labelledby="setPass"><h3 id="setPass">Passing lessons</h3>
       <label for="passAcc">Accuracy needed to pass</label>
       ${sel('passAcc', [[90, '90%'], [95, '95%'], [97, '97%'], [98, '98%']], s.passAcc)}
-      <label for="targetWpm">Speed for the second star (wpm)</label>
-      <input type="number" id="targetWpm" min="5" max="150" value="${s.targetWpm}"></div>
-    <div class="card field"><h3 style="font-size:19px">Drills &amp; goal</h3>
-      <label for="stageLen">Drill length</label>
-      ${sel('stageLen', [[60, 'Short'], [90, 'Normal'], [140, 'Long']], s.stageLen)}
-      <label for="dailyGoal">Daily goal (minutes)</label>
-      <input type="number" id="dailyGoal" min="1" max="120" value="${s.dailyGoal}"></div>
-    <div class="card field"><h3 style="font-size:19px">During a lesson</h3>
-      <div class="check"><input type="checkbox" id="stopOnError" ${s.stopOnError ? 'checked' : ''}><label for="stopOnError">Stop on errors<br><small>You must type the right key before moving on.</small></label></div>
-      <div class="check"><input type="checkbox" id="showKeyboard" ${s.showKeyboard ? 'checked' : ''}><label for="showKeyboard">Show the keyboard during lessons</label></div>
-      <label for="keyHighlight">Next-key highlight</label>
-      ${sel('keyHighlight', [['bright', 'Fill the key'], ['subtle', 'Outline the key'], ['off', 'Off']], s.keyHighlight)}
+      <label for="targetWpm">Speed for extra stars (wpm)</label>
+      <input type="number" id="targetWpm" min="5" max="150" value="${s.targetWpm}" aria-describedby="targetWpmHelp">
+      ${help('targetWpm', 'Speed never holds you back. In word and sentence drills, reaching it earns a second star, and 98% accuracy at 25% faster a third.')}
+      ${check('unlockAll', 'Unlock every lesson', 'Open any lesson without finishing the ones before it.')}</section>
+    <section class="card field" aria-labelledby="setType"><h3 id="setType">While you type</h3>
+      ${check('stopOnError', 'Stop on errors', 'You must type the right key before moving on.')}
       <label for="hints">Hints</label>
-      ${sel('hints', [['fade', 'Fade as you learn each key'], ['always', 'Always show'], ['miss', 'Only after a miss']], s.hints)}
-      <small>Fading hides the hint and key highlight for keys you type accurately until you pause or miss, so you recall them from memory.</small>
-      <div class="check"><input type="checkbox" id="showFingers" ${s.showFingers ? 'checked' : ''}><label for="showFingers">Colour keys by finger</label></div>
-      <div class="check"><input type="checkbox" id="unlockAll" ${s.unlockAll ? 'checked' : ''}><label for="unlockAll">Unlock every lesson</label></div></div>
-    <div class="card field"><h3 style="font-size:19px">Appearance</h3>
+      ${sel('hints', [['fade', 'Fade as you learn each key'], ['always', 'Always show'], ['miss', 'Only after a miss']], s.hints, true)}
+      ${help('hints', 'Fading hides the hint and key highlight for keys you type accurately until you pause or miss, so you recall them from memory.')}</section>
+    <section class="card field" aria-labelledby="setKb"><h3 id="setKb">On-screen keyboard</h3>
+      ${check('showKeyboard', 'Show the keyboard during lessons')}
+      ${s.showKeyboard ? `<label for="keyHighlight">Next-key highlight</label>
+      ${sel('keyHighlight', [['bright', 'Fill the key'], ['subtle', 'Outline the key'], ['off', 'Off']], s.keyHighlight)}
+      ${check('showFingers', 'Colour keys by finger')}` : ''}</section>
+    ${R.bothRouteKinds || R.bothModKinds ? `<section class="card field" aria-labelledby="setRoute"><h3 id="setRoute">Your layout’s keys</h3>
+      ${R.bothRouteKinds ? `<label for="routePref">Numbers &amp; symbols</label>
+      ${sel('routePref', [['layers', 'Thumb layers (Miryoku style)'], ['reach', 'Number row and reach keys']], s.routePref, true)}
+      ${help('routePref', `${esc(L.title)} can type digits and symbols both ways. Lessons teach the one you pick.`)}` : ''}
+      ${R.bothModKinds ? `<label for="modPref">Shift and other modifiers</label>
+      ${sel('modPref', [['auto', 'Easiest to reach'], ['dedicated', 'Dedicated modifier keys'], ['homerow', 'Home row mods']], s.modPref, true)}
+      ${help('modPref', `${esc(L.title)} has both, so pick which ones lessons tell you to hold.`)}` : ''}</section>` : ''}
+    <section class="card field" aria-labelledby="setLook"><h3 id="setLook">Appearance</h3>
       <label for="theme">Theme</label>
-      ${sel('theme', [['system', 'Match system'], ['light', 'Light'], ['dark', 'Dark']], s.theme)}
-      <small>Choose a light or dark colour scheme, or follow your device setting.</small></div>
-    <div class="card field"><h3 style="font-size:19px">Reset</h3><small>Clears lesson progress and key stats for your active layout, ${esc(S.layout.title)}. Your other saved layouts keep theirs.</small>
-      <div class="actions"><button class="btn danger" data-act="reset">${S.confirmDel === '__reset' ? 'Confirm reset' : 'Reset progress'}</button></div></div>
+      ${sel('theme', [['system', 'Match system'], ['light', 'Light'], ['dark', 'Dark']], s.theme)}</section>
+    <section class="card field" aria-labelledby="setData"><h3 id="setData">Your data</h3>
+      <small>Layouts, progress and settings live only in this browser. A backup file keeps them safe if you clear site data or switch browsers.</small>
+      <div class="actions"><button class="btn" data-act="backup">Download backup</button><button class="btn ghost" data-act="restore">Restore from backup…</button></div>
+      <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+      ${restore}
+      <hr>
+      <small>Reset clears lesson progress and key stats for ${esc(L.title)}. Your other layouts keep theirs.</small>
+      ${reset}</section>
+    <section class="card field" aria-labelledby="setAbout"><h3 id="setAbout">About &amp; feedback</h3>
+      <p>Homerow Trainer v${esc(BUILD.version)}${BUILD.commit ? ` <span class="mono muted">${esc(BUILD.commit)}</span>` : ''}. Free and open source; nothing leaves your browser.</p>
+      <p class="links"><a href="${repoFile('CHANGELOG.md')}" target="_blank" rel="noopener">What's new</a> · <a href="${repoFile('CREDITS.md')}" target="_blank" rel="noopener">Credits &amp; licenses</a> · <a href="${BUILD.repo}" target="_blank" rel="noopener">Source</a></p>
+      <div class="actions"><button class="btn" data-act="feedback" data-fbtype="bug">Report something broken</button><button class="btn ghost" data-act="feedback" data-fbtype="feedback">Share an idea</button></div></section>
   </div>`;
 }
 
@@ -960,6 +987,36 @@ function startPractice(kind){
 }
 
 /* ---------- events ---------- */
+/* ---------- backup ----------
+   Everything lives in localStorage, so a backup is the only way to carry progress to another browser
+   or survive clearing site data. It holds every layout with its stats, plus settings. */
+function downloadBackup(){
+  saveStats();
+  const stats = {}; Object.keys(S.layouts).forEach(id => { stats[id] = id === S.activeId ? S.stats : store.get('stats.' + id, null); });
+  const data = { app: 'homerow-trainer', backup: 1, version: BUILD.version, exportedAt: new Date().toISOString(), active: S.activeId, settings: S.settings, layouts: S.layouts, stats };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+  a.download = `homerow-trainer-backup-${today()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  S.msg = { t: 'ok', m: `Downloaded a backup of ${Object.keys(S.layouts).length} ${Object.keys(S.layouts).length === 1 ? 'layout' : 'layouts'} and their progress.` }; render();
+}
+function readBackup(text){
+  let b; try { b = JSON.parse(text); } catch (e) { throw new Error('This isn’t a Homerow Trainer backup file.'); }
+  if (!b || b.app !== 'homerow-trainer' || !b.layouts || typeof b.layouts !== 'object') throw new Error('This isn’t a Homerow Trainer backup file.');
+  const ids = Object.keys(b.layouts).filter(id => b.layouts[id] && typeof b.layouts[id].text === 'string');
+  if (!ids.length) throw new Error('This backup has no layouts in it.');
+  return Object.assign(b, { ids, names: ids.map(id => b.layouts[id].name || 'Untitled layout') });
+}
+function applyBackup(b){
+  b.ids.forEach(id => { S.layouts[id] = b.layouts[id]; if (b.stats && b.stats[id]) store.set('stats.' + id, b.stats[id]); else store.del('stats.' + id); });
+  saveLayouts();
+  S.settings = Object.assign({}, DEFAULT_SETTINGS, b.settings || {}); store.set('settings', S.settings); applyTheme(S.settings.theme);
+  try { activate(b.ids.includes(b.active) ? b.active : S.layouts[S.activeId] ? S.activeId : b.ids[0]); }
+  catch (err) { S.msg = { t: 'err', m: `Restored, but ${S.layout.title} couldn’t be rebuilt: ${err.message}` }; return; }
+  S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Restored ${b.ids.length} ${b.ids.length === 1 ? 'layout' : 'layouts'} and your settings from the backup.` };
+}
+
 /* ---------- feedback ----------
    No backend: the form builds a prefilled GitHub "new issue" link. Each type has a matching
    .github/ISSUE_TEMPLATE file whose frontmatter applies the label, since the labels query
@@ -1109,7 +1166,7 @@ document.addEventListener('click', e => {
   const t = e.target.closest('button, a[data-jump]'); if (!t) return;
   const d = t.dataset;
   if (d.jump) { e.preventDefault(); const el = document.getElementById(d.jump); if (el) { if (el.tagName === 'DETAILS') el.open = true; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
-  if (d.view) { S.view = d.view; S.msg = null; S.confirmDel = null; S.renaming = null; S.pending = null; render(); const g = d.goto && $('#' + d.goto); if (g) g.focus(); return; }
+  if (d.view) { S.view = d.view; S.msg = null; S.confirmDel = null; S.renaming = null; S.pending = null; S.restore = null; render(); const g = d.goto && $('#' + d.goto); if (g) g.focus(); return; }
   if (d.start != null) { startLesson(+d.start); return; }
   if (d.layer != null) { S.layerView = +d.layer; render(); return; }
   if (d.use) { activate(d.use); S.msg = null; S.confirmDel = null; render(); return; }
@@ -1176,9 +1233,15 @@ document.addEventListener('click', e => {
     case 'del-cancel': { const id = S.confirmDel; S.confirmDel = null; render(); const b = $(`[data-del="${CSS.escape(id || '')}"]`); if (b) b.focus(); break; }
     case 'rename-save': saveRename(); break;
     case 'rename-cancel': S.renaming = null; render(); break;
+    // Like removing a layout: the confirm step starts on Cancel, so a second Enter doesn't wipe progress.
     case 'reset':
-      if (S.confirmDel !== '__reset') { S.confirmDel = '__reset'; render(); break; }
-      S.stats = freshStats(); saveStats(); S.confirmDel = null; render(); break;
+      if (S.confirmDel !== '__reset') { S.confirmDel = '__reset'; S.restore = null; render(); const c = $('[data-act="reset-cancel"]'); if (c) c.focus(); break; }
+      S.stats = freshStats(); saveStats(); S.confirmDel = null; S.msg = { t: 'ok', m: `Cleared progress and key stats for ${S.layout.title}.` }; render(); break;
+    case 'reset-cancel': S.confirmDel = null; render(); $('[data-act="reset"]').focus(); break;
+    case 'backup': downloadBackup(); break;
+    case 'restore': { S.confirmDel = null; const f = $('#restoreFile'); if (f) { f.value = ''; f.click(); } break; }
+    case 'restore-ok': applyBackup(S.restore); S.restore = null; render(); break;
+    case 'restore-cancel': S.restore = null; render(); $('[data-act="restore"]').focus(); break;
   }
 });
 document.addEventListener('change', e => {
@@ -1194,9 +1257,15 @@ document.addEventListener('change', e => {
     rd.onload = () => { try { offerLoad(String(rd.result), f.name.replace(/\.[^.]+$/, ''), f.name); } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); };
     rd.readAsText(f); return;
   }
+  if (t.id === 'restoreFile' && t.files && t.files[0]) {
+    const f = t.files[0], rd = new FileReader();
+    rd.onload = () => { try { S.restore = readBackup(String(rd.result)); S.msg = null; } catch (err) { S.restore = null; S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); const b = $('[data-act="restore-ok"]'); if (b) b.focus(); };
+    rd.readAsText(f); return;
+  }
   const keys = ['routePref', 'modPref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'hints', 'showFingers', 'unlockAll', 'theme'];
   if (keys.includes(t.id)) {
-    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && ['routePref', 'modPref', 'keyHighlight', 'hints', 'theme'].includes(t.id)) ? t.value : Math.max(1, +t.value || DEFAULT_SETTINGS[t.id]);
+    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && ['routePref', 'modPref', 'keyHighlight', 'hints', 'theme'].includes(t.id)) ? t.value
+      : Math.min(+t.max || Infinity, Math.max(+t.min || 1, +t.value || DEFAULT_SETTINGS[t.id]));
     S.settings[t.id] = v; store.set('settings', S.settings);
     if (t.id === 'routePref' || t.id === 'modPref') rebuild();
     if (t.id === 'theme') applyTheme(v);

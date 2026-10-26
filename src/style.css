@@ -2,7 +2,7 @@
 :root{
   --bg:#E8ECF2; --surface:#FFFFFF; --surface-2:#F3F5F9; --ink:#141C2F; --muted:#56627C; --line:#D2D9E5;
   --accent:#2B57D9; --accent-soft:#DCE5FB; --accent-ink:#FFFFFF;
-  --go:#F2B705; --go-ink:#241A00; --ok:#127A51; --ok-ink:#FFFFFF; --err:#C13029; --err-soft:#FBE0DD;
+  --go:#F2B705; --go-ink:#241A00; --ok:#127A51; --ok-ink:#FFFFFF; --err:#C13029; --err-ink:#FFFFFF; --err-soft:#FBE0DD;
   --f-pinky:#E6DCFA; --f-ring:#D4E6FA; --f-middle:#D3F0E0; --f-index:#FBE6C4; --f-thumb:#E3E1DB;
   --key:#FFFFFF; --key-edge:#B8C1D2; --key-ink:#1B2438; --shadow:0 1px 2px rgba(20,28,47,.06),0 4px 14px rgba(20,28,47,.06);
   --display:'Bricolage Grotesque','Avenir Next',system-ui,sans-serif;
@@ -12,13 +12,13 @@
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#0D121C; --surface:#151C2A; --surface-2:#1B2333; --ink:#E4E9F2; --muted:#94A1BA; --line:#283247;
   --accent:#7393FF; --accent-soft:#223060; --accent-ink:#0D121C;
-  --go:#F2B705; --go-ink:#241A00; --ok:#41C78E; --ok-ink:#0D121C; --err:#FF6A60; --err-soft:#48201E;
+  --go:#F2B705; --go-ink:#241A00; --ok:#41C78E; --ok-ink:#0D121C; --err:#FF6A60; --err-ink:#0D121C; --err-soft:#48201E;
   --f-pinky:#342A50; --f-ring:#1F364E; --f-middle:#1D3D2F; --f-index:#47391B; --f-thumb:#2B2E37;
   --key:#1E2637; --key-edge:#37425A; --key-ink:#E4E9F2; --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25); color-scheme:dark }}
 :root[data-theme="dark"]{
   --bg:#0D121C; --surface:#151C2A; --surface-2:#1B2333; --ink:#E4E9F2; --muted:#94A1BA; --line:#283247;
   --accent:#7393FF; --accent-soft:#223060; --accent-ink:#0D121C;
-  --go:#F2B705; --go-ink:#241A00; --ok:#41C78E; --ok-ink:#0D121C; --err:#FF6A60; --err-soft:#48201E;
+  --go:#F2B705; --go-ink:#241A00; --ok:#41C78E; --ok-ink:#0D121C; --err:#FF6A60; --err-ink:#0D121C; --err-soft:#48201E;
   --f-pinky:#342A50; --f-ring:#1F364E; --f-middle:#1D3D2F; --f-index:#47391B; --f-thumb:#2B2E37;
   --key:#1E2637; --key-edge:#37425A; --key-ink:#E4E9F2; --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25); color-scheme:dark }
 
@@ -99,6 +99,7 @@ button.layout-chip:hover b{color:var(--accent)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.ghost{background:transparent}
 .btn.danger{color:var(--err)}
+.btn.danger.solid{background:var(--err);border-color:var(--err);color:var(--err-ink)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn .tri{width:0;height:0;border-left:8px solid currentColor;border-top:5px solid transparent;border-bottom:5px solid transparent}
 
@@ -264,12 +265,26 @@ textarea,select,input[type=number],input[type=text]{background:var(--surface-2);
 textarea{min-height:120px;font-family:var(--mono);font-size:13px}
 .check{display:flex;gap:10px;align-items:flex-start}
 .check input{margin-top:4px}
+/* Help sits beside the label, not inside it, so a checkbox's name stays short and its help reads as a description. */
+.check>div{display:flex;flex-direction:column;gap:2px}
 .saved{display:flex;flex-direction:column;gap:8px}
 .saved .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);flex-wrap:wrap}
 .saved .row.on{border-color:var(--accent)}
 .badge.inuse{align-self:center}
 .rowacts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .saved .row.confirm{border-color:var(--err);background:var(--err-soft)}
+/* Settings: columns instead of a grid, so cards keep their own height and stack without gaps. */
+.grid2.settings{display:block;columns:3 280px;column-gap:16px}
+.settings>.card{break-inside:avoid;margin-bottom:16px}
+.settings h3{font-size:17px}
+.settings label{margin-top:4px}
+.settings .check label{margin-top:0}
+.settings .check{margin-top:4px}
+.settings p{margin:0;font-size:14px}
+.settings .links a{color:var(--accent)}
+.settings hr{border:0;border-top:1px solid var(--line);margin:8px 0 2px;width:100%}
+.settings .confirm{border:1px solid var(--err);background:var(--err-soft);border-radius:10px;padding:10px 12px;margin-top:4px}
+.settings .confirm p{margin-top:4px}
 .pickrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
 .pickrow select{flex:1;min-width:220px;width:auto}
 .pending{border-color:var(--accent);box-shadow:var(--shadow)}
