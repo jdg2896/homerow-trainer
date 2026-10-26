@@ -216,7 +216,7 @@ A cool neutral desk with two working accents and pastel finger colors on the key
 - **Keycap Blue Soft** (`keycap-blue-soft`): the tint behind the current character, the selected segment in the feedback type picker, and success messages.
 
 ### Secondary
-- **Go Amber** (`go-amber`): the target key on the keyboard, the hero's Start or Continue button (the only amber button on Lessons), the daily-goal ring while it fills, stars on the result card, and the lit middle row of the brand mark. It's the same in both themes. Text on it is always `go-amber-ink`, never white.
+- **Go Amber** (`go-amber`): the target key on the keyboard, the hero's Start or Continue button (the only amber button on Lessons, and gone once the daily goal is met), the daily-goal ring while it fills, stars on the result card, and the lit middle row of the brand mark. It's the same in both themes. Text on it is always `go-amber-ink`, never white.
 
 ### Tertiary
 - **Done Green** (`ok-green`): completed lessons (number disc), finished stage chips, the filled lesson segments, and the daily-goal ring once the goal is met. Text on it is `ok-green-ink`: white in light mode, near-black in dark, where the green lightens.
@@ -312,10 +312,14 @@ The signature primitive: an inline key legend that looks like a physical cap.
 - **Shadow:** none at rest (see Elevation).
 - **Internal padding:** 16px.
 - **Hero:** the Lessons banner is the one solid Keycap Blue block, with a Keycap Blue Ink progress fill on a translucent white track.
+- **Hero, done for today:** once the daily goal is met, the hero reads "Done for today", says it's a good place to stop and names the next lesson for next time. The progress bar hides, and the button becomes a Surface "Keep going" with Ink text instead of amber, and doesn't take focus on load, so Enter doesn't start another lesson by default.
 - **Starter-layout card:** on first run, while the bundled default layout is active and no lesson has been typed, a plain card above the hero names the layout and keyboard, says it's a stand-in, and explains a lesson in one line. "Choose a layout" is a default button and "Keep this one" a link button, so the hero's Start stays the only amber.
 
 ### Lesson Row
-A three-column grid: a number disc, the title with its meta line, and the action. A 2px Line circle holds the number, which fills Done Green when the lesson is complete. The next lesson gets a Keycap Blue border and the focus-lift shadow, and its button is ghost like the others, since the hero already carries the amber Start. Locked lessons drop their fill to sit on the desk, with Muted text and keycaps, no segment strip, and a plain "Locked" label instead of a disabled button; they recede without falling below 4.5:1. The meta line holds stars (Ink when earned) and a 140px strip of stage segments that fill green.
+A three-column grid: a number disc, the title with its meta line, and the action. A 2px Line circle holds the number, which fills Done Green when the lesson is complete. The next lesson gets a Keycap Blue border and the focus-lift shadow, and its button is ghost like the others, since the hero already carries the amber Start. Locked lessons drop their fill to sit on the desk, with Muted text and keycaps, no segment strip, and a plain "Locked" label instead of a disabled button; they recede without falling below 4.5:1. The meta line holds stars (Ink when earned) and a 140px strip of stage segments that fill green; accuracy and speed stay on the result screen and Practice, so the list doesn't invite redoing lessons for a better number. Lessons not unlocked yet fold into one "6 more lessons" row at the end of their unit, sitting on the desk with Muted keycap previews and a "Locked" label.
+
+### Unit Header
+The unit title and blurb on the left; on the right, its status and a chevron. A finished unit reads "✓ All 7 done" in bold Done Green. A unit not reached yet previews up to eight of its new keys as Muted keycaps before "0 of 8 done".
 
 ### Inputs / Fields
 - **Style:** Sunken Surface fill, 1px Line border, 8px radius, 8px 10px padding, full width. Textareas are mono 13px except in the feedback dialog.

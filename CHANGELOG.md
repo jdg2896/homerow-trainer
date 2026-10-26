@@ -2,6 +2,12 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.15.0 — 2026-10-26
+
+- Once you've met your daily goal, Lessons says "Done for today" and suggests resting your hands. Keep going is still there, but Enter no longer starts another lesson.
+- Lessons you haven't unlocked fold into one "6 more lessons" line with their keys, and units you haven't reached preview their keys, so the list is much shorter.
+- Finished units say "All 7 done". Lesson rows show only stars; accuracy and speed are on the result screen and Practice.
+
 ## 0.14.0 — 2026-10-26
 
 - Screen readers name each lesson's button ("Start lesson 3: S and L"), read stars and stage progress as text instead of ★ symbols, and announce each unit with its progress. Nav items no longer read their shortcut number as part of the name.

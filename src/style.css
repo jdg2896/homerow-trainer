@@ -107,6 +107,11 @@ button.layout-chip:hover b{color:var(--accent)}
 .hero{display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:20px 22px}
 .hero h2{font-size:26px}
 .hero p{margin:4px 0 0;opacity:.85}
+/* Done for today: the course bar steps aside so the message and the choice to stop carry the hero. */
+.hero.rest>div:first-child{flex:1;min-width:0}
+.hero.rest p{max-width:60ch}
+.hero.rest .progress{display:none}
+.hero.rest .btn{background:var(--surface);border-color:var(--surface);color:var(--ink)}
 .progress{height:10px;border-radius:5px;background:rgba(255,255,255,.25);overflow:hidden;min-width:180px;flex:1;max-width:340px}
 .progress i{display:block;height:100%;background:var(--accent-ink)}
 /* Collapsible units */
@@ -126,6 +131,11 @@ details.unit[open]>summary .chev{transform:rotate(45deg)}
 /* Locked rows recede by sitting on the desk with Muted text, not by opacity, so they stay readable. */
 .lesson.locked{background:transparent;color:var(--muted)}
 .lesson.locked .kc{background:transparent;color:var(--muted)}
+.lesson.more .ttl{grid-column:2;flex-direction:row;align-items:center;flex-wrap:wrap;gap:6px 12px}
+.lesson.more .ttl b{font-size:15px}
+.kpreview{display:inline-flex;gap:4px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+.uright .kpreview .kc{background:transparent;color:var(--muted)}
+.udone{color:var(--ok);font-weight:700}
 .locked-tag{font-size:14px;color:var(--muted);padding-right:16px}
 .lesson .num{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
 .lesson.done .num{background:var(--ok);border-color:var(--ok);color:var(--ok-ink)}
