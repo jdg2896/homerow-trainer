@@ -26,7 +26,7 @@ Homerow Trainer is © 2026 Jasper Gabriel and released under the [MIT License](L
 
 ## Fonts
 
-Loaded from Google Fonts, all under the [SIL Open Font License](https://openfontlicense.org):
+Downloaded from Google Fonts by `tools/fetch_fonts.mjs` and bundled into the page, all under the [SIL Open Font License](https://openfontlicense.org):
 
 - [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/) by the Braille Institute
 - [Bricolage Grotesque](https://github.com/ateliertriay/bricolage) by Mathieu Triay

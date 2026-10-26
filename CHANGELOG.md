@@ -2,6 +2,10 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.20.4 — 2026-10-27
+
+- The fonts are now part of the page instead of coming from Google Fonts, so Homerow Trainer makes no requests to anyone, and the fonts work offline too.
+
 ## 0.20.3 — 2026-10-27
 
 - The page only runs its own code and only loads its fonts from elsewhere, so even a layout or backup file that slipped past the other checks can't run anything.

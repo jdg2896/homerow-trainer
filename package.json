@@ -1,6 +1,6 @@
 {
   "name": "homerow-trainer",
-  "version": "0.20.3",
+  "version": "0.20.4",
   "description": "A typing trainer for ergonomic split keyboards that builds progressive lessons from your own MoErgo or ZMK layout.",
   "license": "MIT",
   "repository": {
@@ -13,7 +13,8 @@
     "test": "node test/curriculum.js",
     "build": "node build.mjs",
     "presets": "node tools/fetch_presets.mjs",
-    "sentences": "node tools/fetch_sentences.mjs"
+    "sentences": "node tools/fetch_sentences.mjs",
+    "fonts": "node tools/fetch_fonts.mjs"
   },
   "engines": {
     "node": ">=18"
