@@ -33,6 +33,11 @@ const FAVICON = 'data:image/svg+xml,'
   + "%3Crect width='9' height='9' rx='2' fill='%23151C2A'/%3E"
   + "%3Crect x='2.5' y='3.5' width='4' height='2' rx='.6' fill='%23F2B705'/%3E%3C/svg%3E";
 
+// Fonts are inlined from data/fonts/ (tools/fetch_fonts.mjs) so the page makes no requests to Google.
+const fontDir = path.join(root, 'data', 'fonts');
+const fonts = read('data/fonts/fonts.css').replace(/url\(([\w.-]+\.woff2)\)/g, (_, f) =>
+  `url(data:font/woff2;base64,${fs.readFileSync(path.join(fontDir, f)).toString('base64')})`);
+
 const scripts = [read('src/errors.js'),
   `window.HOMEROW_TRAINER_BUILD=${inline(JSON.stringify(build))};window.HOMEROW_TRAINER_WORDS=${inline(read('data/words.json'))};window.HOMEROW_TRAINER_SENTENCES=${inline(read('data/sentences.json'))};window.HOMEROW_TRAINER_PRESETS=${inline(presets)};`,
   read('src/engine.js'), read('src/ui.js')];
@@ -41,9 +46,10 @@ const body = '<div id="app"></div>' + scripts.map(js => `<script>${js}</script>`
 
 // Only these exact scripts may run, so injected markup can't execute even if an esc() is missed. Styles stay
 // 'unsafe-inline' because views set style="" attributes, and GitHub Pages can't send the header form.
+// Nothing is fetched: fonts are data: URLs and the favicon is too.
 const sha = js => `'sha256-${crypto.createHash('sha256').update(js, 'utf8').digest('base64')}'`;
-const csp = ["default-src 'none'", `script-src ${scripts.map(sha).join(' ')}`, "style-src 'unsafe-inline' https://fonts.googleapis.com",
-  'font-src https://fonts.gstatic.com', 'img-src data:', "base-uri 'none'", "form-action 'none'"].join('; ');
+const csp = ["default-src 'none'", `script-src ${scripts.map(sha).join(' ')}`, "style-src 'unsafe-inline'",
+  'font-src data:', 'img-src data:', "base-uri 'none'", "form-action 'none'"].join('; ');
 
 const head = `<meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${csp}">
@@ -52,9 +58,7 @@ const head = `<meta charset="utf-8">
 <meta name="description" content="A typing trainer for ergonomic split keyboards that builds progressive lessons from your own MoErgo or ZMK layout.">
 <meta name="theme-color" content="#151C2A">
 <link rel="icon" href="${FAVICON}">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500;600&display=swap">
-<style>${read('src/style.css')}</style>`;
+<style>${fonts}${read('src/style.css')}</style>`;
 
 const html = '<!doctype html><html lang="en"><head>' + head + '</head><body>' + body + '</body></html>';
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });

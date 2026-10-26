@@ -18,7 +18,7 @@ I only learned to touch type QWERTY around 2019, and [typing.com](https://www.ty
 - **Home-row mod aware.** Capitals use the opposite-hand shift. Accidental ⌘/⌃/⌥/Shift firing while typing letters is counted as a misfire.
 - **Adaptive practice.** Per-key miss rate and latency drive a "problem keys" drill, and letter pairs you fumble get drilled more in common combos. Also free practice and custom text.
 - **Grounded in how people learn to type.** Accuracy before speed, short daily sessions, real words early and common letter combinations. See [docs/learning-principles.md](docs/learning-principles.md).
-- **Local only.** Layouts, progress and stats live in `localStorage`, kept separately per layout.
+- **Local only.** Layouts, progress and stats live in `localStorage`, kept separately per layout. The page makes no network requests, fonts included.
 
 ## Supported layouts
 
@@ -39,6 +39,7 @@ npm run build      # node build.mjs — writes dist/index.html
 npm test           # node test/curriculum.js — builds every bundled layout and checks each drill item routes
 npm run presets    # node tools/fetch_presets.mjs — refresh data/presets/ from MoErgo's live editors
 npm run sentences  # node tools/fetch_sentences.mjs — refresh data/sentences.json from Tatoeba
+npm run fonts      # node tools/fetch_fonts.mjs — refresh data/fonts/ from Google Fonts
 open dist/index.html
 ```
 
@@ -54,7 +55,7 @@ docs/           learning-principles.md — what drills and the curriculum are ba
 src/engine.js   layout parsing, routing, curriculum, drill generation (pure, runs in node)
 src/ui.js       views, typing engine, stats, storage
 src/style.css   styles and theme tokens (light/dark)
-data/           word list, sentences and presets/ (Starter layouts; first-run default is seeded from here)
+data/           word list, sentences, fonts/ and presets/ (Starter layouts; first-run default is seeded from here)
 CHANGELOG.md    release notes; build.mjs shows this version's section in the app as "What's new"
 ```
 

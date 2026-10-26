@@ -43,7 +43,7 @@ Other split-keyboard trainers (moosytype, monkeytype-style tools) offer free pra
 - Name: Homerow Trainer. Version and build commit are shown in the footer; every user-facing release gets a CHANGELOG.md entry shown in the app as "What's new".
 - Free, non-commercial, open source (MIT). No pricing, upsells or ads.
 - Local only: no backend, accounts, tracking or analytics. Layouts, progress and stats stay in `localStorage`.
-- Ships as a single self-contained HTML file with no dependencies. The only network fetch is Google Fonts, and system fallbacks cover it when that fails.
+- Ships as a single self-contained HTML file with no dependencies. It makes no network requests: the fonts are bundled into the page.
 - Credits are generous and visible: moosytype, typing.com, keybr, Miryoku, MoErgo, ZMK, wordfreq, Tatoeba and the fonts (see CREDITS.md).
 - Voice: a personal project, plain-spoken and concrete. Instructions name the actual key, finger and layer, and avoid hype.
 

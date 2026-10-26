@@ -28,8 +28,8 @@ Out of scope: someone who already has access to your browser profile or can run 
 - Backups are rebuilt field by field. Settings must be one of the values the app writes itself, stats keep only numbers, flags and dates, and layout text is parsed like any loaded file.
 - Clicks go through one delegated handler on `data-*` attributes. There are no inline event handlers, `eval` or `new Function`.
 - Inlined JSON has every `<` written as `\u003c`, so a `</script>` in the data can't end the script block.
-- A Content Security Policy, written by `build.mjs`, only lets the page's own scripts run (by their SHA-256 hash), allows fonts from Google Fonts only, and blocks every other request. If an `esc()` is ever missed, injected markup still can't run script. Styles are allowed inline because views use `style=""` attributes. The policy is a `<meta>` tag because GitHub Pages can't send headers, so it can't stop other sites from framing the page.
+- A Content Security Policy, written by `build.mjs`, only lets the page's own scripts run (by their SHA-256 hash), allows fonts and images only from `data:` URLs inside the page, and blocks every request. If an `esc()` is ever missed, injected markup still can't run script. Styles are allowed inline because views use `style=""` attributes. The policy is a `<meta>` tag because GitHub Pages can't send headers, so it can't stop other sites from framing the page.
 
 ## Third parties
 
-The page loads its fonts from Google Fonts (`fonts.googleapis.com` and `fonts.gstatic.com`), so Google sees the request and your IP address. It makes no other network requests, except to open GitHub when you send feedback or follow a link.
+None. The fonts are bundled into the page, so it makes no network requests. Your browser only contacts GitHub when you send feedback or follow a link.
