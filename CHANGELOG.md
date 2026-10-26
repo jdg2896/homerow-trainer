@@ -2,6 +2,10 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.20.1 — 2026-10-27
+
+- Restoring a backup only accepts the kinds of settings, stats and layout details Homerow Trainer writes itself, so an edited or malicious backup file can't run code in the page.
+
 ## 0.20.0 — 2026-10-26
 
 - Settings is regrouped by what you'd come to change: daily practice, passing lessons, while you type, the on-screen keyboard, your layout's keys, appearance and your data. Each card is only as tall as its settings.

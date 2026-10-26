@@ -26,10 +26,38 @@ function applyTheme(t){
 
 // hints replaced the hintOnMiss checkbox in 0.8.0; carry a ticked box over as 'miss'.
 function loadSettings(){
-  const saved = store.get('settings', {});
+  const saved = store.get('settings', {}) || {};
   if (saved.hintOnMiss && !saved.hints) saved.hints = 'miss';
-  delete saved.hintOnMiss;
-  return Object.assign({}, DEFAULT_SETTINGS, saved);
+  return cleanSettings(saved);
+}
+// Settings are interpolated into the page as-is, and a backup file can carry any value, so only the
+// shapes the app writes itself get through: numbers in range, booleans, and the listed choices.
+const SETTING_CHOICES = { routePref: ['layers', 'reach'], modPref: ['auto', 'dedicated', 'homerow'], keyHighlight: ['bright', 'subtle', 'off'],
+  hints: ['fade', 'always', 'miss'], theme: ['system', 'light', 'dark'] };
+const SETTING_RANGE = { passAcc: [50, 100], targetWpm: [5, 150], stageLen: [20, 400], dailyGoal: [1, 120] };
+function cleanSettings(raw){
+  const out = {};
+  for (const [k, d] of Object.entries(DEFAULT_SETTINGS)) {
+    const v = raw && raw[k], n = typeof v === 'string' && /^\d+(\.\d+)?$/.test(v) ? +v : v;
+    out[k] = SETTING_CHOICES[k] ? (SETTING_CHOICES[k].includes(v) ? v : d)
+      : SETTING_RANGE[k] ? (Number.isFinite(n) ? Math.min(SETTING_RANGE[k][1], Math.max(SETTING_RANGE[k][0], n)) : d)
+      : typeof v === 'boolean' ? v : d;
+  }
+  return out;
+}
+// Stats hold only numbers, flags and YYYY-MM-DD dates; anything else from a backup is dropped.
+const BAD_KEYS = ['__proto__', 'constructor', 'prototype'];
+function cleanStats(v){
+  if (Array.isArray(v)) return v.map(cleanStats);
+  if (v && typeof v === 'object') {
+    const out = {};
+    for (const [k, x] of Object.entries(v)) if (!BAD_KEYS.includes(k)) { const c = cleanStats(x); if (c !== undefined) out[k] = c; }
+    return out;
+  }
+  if (typeof v === 'number') return Number.isFinite(v) ? v : undefined;
+  if (typeof v === 'boolean' || v === null) return v;
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  return undefined;
 }
 
 const S = {
@@ -497,7 +525,7 @@ function settingsView(){
       <p>${n ? `${n} ${n === 1 ? 'lesson' : 'lessons'} done and` : 'Lesson progress and'} key stats are cleared. Download a backup first if you might want them back. This can't be undone.</p>
       <div class="actions"><button class="btn danger solid" data-act="reset">Reset</button><button class="btn ghost" data-act="reset-cancel">Cancel</button></div></div>`
     : `<div class="actions"><button class="btn ghost danger" data-act="reset">Reset progress…</button></div>`;
-  const restore = R2 ? `<div class="confirm" role="group" aria-labelledby="restoreQ"><b id="restoreQ">Restore the backup from ${esc(new Date(R2.exportedAt).toLocaleDateString())}?</b>
+  const restore = R2 ? `<div class="confirm" role="group" aria-labelledby="restoreQ"><b id="restoreQ">Restore ${R2.exportedAt ? `the backup from ${esc(new Date(R2.exportedAt).toLocaleDateString())}` : 'this backup'}?</b>
       <p>It has ${R2.names.length} ${R2.names.length === 1 ? 'layout' : 'layouts'} (${esc(R2.names.join(', '))}). Progress for those layouts and your settings are replaced; other layouts are kept.</p>
       <div class="actions"><button class="btn primary" data-act="restore-ok">Restore</button><button class="btn ghost" data-act="restore-cancel">Cancel</button></div></div>` : '';
   return `<div class="section-title"><h2>Settings</h2></div>
@@ -1006,14 +1034,23 @@ function downloadBackup(){
 function readBackup(text){
   let b; try { b = JSON.parse(text); } catch (e) { throw new Error('This isn’t a Homerow Trainer backup file.'); }
   if (!b || b.app !== 'homerow-trainer' || !b.layouts || typeof b.layouts !== 'object') throw new Error('This isn’t a Homerow Trainer backup file.');
-  const ids = Object.keys(b.layouts).filter(id => b.layouts[id] && typeof b.layouts[id].text === 'string');
+  // Rebuilt field by field: the layout text is parsed like any loaded file, and everything else is coerced.
+  const layouts = {}, stats = {};
+  Object.entries(b.layouts).forEach(([id, r]) => {
+    if (BAD_KEYS.includes(id) || !r || typeof r.text !== 'string') return;
+    layouts[id] = { name: String(r.name || 'Untitled layout').slice(0, 80), keyboard: typeof r.keyboard === 'string' ? r.keyboard : '', uuid: typeof r.uuid === 'string' ? r.uuid : '',
+      text: r.text, savedAt: Number.isFinite(r.savedAt) ? r.savedAt : Date.now(), starter: r.starter === true };
+    if (b.stats && b.stats[id] && typeof b.stats[id] === 'object') stats[id] = Object.assign(freshStats(), cleanStats(b.stats[id]));
+  });
+  const ids = Object.keys(layouts);
   if (!ids.length) throw new Error('This backup has no layouts in it.');
-  return Object.assign(b, { ids, names: ids.map(id => b.layouts[id].name || 'Untitled layout') });
+  return { ids, layouts, stats, active: typeof b.active === 'string' ? b.active : '', settings: cleanSettings(b.settings),
+    exportedAt: Number.isFinite(Date.parse(b.exportedAt)) ? b.exportedAt : null, names: ids.map(id => layouts[id].name) };
 }
 function applyBackup(b){
   b.ids.forEach(id => { S.layouts[id] = b.layouts[id]; if (b.stats && b.stats[id]) store.set('stats.' + id, b.stats[id]); else store.del('stats.' + id); });
   saveLayouts();
-  S.settings = Object.assign({}, DEFAULT_SETTINGS, b.settings || {}); store.set('settings', S.settings); applyTheme(S.settings.theme);
+  S.settings = b.settings; store.set('settings', S.settings); applyTheme(S.settings.theme);
   try { activate(b.ids.includes(b.active) ? b.active : S.layouts[S.activeId] ? S.activeId : b.ids[0]); }
   catch (err) { S.msg = { t: 'err', m: `Restored, but ${S.layout.title} couldn’t be rebuilt: ${err.message}` }; return; }
   S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Restored ${b.ids.length} ${b.ids.length === 1 ? 'layout' : 'layouts'} and your settings from the backup.` };
