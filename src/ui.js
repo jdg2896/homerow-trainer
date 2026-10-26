@@ -36,6 +36,7 @@ const S = {
   layouts: store.get('layouts', {}),
   activeId: store.get('active', null),
   settings: loadSettings(),
+  welcomed: store.get('welcomed', false),
   view: 'learn', layerView: 0, run: null, msg: null, confirmDel: null, renaming: null, updating: null, customText: '', presetSel: 0
 };
 
@@ -64,11 +65,18 @@ function updateLayoutText(id, text, nameHint){
   if (KNOWN_KBD.includes(rec.keyboard) && KNOWN_KBD.includes(L.keyboard) && rec.keyboard !== L.keyboard)
     throw new Error(`This is a ${KBD_NAME[L.keyboard]} layout, but ${rec.name} is for the ${KBD_NAME[rec.keyboard]}. Add it as a new layout instead.`);
   Object.assign(rec, { keyboard: L.keyboard, uuid: L.uuid, text, savedAt: Date.now() });
+  delete rec.starter;
   saveLayouts();
   if (id === S.activeId) activate(id);
   return rec;
 }
-function layoutForPreset(p){ return p.uuid && Object.keys(S.layouts).find(id => ('uuid' in S.layouts[id] ? S.layouts[id].uuid : id) === String(p.uuid)); }
+// Some presets (Glove80 QWERTY, the first-run default) have no uuid, so fall back to an unchanged copy of the file.
+function layoutForPreset(p){
+  const ids = Object.keys(S.layouts);
+  if (p.uuid) return ids.find(id => ('uuid' in S.layouts[id] ? S.layouts[id].uuid : id) === String(p.uuid));
+  const txt = JSON.stringify(p);
+  return ids.find(id => S.layouts[id].text === txt);
+}
 function activate(id){
   const rec = S.layouts[id]; if (!rec) return;
   S.layout = E.buildLayout(rec.text, { name: rec.name, id });
@@ -207,12 +215,12 @@ function header(inRun){
   const L = S.layout;
   return `<header class="top"><div class="bar">
     <button class="brand" data-act="home" title="Back to lessons"><span class="brand-mark" aria-hidden="true">${[0,1,2,3,4,5,6,7,8].map(i => `<i class="${i >= 3 && i < 6 ? 'on' : ''}"></i>`).join('')}</span>Homerow Trainer</button>
-    <div class="layout-chip"><b title="${esc(L.title)}">${esc(L.title)}</b><span>${esc(L.geo.name)} · ${L.layers.length} layers</span></div>
+    ${inRun ? '<div class="layout-chip">' : '<button class="layout-chip" data-view="layout" title="Change layout">'}<b>${esc(L.title)}</b><span>${esc(L.geo.name)} · ${L.layers.length} layers</span>${inRun ? '</div>' : '</button>'}
     ${inRun ? '' : `<div class="stats">
       <div class="stat"><small>Avg accuracy</small><b>${o.acc == null ? '–' : Math.round(o.acc)}<em>%</em></b></div>
       <div class="stat"><small>Avg speed</small><b>${o.wpm == null ? '–' : Math.round(o.wpm)}<em>wpm</em></b></div>
       <div class="stat"><small>Typing time</small><b>${fmtTime(o.total)}</b></div>
-      <div class="goal"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="ring-bg" cx="22" cy="22" r="18"/><circle class="ring" cx="22" cy="22" r="18" stroke-dasharray="${(C * pct).toFixed(1)} ${C.toFixed(1)}"/></svg>
+      <div class="goal${pct >= 1 ? ' met' : ''}"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="ring-bg" cx="22" cy="22" r="18"/><circle class="ring" cx="22" cy="22" r="18" stroke-dasharray="${(C * pct).toFixed(1)} ${C.toFixed(1)}"/></svg>
         <div class="stat"><small>Daily goal</small><b>${fmtTime(o.todaySecs)}<em>/ ${S.settings.dailyGoal}:00</em></b></div></div>
     </div>`}
     <button class="btn ghost fb-open" data-act="feedback" data-fbtype="bug" title="Report a bug" aria-label="Report a bug"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="8" width="10" height="13" rx="5"/><path d="M9 8V7a3 3 0 0 1 6 0v1M12 12v9M7 12.5H3m14 0h4M7 17H4m13 0h3M7.6 9.6 5 7m11.4 2.6L19 7"/></svg><span>Report a bug</span></button></div></header>`;
@@ -235,10 +243,19 @@ function sidebar(){
   </aside>`;
 }
 
+// First run seeds a starter layout; say so until the user keeps it, loads their own or starts typing on it.
+function welcomeCard(){
+  const rec = S.layouts[S.activeId];
+  if (S.welcomed || !rec || !rec.starter || Object.keys(S.stats.progress).length) return '';
+  return `<section class="card welcome" aria-labelledby="welcomeHead"><h3 id="welcomeHead">You're practising ${esc(S.layout.title)} on a ${esc(S.layout.geo.name)}</h3>
+    <p>It's a starter layout so you can try the course. Pick another from the Starter layouts or load your own from MoErgo's Layout Editor or your ZMK config, and the lessons rebuild around your keys.</p>
+    <p class="muted">Each lesson is a few short drills: meet the new keys, then type them in words and sentences. You move on at ${S.settings.passAcc}% accuracy, and speed only earns extra stars.</p>
+    <div class="actions"><button class="btn" data-view="layout">Choose a layout</button><button class="linkbtn" data-act="welcome-ok">Keep this one</button></div></section>`;
+}
 function learnView(){
   const ls = S.C.lessons, done = ls.filter(isDone).length, nxt = nextLessonIdx();
   const nl = ls[nxt];
-  let html = whatsNew() + `<section class="hero"><div><h2>${done === ls.length ? 'Every lesson complete' : 'Next: ' + esc(nl.title)}</h2>
+  let html = (S.msg ? `<div class="msg ${S.msg.t}" role="status">${esc(S.msg.m)}</div>` : '') + whatsNew() + welcomeCard() + `<section class="hero"><div><h2>${done === ls.length ? 'Every lesson complete' : 'Next: ' + esc(nl.title)}</h2>
     <p>${done} of ${ls.length} lessons done on ${esc(S.layout.title)}</p></div>
     <div class="progress" aria-label="${Math.round(done / ls.length * 100)}% complete"><i style="width:${(done / ls.length * 100).toFixed(1)}%"></i></div>
     <button class="btn go" data-start="${nxt}"><span class="tri"></span>${done || resumeStage(nl) ? 'Continue' : 'Start'}</button></section>
@@ -259,7 +276,7 @@ function learnView(){
         <div class="num">${isDone(l) ? '✓' : l.num}</div>
         <div class="ttl"><b>${title}${title && keys ? ' ' : ''}${l.kind === 'review' ? '' : (title ? '' : keys)}</b>
           <div class="meta">${l.kind === 'review' ? '<span class="badge">Review</span>' : ''}${(l.kind === 'keys' || l.kind === 'chords') ? keys : ''}<span class="segs">${Array.from({ length: segN }, (_, k) => `<i class="${k < segDone ? 'on' : ''}"></i>`).join('')}</span>${p && p.stars ? starsHtml(p.stars) + `<span>${Math.round(p.bestAcc || 0)}% · ${Math.round(p.bestWpm || 0)} wpm</span>` : ''}</div></div>
-        <div class="act">${un ? `<button class="btn ${isNext ? 'go' : 'ghost'}" data-start="${i}"><span class="tri"></span>${isDone(l) ? 'Redo' : resumeStage(l) ? 'Continue' : 'Start'}</button>` : `<button class="btn ghost" disabled>Locked</button>`}</div>
+        <div class="act">${un ? `<button class="btn ghost" data-start="${i}"><span class="tri"></span>${isDone(l) ? 'Redo' : resumeStage(l) ? 'Continue' : 'Start'}</button>` : `<button class="btn ghost" disabled>Locked</button>`}</div>
       </div>`;
     });
     html += `</div></details>`;
@@ -984,6 +1001,7 @@ document.addEventListener('click', e => {
   }
   switch (d.act) {
     case 'home': S.run = null; S.view = 'learn'; S.msg = null; S.confirmDel = null; render(); scrollTo(0, 0); break;
+    case 'welcome-ok': store.set('welcomed', true); S.welcomed = true; render(); break;
     case 'whats-new-ok': store.set('seenVersion', BUILD.version); S.whatsNew = false; render(); break;
     case 'feedback': openFeedback(d.fbtype); break;
     case 'fb-cancel': fbDialog.close(); break;
@@ -1062,19 +1080,20 @@ document.addEventListener('input', e => { if (e.target.id === 'customText') S.cu
 
 /* ---------- boot ---------- */
 applyTheme(S.settings.theme);
-// Miryoku (macOS) on Go60, from the Starter layouts catalog (data/presets/).
-const DEFAULT_LAYOUT_ID = 'bcbba205-ff1e-4254-9bda-d85cfbac68ff';
+// Glove80 QWERTY from the Starter layouts catalog (data/presets/): the most common board and the layout
+// most people already know. It has no uuid, so it's found by keyboard and title.
 function defaultPreset(){
   const ps = window.HOMEROW_TRAINER_PRESETS || [];
   if (!ps.length) return null;
-  return ps.find(p => String(p.uuid) === DEFAULT_LAYOUT_ID) || ps[0];
+  const g = ps.filter(p => p.keyboard === 'glove80');
+  return g.find(p => p.title === 'QWERTY (Default)') || g.find(p => /qwerty/i.test(p.title)) || ps[0];
 }
 function seedDefault(){
   const p = defaultPreset();
   if (!p) return;
   const txt = JSON.stringify(p);
   const L = E.buildLayout(txt);
-  S.layouts[L.id] = { name: L.title, keyboard: L.keyboard, uuid: L.uuid, text: txt, savedAt: Date.now() };
+  S.layouts[L.id] = { name: L.title, keyboard: L.keyboard, uuid: L.uuid, text: txt, savedAt: Date.now(), starter: true };
   if (!store.set('layouts', S.layouts)) S.msg = { t: 'err', m: 'This browser blocked storage, so your layouts, progress and stats will not be remembered after you close the page.' };
   activate(L.id);
 }

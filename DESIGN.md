@@ -188,10 +188,10 @@ A cool neutral desk with two working accents and pastel finger colors on the key
 - **Keycap Blue Soft** (`keycap-blue-soft`): the tint behind the current character, the selected segment in the feedback type picker, and success messages.
 
 ### Secondary
-- **Go Amber** (`go-amber`): the target key on the keyboard, the next-lesson border, the Start button, the progress fill, the daily-goal ring, earned stars, and the lit middle row of the brand mark. It's the same in both themes. Text on it is always `go-amber-ink`, never white.
+- **Go Amber** (`go-amber`): the target key on the keyboard, the hero's Start or Continue button (the only amber button on Lessons), the daily-goal ring while it fills, stars on the result card, and the lit middle row of the brand mark. It's the same in both themes. Text on it is always `go-amber-ink`, never white.
 
 ### Tertiary
-- **Done Green** (`ok-green`): completed lessons (number disc), finished stage chips, and the filled lesson segments. Text on it is `ok-green-ink`: white in light mode, near-black in dark, where the green lightens.
+- **Done Green** (`ok-green`): completed lessons (number disc), finished stage chips, the filled lesson segments, and the daily-goal ring once the goal is met. Text on it is `ok-green-ink`: white in light mode, near-black in dark, where the green lightens.
 - **Miss Red** (`err-red` on `err-red-soft`): mistyped characters, error messages, misfire notes (a soft red pill beside the hint), problem-key warnings and danger buttons.
 
 ### Neutral
@@ -233,7 +233,7 @@ A cool neutral desk with two working accents and pastel finger colors on the key
 
 ## Layout
 
-- **Shell:** a full-width header bar (brand, layout chip, stats, goal ring, report-a-bug button), then a two-column grid: a 250px sidebar (nav, unit links, problem-key card) and a main column centered in the remaining space at up to 980px. Page gutters are 16px. A footer sits at the bottom of the viewport even on short pages.
+- **Shell:** a full-width header bar (brand, layout chip that opens Layout, stats, goal ring, report-a-bug button), then a two-column grid: a 250px sidebar (nav, unit links, problem-key card) and a main column centered in the remaining space at up to 980px. Page gutters are 16px. A footer sits at the bottom of the viewport even on short pages.
 - **Main column:** a vertical stack with 28px between sections and 16px between cards. Grids use `auto-fit, minmax(280px, 1fr)`. Practice uses two equal columns that each stack their own cards, collapsing to one column at 760px.
 - **Rhythm:** gaps cluster at 4/6/8 inside components, 12–16 between siblings, and 22–28 between sections. Card padding is 16px. The type box is roomier (22px 26px).
 - **≤860px:** the sidebar folds above the content and the nav becomes a wrapping row. Unit links, the sidebar card, nav shortcut numbers and the key hint are hidden. The report-a-bug button stays top right as an icon only, and lessons drop their action column under the title.
@@ -283,10 +283,11 @@ The signature primitive: an inline key legend that looks like a physical cap.
 - **Background:** Surface on Desk, with a 1px Line border.
 - **Shadow:** none at rest (see Elevation).
 - **Internal padding:** 16px.
-- **Hero:** the Lessons banner is the one solid Keycap Blue block, with an amber progress fill on a translucent white track.
+- **Hero:** the Lessons banner is the one solid Keycap Blue block, with a Keycap Blue Ink progress fill on a translucent white track.
+- **Starter-layout card:** on first run, while the bundled default layout is active and no lesson has been typed, a plain card above the hero names the layout and keyboard, says it's a stand-in, and explains a lesson in one line. "Choose a layout" is a default button and "Keep this one" a link button, so the hero's Start stays the only amber.
 
 ### Lesson Row
-A three-column grid: a number disc, the title with its meta line, and the action. A 2px Line circle holds the number, which fills Done Green when the lesson is complete. The next lesson gets a Go Amber border and the focus-lift shadow. Locked lessons sit at 55% opacity. The meta line holds stars (amber when earned) and a 140px strip of stage segments that fill green.
+A three-column grid: a number disc, the title with its meta line, and the action. A 2px Line circle holds the number, which fills Done Green when the lesson is complete. The next lesson gets a Keycap Blue border and the focus-lift shadow, and its button is ghost like the others, since the hero already carries the amber Start. Locked lessons sit at 55% opacity. The meta line holds stars (Ink when earned) and a 140px strip of stage segments that fill green.
 
 ### Inputs / Fields
 - **Style:** Sunken Surface fill, 1px Line border, 8px radius, 8px 10px padding, full width. Textareas are mono 13px except in the feedback dialog.

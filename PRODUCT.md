@@ -23,7 +23,7 @@ Other split-keyboard trainers (moosytype, monkeytype-style tools) offer free pra
 ## Operating Context
 
 - It is deployed to GitHub Pages and can also be opened as a local file. How users find it hasn't been established; the author found their own way in through the MoErgo Discord.
-- First run seeds a default layout (Miryoku macOS for Go60) from the bundled Starter layouts. Users then load their own export from MoErgo's Layout Editor or their ZMK config.
+- First run seeds a default layout (QWERTY on Glove80) from the bundled Starter layouts. Users then pick another Starter layout or load their own export from MoErgo's Layout Editor or their ZMK config.
 - The flow is: Lessons (units → lessons → stages: meet the keys → mixed drill → words → sentences or code snippets), Practice (problem keys, free practice, custom text), Layout and Settings. The nav has number-key shortcuts.
 - During a drill, an on-screen keyboard shows the target key, its finger and the layer and held keys needed ("Hold Enter for Symbols (right thumb), then press `(`").
 - Feedback and bug reports go to GitHub issues from an in-app dialog that attaches version and diagnostics.

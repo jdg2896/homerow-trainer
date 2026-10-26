@@ -50,7 +50,9 @@ h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
 .brand-mark{display:grid;grid-template-columns:repeat(3,9px);gap:3px}
 .brand-mark i{width:9px;height:9px;border-radius:2px;background:var(--line)}
 .brand-mark i.on{background:var(--go)}
-.layout-chip{display:flex;flex-direction:column;padding:4px 12px;border-left:1px solid var(--line);min-width:0}
+.layout-chip{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:4px 12px;border:0;border-left:1px solid var(--line);background:none;color:inherit;font:inherit;min-width:0}
+button.layout-chip{cursor:pointer}
+button.layout-chip:hover b{color:var(--accent)}
 .layout-chip b{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
 .layout-chip span{font-size:12px;color:var(--muted)}
 .stats{display:flex;gap:22px;margin-left:auto;align-items:center;flex-wrap:wrap}
@@ -62,6 +64,7 @@ h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
 .goal svg{width:44px;height:44px}
 .goal .ring-bg{fill:none;stroke:var(--line);stroke-width:5}
 .goal .ring{fill:none;stroke:var(--go);stroke-width:5;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+.goal.met .ring{stroke:var(--ok)}
 
 /* Shell: sidebar anchored to the left edge, main content centered in the space beside it. */
 .shell{display:grid;grid-template-columns:250px minmax(0,1fr);gap:24px;padding:22px 16px 60px}
@@ -104,7 +107,7 @@ h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
 .hero h2{font-size:26px}
 .hero p{margin:4px 0 0;opacity:.85}
 .progress{height:10px;border-radius:5px;background:rgba(255,255,255,.25);overflow:hidden;min-width:180px;flex:1;max-width:340px}
-.progress i{display:block;height:100%;background:var(--go)}
+.progress i{display:block;height:100%;background:var(--accent-ink)}
 /* Collapsible units */
 details.unit>summary{list-style:none;cursor:pointer;border-radius:10px;padding:2px}
 details.unit>summary:hover .uhead h3{color:var(--accent)}
@@ -118,7 +121,7 @@ details.unit>summary:focus-visible{outline:2px solid var(--accent);outline-offse
 details.unit[open]>summary .chev{transform:rotate(45deg)}
 .lessons{display:flex;flex-direction:column;gap:8px}
 .lesson{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-.lesson.next{border-color:var(--go);box-shadow:var(--shadow)}
+.lesson.next{border-color:var(--accent);box-shadow:var(--shadow)}
 .lesson.locked{opacity:.55}
 .lesson .num{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
 .lesson.done .num{background:var(--ok);border-color:var(--ok);color:var(--ok-ink)}
@@ -131,6 +134,7 @@ details.unit[open]>summary .chev{transform:rotate(45deg)}
 .segs i.on{background:var(--ok)}
 .stars{display:inline-flex;gap:2px;color:var(--line);font-size:14px;letter-spacing:1px}
 .stars .on{color:var(--go)}
+.lesson .stars .on{color:var(--ink)} /* amber is for the result card; on the list it would compete with Start */
 
 /* Run view */
 .run{display:flex;flex-direction:column;gap:16px}
@@ -245,6 +249,9 @@ textarea{min-height:120px;font-family:var(--mono);font-size:13px}
 .credits p{margin:0 auto;max-width:112ch}
 .credits a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 .credits a:hover{color:var(--accent)}
+.welcome h3{font-size:17px}
+.welcome p{margin:6px 0 0}
+.welcome .actions{margin-top:12px;align-items:center;gap:16px}
 .whatsnew .wn-top{display:flex;gap:12px;align-items:center;justify-content:space-between}
 .whatsnew h3{font-size:17px}
 .whatsnew ul{margin:8px 0;padding-left:20px}
