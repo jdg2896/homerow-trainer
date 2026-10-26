@@ -137,17 +137,18 @@ function overall(){
   const total = S.stats.sessions.reduce((a, s) => a + (s.secs || 0), 0);
   return { wpm: avg('wpm'), acc: avg('acc'), total, todaySecs: S.stats.daily[today()] || 0 };
 }
+// A key is a problem when it's missed more often than the pass mark allows, or is clearly slower than your other keys:
+// half again the median of its kind, since shortcuts are slower than letters by nature. Misses rank first, worst first.
+// Two misses at least, so one slip in six presses doesn't flag a key.
 function problemKeys(limit){
-  const ks = S.stats.keys, unlocked = unlockedChars();
+  const ks = S.stats.keys, unlocked = unlockedChars(), maxEr = (100 - S.settings.passAcc) / 100;
   const rows = Object.keys(ks).filter(k => ks[k].n >= 6 && k !== ' ' && (k.length === 1 ? unlocked.has(k) : true)).map(k => {
-    const s = ks[k]; const er = s.err / s.n; const lat = s.ln ? s.lat / s.ln : 0;
-    return { k, er, lat, n: s.n };
+    const s = ks[k]; return { k, er: s.err / s.n, err: s.err, lat: s.ln >= 6 ? s.lat / s.ln : 0, n: s.n };
   });
-  if (!rows.length) return [];
-  const lats = rows.map(r => r.lat).filter(Boolean).sort((a, b) => a - b);
-  const med = lats.length ? lats[Math.floor(lats.length / 2)] : 0;
-  rows.forEach(r => { r.score = r.er * 100 + Math.max(0, r.lat - med) / 40; });
-  return rows.filter(r => r.score > 1.5).sort((a, b) => b.score - a.score).slice(0, limit || 4);
+  const median = one => { const l = rows.filter(r => r.lat && (r.k.length === 1) === one).map(r => r.lat).sort((a, b) => a - b); return l.length >= 5 ? l[l.length >> 1] : Infinity; };
+  const med = { true: median(true), false: median(false) };
+  rows.forEach(r => { r.miss = r.err >= 2 && r.er > maxEr; r.slow = r.lat > 1.5 * med[r.k.length === 1]; });
+  return rows.filter(r => r.miss || r.slow).sort((a, b) => b.miss - a.miss || (a.miss ? b.er - a.er : b.lat - a.lat)).slice(0, limit || 4);
 }
 // Letter pairs missed more often than their second letter is overall, weakest first. A miss counts against the pair
 // it completes. Measuring against the letter keeps one weak key from flagging every pair it's in; Problem keys covers that.
@@ -316,42 +317,90 @@ function learnView(){
   return html;
 }
 
+// A weak pair as two keycaps, so "th" doesn't read as one key.
+const pairKc = p => `<span class="kpair">${kc(p[0])}${kc(p[1])}</span>`;
+// A heading's count, worded for screen readers and in tabular figures for everyone else.
+const countHtml = n => n ? ` <span class="count" aria-hidden="true">${n}</span><span class="sr-only">(${n} listed)</span>` : '';
+// One session to do now and why. Keys you've stopped typing fade first, then pairs, then single keys (learning
+// principles 7, 5 and 6). Once today's goal is met it suggests resting instead, like Lessons (principle 3).
+function suggestion(){
+  if (goalMet()) return { rest: true };
+  const stale = staleKeys(), wp = weakPairs(3), pk = problemKeys(4);
+  if (stale.length) return { act: 'practice-stale', btn: 'Bring them back',
+    why: `You haven't typed ${stale.map(c => kc(c)).join(' ')} in a week. Two short stages of words and sentences bring them back.` };
+  if (wp.length) return { act: 'practice-pairs', btn: 'Practice weak pairs',
+    why: `You miss ${wp.map(x => pairKc(x.p)).join(' ')} more often than their second letter on its own. Two short stages of common combos and sentences work on them.` };
+  if (pk.length) return { act: 'practice-problem', btn: 'Practice problem keys',
+    why: `You miss or hesitate on ${pk.map(r => kc(r.k, 'warn')).join(' ')} more than your other keys. A short focus drill, then words and sentences that use them.` };
+  return { act: 'practice-free', btn: 'Start free practice', why: Object.keys(S.stats.keys).length
+    ? 'Nothing needs extra work right now. Free practice mixes words and sentences from every key you have unlocked.'
+    : 'Once you have typed a few lessons, this suggests what to work on. For now, free practice mixes words from the keys you have unlocked.' };
+}
+function suggestCard(){
+  const sg = suggestion();
+  if (sg.rest) return `<section class="card suggest rest" aria-labelledby="sgHead"><div><h3 id="sgHead">Done for today</h3>
+    <p>That's your ${S.settings.dailyGoal}-minute goal. A good place to stop and rest your hands.</p></div></section>`;
+  return `<section class="card suggest" aria-labelledby="sgHead"><div><h3 id="sgHead">Suggested now</h3><p>${sg.why}</p></div>
+    <button class="btn go" data-act="${sg.act}"><span class="tri"></span>${sg.btn}</button></section>`;
+}
+// Pasted prose brings typographic quotes and dashes that no keymap has; drill them as the ASCII keys you'd type.
+const TYPO = { '‘': "'", '’': "'", '“': '"', '”': '"', '–': '-', '—': '-', '…': '...' };
+const cleanText = s => (s || '').replace(/[‘’“”–—…]/g, c => TYPO[c]).replace(/\s+/g, ' ').trim();
+// Characters in your own text that have no hint (not on the layout), that lessons haven't reached, or that no key
+// event can produce (emoji and the like), which would stall the drill.
+function textCheck(t){
+  const unlocked = unlockedChars(), off = new Set(), locked = new Set(), bad = new Set();
+  for (const c of t) { if (c === ' ') continue; if (c.length > 1) bad.add(c); else if (!S.C.routes.chars[c]) off.add(c); else if (!unlocked.has(c)) locked.add(c); }
+  return { off: [...off], locked: [...locked], bad: [...bad] };
+}
+function customNote(empty){
+  const t = cleanText(S.customText), { off, locked, bad } = textCheck(t);
+  const list = (a, cls) => a.slice(0, 12).map(c => `<span class="kc ${cls || ''}">${esc(E.charName(c))}</span>`).join(' ') + (a.length > 12 ? ` and ${a.length - 12} more` : '');
+  return (empty && !t ? `<p class="msg err">There's no text to type yet. Paste or write some above, then press Type this text.</p>` : '')
+    + (bad.length ? `<p class="msg err">${list(bad)} can't be typed in a drill. Take ${bad.length === 1 ? 'it' : 'them'} out to start.</p>` : '')
+    + (off.length ? `<p class="muted">Not on your layout, so there's no hint for ${list(off, 'warn')}</p>` : '')
+    + (locked.length ? `<p class="muted">Your lessons haven't reached ${list(locked)} yet. The hint shows where they are.</p>` : '');
+}
+function paintCustomNote(empty){ const el = $('#customCheck'), h = customNote(empty); if (el && el._h !== h) { el.innerHTML = h; el._h = h; } }
 function practiceView(){
-  const pk = problemKeys(20), wp = weakPairs(), stale = staleKeys();
-  const misf = S.stats.misfires;
-  // Left column = things you start; right column = how you're doing. Problem keys is the card that grows
-  // most (its table grows, then scrolls), so it goes at the bottom of its column where it can grow downward
-  // freely; misfires and weak pairs (at most six rows) sit above it. Columns keep natural heights.
-  const freeCard = `<div class="card field"><h3 style="font-size:19px">Free practice</h3>
-      <p class="muted" style="margin:0 0 4px">Words and sentences from all your unlocked keys.</p>
-      ${stale.length ? `<p class="newkeys" style="margin:0">Starts with keys you haven't typed in a week ${stale.map(c => kc(c)).join('')}</p>` : ''}
-      <div class="actions"><button class="btn go" data-act="practice-free"><span class="tri"></span>Start free practice</button></div></div>`;
-  const textCard = `<div class="card field"><h3 style="font-size:19px">Your own text</h3>
-      <label for="customText" class="muted" style="font-weight:400">Paste code, notes or anything you type often.</label>
-      <textarea id="customText" placeholder="const total = items.reduce((a, b) => a + b, 0);">${esc(S.customText)}</textarea>
-      <div class="actions"><button class="btn go" data-act="practice-custom"><span class="tri"></span>Type this text</button></div></div>`;
-  const pkCard = `<div class="card field"><h3 style="font-size:19px">Problem keys${pk.length ? ` <span class="muted" style="font-size:14px;font-weight:400">${pk.length}</span>` : ''}</h3>
-      ${pk.length ? `<div class="ptable-scroll"><table class="ptable"><thead><tr><th>Key</th><th>Miss rate</th><th>Avg time</th><th>Typed</th></tr></thead><tbody>${pk.map(r => `<tr><td>${kc(r.k)}</td><td>${(r.er * 100).toFixed(0)}%</td><td>${Math.round(r.lat)} ms</td><td>${r.n}</td></tr>`).join('')}</tbody></table></div>
-      <div class="actions"><button class="btn go" data-act="practice-problem"><span class="tri"></span>Practice problem keys</button></div>` : `<p class="muted" style="margin:4px 0 0">No problem keys yet. They appear once you have typed each key a few times.</p>`}
+  const pk = problemKeys(20), wp = weakPairs(), stale = staleKeys(), drills = pk.slice(0, 4);
+  const misf = S.stats.misfires, pass = S.settings.passAcc;
+  // Left column = things you start; right column = how you're doing. Problem keys can grow longest (its table
+  // scrolls past 320px); the misfires card, often empty, sits at the very bottom.
+  const freeCard = `<div class="card field pcard"><h3>Free practice</h3>
+      <p class="muted">Words and sentences from all your unlocked keys.</p>
+      ${stale.length ? `<p class="newkeys">Starts with keys you haven't typed in a week ${stale.map(c => kc(c)).join('')}</p>` : ''}
+      <div class="actions"><button class="btn" data-act="practice-free"><span class="tri"></span>Start free practice</button></div></div>`;
+  const textCard = `<div class="card field pcard"><h3>Your own text</h3>
+      <label for="customText" class="muted">Paste code, notes or anything you type often. It can use any key, unlocked or not.</label>
+      <textarea id="customText" placeholder="e.g. const total = items.reduce((a, b) => a + b, 0);">${esc(S.customText)}</textarea>
+      <div id="customCheck" class="ccheck" role="status">${customNote(false)}</div>
+      <div class="actions"><button class="btn" data-act="practice-custom"><span class="tri"></span>Type this text</button></div></div>`;
+  const pkCard = `<div class="card field pcard"><h3 id="pkHead">Problem keys${countHtml(pk.length)}</h3>
+      ${pk.length ? `<div class="ptable-scroll"><table class="ptable" aria-labelledby="pkHead"><thead><tr><th>Key</th><th>Miss rate</th><th>Avg time</th><th>Typed</th></tr></thead><tbody>${pk.map(r => `<tr><td>${kc(r.k)}</td><td class="${r.miss ? 'flag' : ''}">${(r.er * 100).toFixed(0)}%</td><td class="${r.slow ? 'flag' : ''}">${r.lat ? Math.round(r.lat) + ' ms' : '–'}</td><td>${r.n}</td></tr>`).join('')}</tbody></table></div>
+      <p class="muted note">Listed when a key is missed on more than ${100 - pass}% of presses (your pass mark is ${pass}%), or takes half again as long as your typical key. The bold number is why.</p>
+      <div class="actions"><button class="btn" data-act="practice-problem"><span class="tri"></span>Practice problem keys</button><span class="newkeys">Drills ${drills.map(r => kc(r.k, 'warn')).join('')}</span></div>`
+      : `<p class="muted">No problem keys right now. A key shows up here once it's missed on more than ${100 - pass}% of presses, above your ${pass}% pass mark, or is clearly slower than your other keys.</p>`}
     </div>`;
   // "Letter alone" is the second letter's miss rate everywhere, which is what makes the pair count as weak.
-  const pairCard = `<div class="card field"><h3 style="font-size:19px">Weak letter pairs${wp.length ? ` <span class="muted" style="font-size:14px;font-weight:400">${wp.length}</span>` : ''}</h3>
-      ${wp.length ? `<table class="ptable"><thead><tr><th>Pair</th><th>Miss rate</th><th>Letter alone</th><th>Typed</th></tr></thead><tbody>${wp.map(x => `<tr><td>${cap(x.p)}</td><td>${(x.er * 100).toFixed(0)}%</td><td>${(x.keyEr * 100).toFixed(0)}%</td><td>${x.n}</td></tr>`).join('')}</tbody></table>
-      <p class="muted" style="font-size:13px;margin:4px 0 0">Common combos in free practice and reviews drill these more often.</p>`
-      : `<p class="muted" style="margin:4px 0 0">No weak pairs yet. Pairs you miss more often than their second letter on its own show up here, and Common combos drills them more often.</p>`}
+  const pairCard = `<div class="card field pcard"><h3 id="wpHead">Weak letter pairs${countHtml(wp.length)}</h3>
+      ${wp.length ? `<table class="ptable" aria-labelledby="wpHead"><thead><tr><th>Pair</th><th>Miss rate</th><th>Letter alone</th><th>Typed</th></tr></thead><tbody>${wp.map(x => `<tr><td>${pairKc(x.p)}</td><td>${(x.er * 100).toFixed(0)}%</td><td>${(x.keyEr * 100).toFixed(0)}%</td><td>${x.n}</td></tr>`).join('')}</tbody></table>
+      <p class="muted note">Common combos in free practice and reviews drill these more often.</p>
+      <div class="actions"><button class="btn" data-act="practice-pairs"><span class="tri"></span>Practice weak pairs</button></div>`
+      : `<p class="muted">No weak pairs yet. Pairs you miss more often than their second letter on its own show up here, and Common combos drills them more often.</p>`}
     </div>`;
-  const misfCard = `<div class="card"><h3 style="font-size:19px">Home-row mod misfires</h3>
-      <p class="muted" style="margin-top:4px">Counts each modifier that fires while you meant to type a letter.</p>
-      <table class="ptable"><tbody>
-        <tr><td>Accidental Shift</td><td>${misf.shift || 0}</td></tr>
-        <tr><td>Accidental ⌘ or ⌃</td><td>${misf.mod || 0}</td></tr>
-        <tr><td>Accidental ⌥</td><td>${misf.alt || 0}</td></tr></tbody></table>
-      <p class="muted" style="font-size:13px">If one keeps climbing, type that finger's key a little more crisply or raise its tapping term.</p>
+  const mf = [['Accidental Shift', misf.shift], ['Accidental ⌘ or ⌃', misf.mod], ['Accidental ⌥', misf.alt]];
+  const misfCard = `<div class="card field pcard"><h3 id="mfHead">Home-row mod misfires</h3>
+      ${mf.some(x => x[1]) ? `<p class="muted">Counts each modifier that fires while you meant to type a letter.</p>
+      <table class="ptable" aria-labelledby="mfHead"><tbody>${mf.map(([t, n]) => `<tr><th scope="row">${t}</th><td>${n || 0}</td></tr>`).join('')}</tbody></table>
+      <p class="muted note">If one keeps climbing, type that finger's key a little more crisply or raise its tapping term.</p>`
+      : `<p class="muted">No misfires yet. When Shift, ⌘, ⌃ or ⌥ fires while you meant to type a letter, it's counted here.</p>`}
     </div>`;
-  return `<div class="section-title"><h2>Practice</h2><span class="muted">Uses only the keys you have unlocked</span></div>
+  return `<div class="section-title"><h2>Practice</h2></div>
+  ${suggestCard()}
   <div class="pcols">
     <div class="pcol">${freeCard}${textCard}</div>
-    <div class="pcol">${misfCard}${pairCard}${pkCard}</div>
+    <div class="pcol">${pairCard}${pkCard}${misfCard}</div>
   </div>`;
 }
 
@@ -556,7 +605,7 @@ function renderRun(full){
     const newKeys = r.lesson && r.lesson.kind !== 'review' ? r.lesson.items.map(c => kc(c, 'big')).join('') : '';
     // Speed stays off screen until the result: a ticking wpm and clock push you to rush, and passing is about accuracy.
     $('#app').innerHTML = header(true) + `<div class="wrap" style="padding-block:20px 60px"><div class="run">
-      <div class="runbar"><button class="btn ghost" data-act="exit">← Lessons</button><h2>${esc(r.title)}</h2>
+      <div class="runbar"><button class="btn ghost" data-act="exit">← ${r.lesson ? 'Lessons' : 'Practice'}</button><h2>${esc(r.title)}</h2>
         <div class="live"><div class="stat"><small>Accuracy</small><b id="lvA">100<em>%</em></b></div></div></div>
       <div class="stagechips" id="chips"></div>
       ${newKeys ? `<div class="newkeys">New keys ${newKeys}</div>` : ''}
@@ -688,10 +737,11 @@ function resultCard(){
     const goal = rest ? `<p class="muted" style="margin:0">That's your ${S.settings.dailyGoal}-minute goal for today. A good place to stop and rest your hands.${change}</p>`
       : `<p class="muted" style="margin:0">${fmtTime(today)} of your ${S.settings.dailyGoal} minutes today.${change}</p>`;
     const next = hasNext ? `<button class="btn ${rest ? '' : 'go'}" data-act="next-lesson">${rest ? '' : '<span class="tri"></span>'}Next lesson${rest ? '' : ' (Enter)'}</button>` : '';
-    const back = `<button class="btn ${rest || !hasNext ? 'go' : 'ghost'}" data-act="exit">Back to lessons${rest || !hasNext ? ' (Enter)' : ''}</button>`;
-    return `<div class="result"><h3>${res.stars ? 'Lesson complete' : 'Lesson finished'}</h3>${res.stars ? starsHtml(res.stars) : ''}
+    const back = `<button class="btn ${rest || !hasNext ? 'go' : 'ghost'}" data-act="exit">Back to ${r.lesson ? 'lessons' : 'practice'}${rest || !hasNext ? ' (Enter)' : ''}</button>`;
+    const what = r.lesson ? 'Lesson' : 'Practice';
+    return `<div class="result"><h3>${what} ${res.stars ? 'complete' : 'finished'}</h3>${res.stars ? starsHtml(res.stars) : ''}
       ${numsHtml(res)}${learned}${goal}
-      <div class="row">${rest ? back + next : next + back}<button class="btn ghost" data-act="redo-lesson">Redo lesson</button></div></div>`;
+      <div class="row">${rest ? back + next : next + back}<button class="btn ghost" data-act="redo-lesson">${r.lesson ? 'Redo lesson' : 'Practice again'}</button></div></div>`;
   }
   return `<div class="result"><h3>${res.pass ? 'Stage passed' : 'Not quite'}</h3>${res.pass ? starsHtml(res.stars) : ''}
     ${numsHtml(res)}
@@ -886,12 +936,18 @@ function startPractice(kind){
     stages = chars.length ? E.practiceStages(S.C, unlocked, chars, WORDS, +S.settings.stageLen, SENTENCES, weakPairIds()) : [];
     if (keys.length) stages.push({ name: 'Focus keys', items: Array.from({ length: 12 }, () => E.keyItem(keys[Math.floor(Math.random() * keys.length)])) });
     title = 'Problem keys: ' + pk.map(itemLabel).join(' ');
+  } else if (kind === 'stale' || kind === 'pairs') {
+    // The suggested sessions: free practice cut to the stage that works on the weak spot, then sentences.
+    const want = kind === 'stale' ? 'Not typed lately' : 'Common combos';
+    stages = E.practiceStages(S.C, unlocked, [], WORDS, +S.settings.stageLen, SENTENCES, weakPairIds(), kind === 'stale' ? staleKeys() : [])
+      .filter(s => s.name === want || s.name === 'Sentences');
+    title = kind === 'stale' ? 'Not typed lately' : 'Weak letter pairs';
   } else if (kind === 'free') {
     stages = E.practiceStages(S.C, unlocked, [], WORDS, +S.settings.stageLen * 1.5, SENTENCES, weakPairIds(), staleKeys());
     title = 'Free practice';
   } else {
-    const t = (S.customText || '').replace(/\s+/g, ' ').trim();
-    if (!t) return;
+    const t = cleanText(S.customText);
+    if (!t || textCheck(t).bad.length) { paintCustomNote(true); const ta = $('#customText'); if (ta) ta.focus(); return; }
     stages = [];
     for (let i = 0; i < t.length; i += 160) {
       let end = Math.min(t.length, i + 160);
@@ -1086,6 +1142,8 @@ document.addEventListener('click', e => {
     case 'redo-lesson': if (S.run.lesson) startLesson(S.run.lessonIdx); else { S.run.si = 0; S.run.results = []; resetStage(); renderRun(true); } break;
     case 'practice-problem': startPractice('problem'); break;
     case 'practice-free': startPractice('free'); break;
+    case 'practice-stale': startPractice('stale'); break;
+    case 'practice-pairs': startPractice('pairs'); break;
     case 'practice-custom': S.customText = ($('#customText') || {}).value || ''; startPractice('custom'); break;
     case 'add-selected': {
       const i = ($('#presetSel') || {}).value, p = (window.HOMEROW_TRAINER_PRESETS || [])[+i];
@@ -1160,7 +1218,10 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter') { e.preventDefault(); saveRename(); }
   else if (e.key === 'Escape') { e.preventDefault(); S.renaming = null; render(); }
 });
-document.addEventListener('input', e => { if (e.target.id === 'customText') S.customText = e.target.value; if (e.target.id === 'layoutPaste') S.pasteText = e.target.value; });
+document.addEventListener('input', e => {
+  if (e.target.id === 'customText') { S.customText = e.target.value; paintCustomNote(false); }
+  if (e.target.id === 'layoutPaste') S.pasteText = e.target.value;
+});
 
 /* ---------- boot ---------- */
 applyTheme(S.settings.theme);

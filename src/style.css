@@ -236,6 +236,21 @@ details.unit[open]>summary .chev{transform:rotate(45deg)}
 .pcol{display:flex;flex-direction:column;gap:16px;min-width:0}
 @media(max-width:760px){.pcols{grid-template-columns:1fr}}
 .ptable-scroll{max-height:320px;overflow-y:auto;margin-top:2px}
+.pcard h3{font-size:17px}
+.pcard p{margin:0}
+.field.pcard label{font-weight:400}
+.pcard .note{font-size:13px}
+.pcard .actions{align-items:center;gap:8px 14px}
+.count{font-family:var(--body);font-size:14px;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+.kpair{display:inline-flex;gap:2px}
+.ccheck{display:flex;flex-direction:column;gap:6px;font-size:14px}
+.ccheck:empty{display:none}
+/* The suggested session is the one thing to do here, so it takes the next lesson's blue edge and lift. */
+.suggest{display:flex;gap:14px 20px;align-items:center;justify-content:space-between;flex-wrap:wrap;border-color:var(--accent);box-shadow:var(--shadow)}
+.suggest>div{flex:1 1 320px;min-width:0}
+.suggest h3{font-size:22px}
+.suggest p{margin:6px 0 0;max-width:62ch;line-height:1.7;text-wrap:pretty}
+.suggest.rest{border-color:var(--line);box-shadow:none}
 .field{display:flex;flex-direction:column;gap:6px}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 input[type=file]{margin-top:2px;font-size:14px;color:var(--muted)}
@@ -274,7 +289,10 @@ details.chars[open]>summary{margin-bottom:4px}
 .section-title h2{font-size:24px}
 .ptable{width:100%;border-collapse:collapse;font-size:14px}
 .ptable td,.ptable th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
-.ptable th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+/* Small caps rather than text-transform, so screen readers get "Miss rate" and not "MISS RATE". */
+.ptable th{font-size:14px;letter-spacing:.06em;font-variant-caps:all-small-caps;color:var(--muted)}
+.ptable tbody th{font-size:inherit;letter-spacing:0;font-variant-caps:normal;color:inherit;font-weight:400}
+.ptable td.flag{font-weight:700}
 .ptable-scroll thead th{position:sticky;top:0;background:var(--surface)}
 
 .credits{padding:24px 16px 32px;font-size:13px;color:var(--muted);text-align:center;border-top:1px solid var(--line)}

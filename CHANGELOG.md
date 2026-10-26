@@ -2,6 +2,13 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.17.0 — 2026-10-26
+
+- Practice suggests one short session at the top, such as bringing back keys you haven't typed in a week or working on weak letter pairs, and says why. Once today's goal is met it suggests resting instead.
+- Problem keys only lists keys you miss more often than your pass mark allows, or that are clearly slower than the rest, and shows which keys the drill will use.
+- Your own text tells you when the box is empty and which characters aren't on your layout or unlocked yet.
+- Practice runs say "Back to practice" and "Practice again", and screen readers get named tables and readable column headers.
+
 ## 0.16.0 — 2026-10-26
 
 - Loading a newer export of a layout you already have asks whether to update it and keep your progress, instead of quietly adding a second copy that starts from lesson 1.

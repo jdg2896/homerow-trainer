@@ -1,6 +1,6 @@
 {
   "name": "homerow-trainer",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "A typing trainer for ergonomic split keyboards that builds progressive lessons from your own MoErgo or ZMK layout.",
   "license": "MIT",
   "repository": {
