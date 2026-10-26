@@ -2,6 +2,13 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.19.0 — 2026-10-26
+
+- The header's "Report a bug" button is now a quieter "Feedback" button, and it's gone during lessons. The footer has one "Feedback & bug reports" link.
+- Opening feedback from the footer during a lesson pauses it, so writing a report no longer counts as typing time.
+- A layout file that won't load offers "Report this file", which opens a bug report with that file attached and the error filled in.
+- The feedback form's choices read "Something's broken" and "Idea or comment", and a missing title or detail is announced and focused.
+
 ## 0.18.0 — 2026-10-26
 
 - "Not typed lately" in free practice, and the suggested "Bring them back" session, now always include every key it lists, each in at least two real words.

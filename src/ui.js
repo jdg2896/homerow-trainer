@@ -92,7 +92,9 @@ function offerLoad(text, nameHint, from){
   const N = loadLayoutText(text, nameHint);
   S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${N.title}${from ? ' from ' + from : ''}. Lessons rebuilt for this layout.` };
 }
-const msgHtml = () => S.msg ? `<div class="msg ${S.msg.t}" role="status" tabindex="-1">${esc(S.msg.m)}</div>` : '';
+const msgHtml = () => S.msg ? `<div class="msg ${S.msg.t}" role="status" tabindex="-1">${esc(S.msg.m)}${S.msg.file ? ` <button class="linkbtn" data-act="report-load">Report this file</button>` : ''}</div>` : '';
+// A file that won't load is the most useful bug report there is, so the error offers to send it.
+const loadErr = (err, text, name) => ({ t: 'err', m: name ? `${name}: ${err.message}` : err.message, file: { text, name: name || 'pasted layout' } });
 function activate(id){
   const rec = S.layouts[id]; if (!rec) return;
   S.layout = E.buildLayout(rec.text, { name: rec.name, id });
@@ -226,7 +228,7 @@ function hintFor(item){
 }
 
 /* ---------- views ---------- */
-// During a run the header drops its stats, so the only numbers on screen are the drill's own.
+// During a run the header drops its stats and Feedback, so the only things on screen are the drill's own.
 function header(inRun){
   const o = overall(), goal = S.settings.dailyGoal * 60, pct = Math.min(1, o.todaySecs / goal), C = 2 * Math.PI * 18;
   const L = S.layout;
@@ -240,7 +242,7 @@ function header(inRun){
       <div class="goal${pct >= 1 ? ' met' : ''}"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="ring-bg" cx="22" cy="22" r="18"/><circle class="ring" cx="22" cy="22" r="18" stroke-dasharray="${(C * pct).toFixed(1)} ${C.toFixed(1)}"/></svg>
         <div class="stat"><small>Daily goal</small><b>${fmtTime(o.todaySecs)}<em>/ ${S.settings.dailyGoal}:00</em></b></div></div>
     </div>`}
-    <button class="btn ghost fb-open" data-act="feedback" data-fbtype="bug" title="Report a bug" aria-label="Report a bug"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="8" width="10" height="13" rx="5"/><path d="M9 8V7a3 3 0 0 1 6 0v1M12 12v9M7 12.5H3m14 0h4M7 17H4m13 0h3M7.6 9.6 5 7m11.4 2.6L19 7"/></svg><span>Report a bug</span></button></div></header>`;
+    ${inRun ? '' : `<button class="btn ghost fb-open" data-act="feedback" data-fbtype="bug" title="Report a problem or share an idea"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-8l-4 3.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg><span>Feedback</span></button>`}</div></header>`;
 }
 function sidebar(){
   const nav = [['learn', 'Lessons'], ['practice', 'Practice'], ['layout', 'Layout'], ['settings', 'Settings']];
@@ -528,7 +530,7 @@ const repoFile = f => `${BUILD.repo}/blob/main/${f}`;
 function footer(){
   const a = (href, text, cls) => `<a href="${href}" target="_blank" rel="noopener"${cls ? ` class="${cls}"` : ''}>${text}</a>`;
   const commit = BUILD.commit ? ' · ' + a(`${BUILD.repo}/commit/${BUILD.commit}`, BUILD.commit, 'mono') : '';
-  return `<footer class="credits"><p class="ver">${a(repoFile('CHANGELOG.md'), `Homerow Trainer v${esc(BUILD.version)}`)}${commit} · © 2026 Jasper Gabriel · ${a(repoFile('CREDITS.md'), 'Credits &amp; licenses')} · <button class="linkbtn" data-act="feedback" data-fbtype="feedback">Send feedback</button> · <button class="linkbtn" data-act="feedback" data-fbtype="bug">Report a bug</button></p></footer>`;
+  return `<footer class="credits"><p class="ver">${a(repoFile('CHANGELOG.md'), `Homerow Trainer v${esc(BUILD.version)}`)}${commit} · © 2026 Jasper Gabriel · ${a(repoFile('CREDITS.md'), 'Credits &amp; licenses')} · <button class="linkbtn" data-act="feedback" data-fbtype="bug">Feedback &amp; bug reports</button></p></footer>`;
 }
 function whatsNew(){
   if (!S.whatsNew) return '';
@@ -965,12 +967,12 @@ function startPractice(kind){
    .github/ISSUE_TEMPLATE file whose frontmatter applies the label, since the labels query
    parameter is ignored for people without triage access. */
 const FB_TYPES = {
-  bug: { name: 'Bug', template: 'bug.md', label: 'bug', ask: 'What went wrong?' },
-  feedback: { name: 'Feedback', template: 'feedback.md', label: 'feedback', ask: 'What’s your idea or feedback?' }
+  bug: { name: 'Something’s broken', template: 'bug.md', label: 'bug', ask: 'What went wrong?' },
+  feedback: { name: 'Idea or comment', template: 'feedback.md', label: 'feedback', ask: 'What’s your idea or feedback?' }
 };
 const MAX_URL = 8000; // GitHub rejects much longer issue URLs; longer reports go via the clipboard
 const MAX_BODY = 65000; // GitHub's issue body limit is 65,536 characters
-let fbDialog = null;
+let fbDialog = null, fbFile = null; // fbFile: a layout that failed to load, attached instead of the active one
 function fbOpen(){ return !!(fbDialog && fbDialog.open); }
 
 function diagnostics(){
@@ -991,7 +993,7 @@ function diagnostics(){
 
 // The active layout as stored (MoErgo JSON is re-serialized compactly; ZMK keymaps stay as written).
 function layoutFile(){
-  const rec = S.layouts[S.activeId], text = rec ? rec.text : '';
+  const rec = S.layouts[S.activeId], text = fbFile ? fbFile.text : rec ? rec.text : '';
   try { return { lang: 'json', text: JSON.stringify(JSON.parse(text)) }; } catch (e) { return { lang: 'c', text }; }
 }
 function fbBody(f, withLayout){
@@ -1003,7 +1005,7 @@ function fbBody(f, withLayout){
     + sec(f.type === 'bug' ? 'What happened' : 'Details', f.details)
     + (f.type === 'bug' ? sec('Steps to reproduce', f.steps) + sec('Expected behavior', f.expected) : '')
     + sec('Screenshots', '_Paste or drag screenshots and files here, if any._')
-    + (lf ? sec('Layout file', fold(`${esc(S.layout.title)} (${Math.ceil(lf.text.length / 1024)} KB)`, lf.lang, lf.text)) : '')
+    + (lf ? sec('Layout file', fold(`${esc(fbFile ? fbFile.name : S.layout.title)} (${Math.ceil(lf.text.length / 1024)} KB)`, lf.lang, lf.text)) : '')
     + (f.diag ? sec('Diagnostics', fold('App, browser and layout state (auto-collected)', '', diagnostics())) : '')
     + '_Sent from the in-app feedback form._';
 }
@@ -1023,11 +1025,11 @@ function fbSync(){
   const type = fbFields().type;
   if (fbDialog.dataset.type !== type) fbDialog.querySelector('#fbDiag').checked = type === 'bug';
   fbDialog.dataset.type = type;
-  fbDialog.querySelector('#fbHead').textContent = type === 'bug' ? 'Report a bug' : 'Send feedback';
+  fbDialog.querySelector('#fbLayoutLabel').textContent = fbFile ? `Attach ${fbFile.name}` : 'Attach my active layout file';
   fbDialog.querySelector('label[for=fbDetails]').textContent = FB_TYPES[type].ask;
   fbDialog.querySelector('#fbDiagText').textContent = diagnostics();
 }
-function openFeedback(type){
+function openFeedback(type, prefill){
   if (!fbDialog) {
     fbDialog = document.createElement('dialog');
     fbDialog.className = 'fb';
@@ -1046,10 +1048,10 @@ function openFeedback(type){
         <label for="fbExpected">What did you expect?</label>
         <input type="text" id="fbExpected" autocomplete="off">
       </div>
-      <div class="check bug-only"><input type="checkbox" id="fbLayout" checked><label for="fbLayout">Attach my active layout file<br><small>So the bug can be reproduced with your exact keymap.</small></label></div>
-      <div class="check"><input type="checkbox" id="fbDiag" checked><label for="fbDiag">Include diagnostics<br><small>Version, browser, active layout name, current screen, settings and recent errors. No typing history.</small></label></div>
+      <div class="check bug-only"><input type="checkbox" id="fbLayout" checked aria-describedby="fbLayoutHelp"><div><label for="fbLayout" id="fbLayoutLabel">Attach my active layout file</label><small id="fbLayoutHelp">So the bug can be reproduced with your exact keymap.</small></div></div>
+      <div class="check"><input type="checkbox" id="fbDiag" checked aria-describedby="fbDiagHelp"><div><label for="fbDiag">Include diagnostics</label><small id="fbDiagHelp">Version, browser, active layout name, current screen, settings and recent errors. No typing history.</small></div></div>
       <details class="fbdiag"><summary>See what gets included</summary><pre id="fbDiagText"></pre></details>
-      <div class="msg err" id="fbErr" hidden></div>
+      <div class="msg err" id="fbErr" role="alert" hidden></div>
       <small>Opens a prefilled issue on GitHub in a new tab, where you can add screenshots or files, then press Submit (needs a GitHub account). Long reports, like ones with a layout file, are copied to your clipboard to paste there.</small>
       <div class="actions"><button type="button" class="btn ghost" data-act="fb-cancel">Cancel</button><button type="button" class="btn primary" data-act="fb-submit">Continue on GitHub</button></div>
     </form>`;
@@ -1057,18 +1059,27 @@ function openFeedback(type){
     fbDialog.addEventListener('click', e => { if (e.target === fbDialog) fbDialog.close(); }); // backdrop
     fbDialog.addEventListener('change', e => { if (e.target.name === 'fbType') fbSync(); });
     fbDialog.addEventListener('submit', e => e.preventDefault());
+    fbDialog.addEventListener('close', () => fbDialog.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid')));
   }
+  // The dialog doesn't blur the window, so pause here or writing the report counts as drill time.
+  const r = S.run; if (r && !r.result && r.t0 != null) { r.escPaused = true; pauseClock(); paintState(); }
+  // A prefilled report is about that one file, so it isn't kept as a draft for the next time the dialog opens.
+  if (fbFile || prefill) fbDialog.querySelector('form').reset();
+  fbFile = prefill && prefill.file || null;
   const radio = fbDialog.querySelector(`input[name=fbType][value=${FB_TYPES[type] ? type : 'bug'}]`);
   radio.checked = true;
   fbSync();
+  if (prefill) { fbDialog.querySelector('#fbTitle').value = prefill.title; fbDialog.querySelector('#fbDetails').value = prefill.details; fbDialog.querySelector('#fbLayout').checked = true; }
   fbDialog.querySelector('#fbErr').hidden = true;
   fbDialog.showModal();
-  fbDialog.querySelector('#fbTitle').focus();
+  fbDialog.querySelector(prefill ? '#fbSteps' : '#fbTitle').focus();
 }
 function submitFeedback(){
   const f = fbFields(), err = fbDialog.querySelector('#fbErr');
   const fail = m => { err.textContent = m; err.hidden = false; };
-  if (!f.title || !f.details) { fail('Add a title and a few words of detail first.'); return; }
+  const miss = [['fbTitle', f.title], ['fbDetails', f.details]].filter(([, v]) => !v).map(([id]) => id);
+  ['fbTitle', 'fbDetails'].forEach(id => { const el = fbDialog.querySelector('#' + id); if (miss.includes(id)) el.setAttribute('aria-invalid', 'true'); else el.removeAttribute('aria-invalid'); });
+  if (miss.length) { fail('Add a title and a few words of detail first.'); fbDialog.querySelector('#' + miss[0]).focus(); return; }
   let body = fbBody(f, f.layout);
   if (body.length > MAX_BODY) body = fbBody(f, false).replace('### Screenshots', '_The layout file was too large to include. Please attach it below._\n\n### Screenshots');
   const done = () => { fbDialog.querySelector('form').reset(); fbSync(); fbDialog.close(); };
@@ -1157,19 +1168,19 @@ document.addEventListener('click', e => {
       const txt = S.pasteText || '';
       if (!txt.trim()) { S.msg = { t: 'err', m: 'Paste the contents of a layout file first.' }; render(); break; }
       // The pasted text stays in the box after an error, so it can be fixed instead of pasted again.
-      try { offerLoad(txt); if (!S.pending) S.pasteText = ''; } catch (err) { S.msg = { t: 'err', m: err.message }; }
+      try { offerLoad(txt); if (!S.pending) S.pasteText = ''; } catch (err) { S.msg = loadErr(err, txt); }
       render(); break;
     }
     case 'pending-update': {
       const P = S.pending; S.pending = null;
       try { const r = updateLayoutText(P.id, P.text, P.nameHint); activate(P.id); S.pasteText = ''; S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Updated ${r.name}. Lessons rebuilt, and your progress is kept.` }; }
-      catch (err) { S.msg = { t: 'err', m: err.message }; }
+      catch (err) { S.msg = loadErr(err, P.text, P.nameHint); }
       render(); break;
     }
     case 'pending-new': {
       const P = S.pending; S.pending = null;
       try { const L = loadLayoutText(P.text, P.nameHint); S.pasteText = ''; S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Added ${L.title} as a new layout, starting from lesson 1.` }; }
-      catch (err) { S.msg = { t: 'err', m: err.message }; }
+      catch (err) { S.msg = loadErr(err, P.text, P.nameHint); }
       render(); break;
     }
     case 'pending-cancel': S.pending = null; render(); break;
@@ -1179,6 +1190,10 @@ document.addEventListener('click', e => {
     case 'reset':
       if (S.confirmDel !== '__reset') { S.confirmDel = '__reset'; render(); break; }
       S.stats = freshStats(); saveStats(); S.confirmDel = null; render(); break;
+    case 'report-load': {
+      const m = S.msg, F = m && m.file; if (!F) break;
+      openFeedback('bug', { file: F, title: `Couldn’t load ${F.name}`, details: `Loading it said: “${m.m}”` }); break;
+    }
   }
 });
 document.addEventListener('change', e => {
@@ -1186,12 +1201,12 @@ document.addEventListener('change', e => {
   if (t.id === 'presetSel') { S.presetSel = +t.value || 0; render(); return; }
   if (t.id === 'updateFile' && t.files && t.files[0] && S.layouts[S.updating]) {
     const f = t.files[0], id = S.updating, rd = new FileReader();
-    rd.onload = () => { try { const r = updateLayoutText(id, String(rd.result), f.name.replace(/\.[^.]+$/, '')); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Updated ${r.name} from ${f.name}. Lessons rebuilt, and your progress is kept.` }; } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } S.updating = null; render(); };
+    rd.onload = () => { try { const r = updateLayoutText(id, String(rd.result), f.name.replace(/\.[^.]+$/, '')); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Updated ${r.name} from ${f.name}. Lessons rebuilt, and your progress is kept.` }; } catch (err) { S.msg = loadErr(err, String(rd.result), f.name); } S.updating = null; render(); };
     rd.readAsText(f); return;
   }
   if (t.id === 'layoutFile' && t.files && t.files[0]) {
     const f = t.files[0], rd = new FileReader();
-    rd.onload = () => { try { offerLoad(String(rd.result), f.name.replace(/\.[^.]+$/, ''), f.name); } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); };
+    rd.onload = () => { try { offerLoad(String(rd.result), f.name.replace(/\.[^.]+$/, ''), f.name); } catch (err) { S.msg = loadErr(err, String(rd.result), f.name); } render(); };
     rd.readAsText(f); return;
   }
   const keys = ['routePref', 'modPref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'hints', 'showFingers', 'unlockAll', 'theme'];
