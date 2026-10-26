@@ -75,6 +75,8 @@ function activate(id){
   S.layout.title = rec.name || S.layout.title;
   S.activeId = id; store.set('active', S.activeId);
   S.stats = Object.assign(freshStats(), store.get('stats.' + S.activeId, {}));
+  // Keys typed before 0.11.0 have no date; start their clock today rather than calling them all stale.
+  const t = today(); Object.values(S.stats.keys).forEach(k => { if (!k.d) k.d = t; });
   S.layerView = 0;
   rebuild();
 }
@@ -133,6 +135,13 @@ function weakPairs(limit){
     .filter(x => x.score > 0.05).sort((a, b) => b.score - a.score).slice(0, limit || 6);
 }
 const weakPairIds = () => weakPairs().map(x => x.p);
+// Unlocked keys you've typed plenty but not for a week or more, longest ago first. Drills bring these back (learning principle 7).
+const STALE_DAYS = 7;
+function staleKeys(limit){
+  const ks = S.stats.keys, unlocked = unlockedChars(), now = Date.parse(today());
+  return Object.keys(ks).filter(k => k.length === 1 && k !== ' ' && unlocked.has(k) && ks[k].n >= 10 && ks[k].d && (now - Date.parse(ks[k].d)) / 864e5 >= STALE_DAYS)
+    .sort((a, b) => ks[a].d < ks[b].d ? -1 : ks[a].d > ks[b].d ? 1 : 0).slice(0, limit || 6);
+}
 function fmtTime(s){ s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60; return h ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`; }
 function starsHtml(n, max){ let s = ''; for (let i = 0; i < (max || 3); i++) s += `<span class="${i < n ? 'on' : ''}">★</span>`; return `<span class="stars" aria-label="${n} of 3 stars">${s}</span>`; }
 function kc(c, cls){ const lab = c.length > 1 ? E.keyItemLabel(E.keyItem(c)) : E.charName(c); return `<span class="kc ${cls || ''}">${esc(lab)}</span>`; }
@@ -259,13 +268,14 @@ function learnView(){
 }
 
 function practiceView(){
-  const pk = problemKeys(20), wp = weakPairs();
+  const pk = problemKeys(20), wp = weakPairs(), stale = staleKeys();
   const misf = S.stats.misfires;
   // Left column = things you start; right column = how you're doing. Problem keys is the card that grows
   // most (its table grows, then scrolls), so it goes at the bottom of its column where it can grow downward
   // freely; misfires and weak pairs (at most six rows) sit above it. Columns keep natural heights.
   const freeCard = `<div class="card field"><h3 style="font-size:19px">Free practice</h3>
       <p class="muted" style="margin:0 0 4px">Words and sentences from all your unlocked keys.</p>
+      ${stale.length ? `<p class="newkeys" style="margin:0">Starts with keys you haven't typed in a week ${stale.map(c => kc(c)).join('')}</p>` : ''}
       <div class="actions"><button class="btn go" data-act="practice-free"><span class="tri"></span>Start free practice</button></div></div>`;
   const textCard = `<div class="card field"><h3 style="font-size:19px">Your own text</h3>
       <label for="customText" class="muted" style="font-weight:400">Paste code, notes or anything you type often.</label>
@@ -431,7 +441,7 @@ function computeStars(acc, wpm, kind){
 function resumeStage(l){ const p = lessonProg(l); return p && !p.stars && p.stagesDone ? p.stagesDone : 0; }
 function startLesson(i){
   const l = S.C.lessons[i], p = lessonProg(l);
-  const stages = E.makeStages(S.C, l, WORDS, +S.settings.stageLen, SENTENCES, weakPairIds());
+  const stages = E.makeStages(S.C, l, WORDS, +S.settings.stageLen, SENTENCES, weakPairIds(), staleKeys());
   // Clamped so a lesson saved with every stage passed but never finished (before 0.3.1) redoes its last stage instead of restarting.
   let si = Math.min(resumeStage(l), stages.length - 1), results = [];
   if (si && p.stageCount === stages.length) results = (p.stageRes || []).map(x => x && Object.assign({ pass: true }, x));
@@ -762,7 +772,7 @@ function onKey(e){
   const id = it.t === 'c' ? it.ch : E.keyId(it);
   const ks = S.stats.keys[id] || (S.stats.keys[id] = { n: 0, err: 0, lat: 0, ln: 0 });
   if (!r.tried.has(r.idx)) {
-    r.tried.add(r.idx); ks.n++;
+    r.tried.add(r.idx); ks.n++; ks.d = today();
     if (!ok) { ks.err++; r.errCount++; }
     // In-word pairs only: the previous item and this one are both letters, so "th" in "the" but not "e t".
     const prev = r.items[r.idx - 1];
@@ -793,7 +803,7 @@ function startPractice(kind){
     if (keys.length) stages.push({ name: 'Focus keys', items: Array.from({ length: 12 }, () => E.keyItem(keys[Math.floor(Math.random() * keys.length)])) });
     title = 'Problem keys: ' + pk.map(itemLabel).join(' ');
   } else if (kind === 'free') {
-    stages = E.practiceStages(S.C, unlocked, [], WORDS, +S.settings.stageLen * 1.5, SENTENCES, weakPairIds());
+    stages = E.practiceStages(S.C, unlocked, [], WORDS, +S.settings.stageLen * 1.5, SENTENCES, weakPairIds(), staleKeys());
     title = 'Free practice';
   } else {
     const t = (S.customText || '').replace(/\s+/g, ' ').trim();

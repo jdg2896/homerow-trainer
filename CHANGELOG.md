@@ -2,6 +2,10 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.11.0 — 2026-10-25
+
+- Keys you haven't typed in a week come back: lessons' mixed drills use them more often, and free practice starts with them. The free practice card on Practice shows which ones.
+
 ## 0.10.0 — 2026-10-24
 
 - The app now notices letter pairs you fumble even when each letter is fine on its own, like "th" in "the". Common combos in reviews and practice drill your weakest pairs more often, and Practice lists them next to your problem keys.
