@@ -9,6 +9,7 @@
   const describe = v => v && v.stack ? v.stack : v && v.message ? v.message : String(v);
   window.addEventListener('error', e => push('error', e.error ? describe(e.error) : e.message, e.filename ? `${e.filename}:${e.lineno}:${e.colno}` : ''));
   window.addEventListener('unhandledrejection', e => push('rejection', describe(e.reason)));
+  window.addEventListener('securitypolicyviolation', e => push('csp', `blocked ${e.effectiveDirective}`, e.blockedURI || e.sourceFile || ''));
   const orig = console.error;
   console.error = function(...a){ push('console', a.map(describe).join(' ')); return orig.apply(this, a); };
 })();
