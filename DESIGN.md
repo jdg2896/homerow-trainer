@@ -216,7 +216,7 @@ A cool neutral desk with two working accents and pastel finger colors on the key
 - **Keycap Blue Soft** (`keycap-blue-soft`): the tint behind the current character, the selected segment in the feedback type picker, and success messages.
 
 ### Secondary
-- **Go Amber** (`go-amber`): the target key on the keyboard, the hero's Start or Continue button (the only amber button on Lessons, and gone once the daily goal is met), the daily-goal ring while it fills, stars on the result card, and the lit middle row of the brand mark. It's the same in both themes. Text on it is always `go-amber-ink`, never white.
+- **Go Amber** (`go-amber`): the target key on the keyboard, the hero's Start or Continue button (the only amber button on Lessons, and gone once the daily goal is met), the suggested session's button on Practice (likewise the only one there, and gone once the goal is met), the daily-goal ring while it fills, stars on the result card, and the lit middle row of the brand mark. It's the same in both themes. Text on it is always `go-amber-ink`, never white.
 
 ### Tertiary
 - **Done Green** (`ok-green`): completed lessons (number disc), finished stage chips, the filled lesson segments, and the daily-goal ring once the goal is met. Text on it is `ok-green-ink`: white in light mode, near-black in dark, where the green lightens.
@@ -250,7 +250,7 @@ A cool neutral desk with two working accents and pastel finger colors on the key
 - **Headline** (700, 22px, 1.15): unit headings, the drill run bar, and the result card (24px).
 - **Title** (700, 17px): lesson names, What's new heading. Dialog titles use the display face at 21px.
 - **Body** (400, 15px, 1.5): everything else. Meta and secondary lines use 13–14px in Muted. The footer's line length is capped at 112ch.
-- **Label** (700, 11px, 0.06–0.08em, uppercase): stat captions, sidebar group headings, table headers and badges.
+- **Label** (700, 11px, 0.06–0.08em, uppercase): stat captions, sidebar group headings and badges. Table headers get the same look from `all-small-caps` at 14px rather than `text-transform`, so screen readers hear "Miss rate", not "MISS RATE".
 - **Stat** (700, 22px, tabular figures): header stats and result numbers, with units at 12px in the body face. Accuracy always comes before speed. During a drill the header drops its stats and the run bar shows accuracy only; speed appears on the result.
 - **Drill** (Plex Mono 500, clamp(19px, 2.5vw, 27px), 1.9em lines): the typing viewport, three lines tall.
 
@@ -262,7 +262,7 @@ A cool neutral desk with two working accents and pastel finger colors on the key
 ## Layout
 
 - **Shell:** a full-width header bar (brand, layout chip that opens Layout, stats, goal ring, report-a-bug button), then a two-column grid: a 250px sidebar (nav, unit links, problem-key card) and a main column centered in the remaining space at up to 980px. Page gutters are 16px. A footer sits at the bottom of the viewport even on short pages.
-- **Main column:** a vertical stack with 28px between sections and 16px between cards. Grids use `auto-fit, minmax(280px, 1fr)`. Practice uses two equal columns that each stack their own cards, collapsing to one column at 760px.
+- **Main column:** a vertical stack with 28px between sections and 16px between cards. Grids use `auto-fit, minmax(280px, 1fr)`. Practice opens with one full-width Suggested now card, then two equal columns that each stack their own cards, collapsing to one column at 760px: launchers (free practice, your own text) on the left, and weak pairs, problem keys and misfires on the right, misfires last.
 - **Rhythm:** gaps cluster at 4/6/8 inside components, 12–16 between siblings, and 22–28 between sections. Card padding is 16px. The type box is roomier (22px 26px).
 - **≤860px:** the sidebar folds above the content and the nav becomes a wrapping row. Unit links, the sidebar card, nav shortcut numbers and the key hint are hidden. The report-a-bug button stays top right as an icon only, and lessons drop their action column under the title.
 - **Keyboard diagram:** an SVG at least 560px wide that scrolls horizontally inside its card rather than shrinking past legibility. In a drill its height is capped by the window (at least 260px), so the thumb keys stay on screen; it shrinks and centres rather than overflowing.
@@ -276,7 +276,7 @@ The system is mostly flat. Depth comes from tone (desk → surface → sunken su
 - **Cursor underline** (`box-shadow: inset 0 -3px 0 var(--accent)`): the current drill character. This marks state; it isn't elevation.
 
 ### Named Rules
-**The One Lifted Thing Rule.** Shadows mark the one place to look: the drill, the next lesson or an open dialog. Cards at rest don't get a shadow.
+**The One Lifted Thing Rule.** Shadows mark the one place to look: the drill, the next lesson, the suggested practice session or an open dialog. Cards at rest don't get a shadow.
 
 ## Shapes
 
@@ -313,6 +313,7 @@ The signature primitive: an inline key legend that looks like a physical cap.
 - **Internal padding:** 16px.
 - **Hero:** the Lessons banner is the one solid Keycap Blue block, with a Keycap Blue Ink progress fill on a translucent white track.
 - **Hero, done for today:** once the daily goal is met, the hero reads "Done for today", says it's a good place to stop and names the next lesson for next time. The progress bar hides, and the button becomes a Surface "Keep going" with Ink text instead of amber, and doesn't take focus on load, so Enter doesn't start another lesson by default.
+- **Suggested now (Practice):** a card with a Keycap Blue border and the focus-lift shadow, like the next lesson. It names one short session and says why in a sentence with the keys as chips: keys not typed in a week, else weak pairs, else problem keys, else free practice. Its button is the page's only amber; every other Practice launcher is a default button. Once the daily goal is met it becomes a plain card reading "Done for today" with the Lessons rest copy and no button, so nothing on the page is amber. Practice card headings use the Title size (17px), and heading counts are Muted 14px tabular figures that screen readers hear as "(5 listed)".
 - **Starter-layout card:** on first run, while the bundled default layout is active and no lesson has been typed, a plain card above the hero names the layout and keyboard, says it's a stand-in, and explains a lesson in one line. "Choose a layout" is a default button and "Keep this one" a link button, so the hero's Start stays the only amber.
 
 ### Lesson Row
