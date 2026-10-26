@@ -183,5 +183,15 @@ for (const file of presets) {
   console.log(`ok  ${where}`);
 }
 
+// A file's names end up sliced and shown as text, so odd types must come out as strings.
+{
+  const where = 'odd field types';
+  const base = JSON.parse(fs.readFileSync(path.join(presetDir, presets[0]), 'utf8'));
+  const L = E.buildLayout(JSON.stringify(Object.assign({}, base, { title: { a: 1 }, uuid: [1], layer_names: [7, null, '<b>'] })));
+  if (typeof L.title !== 'string' || typeof L.id !== 'string' || L.uuid !== '') fail(where, `title ${typeof L.title}, id ${typeof L.id}, uuid ${JSON.stringify(L.uuid)}`);
+  if (!L.layerNames.every(n => typeof n === 'string') || L.layerNames[0] !== 'Base' || L.layerNames[2] !== '<b>') fail(where, `layer names ${JSON.stringify(L.layerNames)}`);
+  console.log(`ok  ${where}`);
+}
+
 if (failures) { console.error(`\n${failures} failure(s).`); process.exit(1); }
 console.log(`\nAll ${presets.length} presets passed.`);
