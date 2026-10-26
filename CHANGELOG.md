@@ -2,6 +2,12 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.13.0 — 2026-10-26
+
+- Apostrophes in prose drills are contractions and possessives ("don't", "dad's") instead of words wrapped in single quotes.
+- Code drills read like code: dots join names (e.key), commas sit in calls or lists, and no stray sentence words like "share." sit between snippets.
+- Generated sentences sometimes quote a word mid-sentence, the way people quote a term.
+
 ## 0.12.0 — 2026-10-26
 
 - New users start on QWERTY for the Glove80 instead of Miryoku for the Go60. Lessons says which starter layout you're on and how a lesson works, with a button to pick another or load your own.
