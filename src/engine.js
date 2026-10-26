@@ -264,7 +264,7 @@ function detectFormat(text){
   const t = text.trim();
   if (t.startsWith('{')) return 'moergo';
   if (/keymap\s*\{/.test(t)) return 'zmk';
-  throw new Error('Unrecognised file. Load a MoErgo layout .json or a ZMK .keymap file.');
+  throw new Error("This isn't a layout file Homerow Trainer can read. A MoErgo layout is JSON that starts with {, and a ZMK .keymap has a keymap { … } block.");
 }
 
 function buildLayout(text, opts){
@@ -276,6 +276,7 @@ function buildLayout(text, opts){
     if (!Array.isArray(raw.layers) || !raw.layers.length) throw new Error('The JSON has no "layers" array. Export the layout from the MoErgo Layout Editor.');
   } else raw = parseZmkKeymap(text);
   const n = Math.max(...raw.layers.map(l => l.length));
+  if (!n) throw new Error('This layout has no keys on its layers. Export it again from the MoErgo Layout Editor, or check the .keymap file.');
   let keyboard = String(raw.keyboard || '').toLowerCase();
   if (!keyboard) keyboard = n === 80 ? 'glove80' : n === 60 ? 'go60' : '';
   const ht = {};
@@ -283,6 +284,8 @@ function buildLayout(text, opts){
   const layers = raw.layers.map(l => l.map(b => parseBinding(b, ht)));
   // resolve &trans to base
   layers.forEach((l, li) => { if (li) l.forEach((k, p) => { if (k.trans) l[p] = Object.assign({}, layers[0][p], { inherited: true }); }); });
+  // A file can parse but type nothing (an empty or placeholder export); refuse it rather than build an empty course.
+  if (!layers[0].some(k => k.tap && k.tap.ch)) throw new Error("This layout's base layer has no keys that type a letter or symbol, so there's nothing to build lessons from.");
   const geo = buildGeometry(keyboard, n);
   const keys = geo.keys;
   // home row: row with most hold-mods; fallback row containing 'a'

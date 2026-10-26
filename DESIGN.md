@@ -322,17 +322,20 @@ A three-column grid: a number disc, the title with its meta line, and the action
 The unit title and blurb on the left; on the right, its status and a chevron. A finished unit reads "✓ All 7 done" in bold Done Green. A unit not reached yet previews up to eight of its new keys as Muted keycaps before "0 of 8 done".
 
 ### Inputs / Fields
-- **Style:** Sunken Surface fill, 1px Line border, 8px radius, 8px 10px padding, full width. Textareas are mono 13px except in the feedback dialog.
+- **Style:** Sunken Surface fill, a 1px border of 70% Muted mixed into Surface (so the field's edge clears 3:1), 8px radius, 8px 10px padding, full width. Textareas are mono 13px except in the feedback dialog. Placeholders are Muted and read as examples ("e.g. …"). File inputs style their button like a default button.
 - **Labels:** bold 14px above the field, with Muted 13px help text below.
 - **Focus:** the global 2px Keycap Blue outline at a 2px offset.
 - **Segmented control:** a bordered strip of equal segments. The selected one is Keycap Blue Soft with Ink text.
-- **Messages:** an error message is Miss Red on its soft tint, and a success message is Keycap Blue Soft.
+- **Messages:** an error message is Miss Red on its soft tint, and a success message is Keycap Blue Soft. Messages are `role="status"` and take focus when an action produces one, so they're announced; after a failed paste the pasted text stays in the box.
 
 ### Navigation
 A vertical list of bold 15px rows with 10px 12px padding and an 8px radius, each with its number-key shortcut in faded mono on the right (hidden from screen readers, which get `aria-keyshortcuts`; 85% on the active row so it clears 4.5:1). Hover shows a Surface fill, and the active row is a solid Keycap Blue fill. At ≤860px it becomes a wrapping row and the shortcut numbers are hidden.
 
 ### Drill Viewport
 Three mono lines in a roomy, shadowed card, scrolling one line at a time (a 0.15s transform). Upcoming characters are Ink, since they are what you read next. Typed characters step back to Muted, which still clears 4.5:1 in both themes. A miss is Miss Red on its soft tint, including on the current character, where it also turns the cursor underline red, and a miss that was then fixed stays Miss Red at 60%. The current character gets a Keycap Blue Soft tint and a 3px Keycap Blue underline, and the current space shows a centered blue dot. A miss also triggers a 3px horizontal shake (0.18s), which reduced motion turns off. When the box loses focus, a translucent surface veil covers it with "Paused while this window is in the background. Click here or switch back to keep typing." Esc shows the same veil with "Paused. Press any key to keep typing, or Esc again to leave the lesson." The clock really stops while either shows.
+
+### Layouts Page
+The page leads with what you came to do: "Your layouts" (the save slots) and "Add a layout" (Starter layouts preselected to your keyboard's factory default, your own file, or a collapsed paste box) sit side by side above the keyboard. The diagram follows under the layout's name, with layer pills that expose `aria-pressed`, and "Characters you can type" is a collapsed details card listing each letter once. Loading a file that matches a saved layout (same MoErgo uuid, or same name and keyboard) doesn't add a copy: a lifted Keycap Blue card asks "Is this a newer version of …?" with Update (keeps progress), Add as a new layout, and Cancel. Removing a layout is a two-step row: the row turns Miss Red soft and names what goes with it ("Its progress (20 lessons done) and key stats"), and focus starts on Cancel.
 
 ### Keyboard Diagram
 An SVG of the user's board. Keys are Key fills with a Key Edge stroke, and home-row keys get a 2px stroke. Finger colors fill the keys when "show fingers" is on. The target key is a solid Go Amber fill with a Go Amber Ink stroke and legend, and held keys are a solid Keycap Blue fill. In the subtle-highlight setting, the finger color stays and the key only gets a 3px blue outline (dashed for held keys). Empty keys sit at 45% opacity. A small legend sits below.

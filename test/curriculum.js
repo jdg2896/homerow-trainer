@@ -159,5 +159,15 @@ for (const file of presets) {
   console.log(`ok  ${where}`);
 }
 
+// Files that parse but can't build a course are refused with a reason, instead of becoming an empty "Untitled layout".
+{
+  const where = 'empty layouts';
+  const refuse = (text, re) => { try { E.buildLayout(text); fail(where, `accepted ${text}`); } catch (e) { if (!re.test(e.message)) fail(where, `${text}: unexpected "${e.message}"`); } };
+  refuse('{"keyboard":"go60","layers":[[]]}', /no keys/);
+  refuse('{"keyboard":"go60","layers":[[{"value":"&none","params":[]}]]}', /nothing to build/);
+  refuse('hello', /isn't a layout file/);
+  console.log(`ok  ${where}`);
+}
+
 if (failures) { console.error(`\n${failures} failure(s).`); process.exit(1); }
 console.log(`\nAll ${presets.length} presets passed.`);
