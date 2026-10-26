@@ -8,7 +8,7 @@ Notes for coding agents. The README has the user-facing overview, the commands a
 - **`src/engine.js` stays pure.** No DOM. It also runs in Node via `module.exports` for the test.
 - **`dist/` is generated and gitignored.** Edit `src/`, then run `npm run build`.
 - **Don't hand-edit `data/sentences.json`.** `npm run sentences` rebuilds it from Tatoeba's English export (needs `bunzip2`).
-- **Don't hand-edit `data/presets/`.** `npm run presets` downloads it from MoErgo's editors. The build fails if it's empty, and the app seeds its first-run layout from it (`DEFAULT_LAYOUT_ID` in `ui.js`).
+- **Don't hand-edit `data/presets/`.** `npm run presets` downloads it from MoErgo's editors. The build fails if it's empty, and the app seeds its first-run layout from it (`defaultPreset()` in `ui.js`).
 - **Storage keys are prefixed `homerow-trainer.`** and stats are kept per layout (`stats.<layoutId>`). Don't rename them without a migration, or users lose their progress.
 
 ## Drills and curriculum

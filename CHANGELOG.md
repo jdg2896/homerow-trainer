@@ -2,6 +2,12 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.12.0 — 2026-10-26
+
+- New users start on QWERTY for the Glove80 instead of Miryoku for the Go60. Lessons says which starter layout you're on and how a lesson works, with a button to pick another or load your own.
+- The layout name in the header opens the Layout page.
+- The Lessons page is calmer: only the next lesson's Start is amber, earned stars on the list are plain, and the daily-goal ring turns green once you've met your goal.
+
 ## 0.11.0 — 2026-10-25
 
 - Keys you haven't typed in a week come back: lessons' mixed drills use them more often, and free practice starts with them. The free practice card on Practice shows which ones.
