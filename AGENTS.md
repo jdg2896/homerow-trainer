@@ -10,6 +10,7 @@ Notes for coding agents. The README has the user-facing overview, the commands a
 - **Don't hand-edit `data/sentences.json`.** `npm run sentences` rebuilds it from Tatoeba's English export (needs `bunzip2`).
 - **Don't hand-edit `data/presets/`.** `npm run presets` downloads it from MoErgo's editors. The build fails if it's empty, and the app seeds its first-run layout from it (`defaultPreset()` in `ui.js`).
 - **Treat files, backups, pasted text and storage as untrusted.** Pass every value through `esc()` before it reaches `innerHTML`, and coerce new fields from a file to the type you expect. [SECURITY.md](SECURITY.md) lists the trust boundaries.
+- **The page has a Content Security Policy.** `build.mjs` hashes each inline script, so add new code to the `scripts` list there, not as another `<script>` or an inline `on…=` handler. A new external origin (fonts, images, `fetch`) also needs its directive in `csp`.
 - **Storage keys are prefixed `homerow-trainer.`** and stats are kept per layout (`stats.<layoutId>`). Don't rename them without a migration, or users lose their progress.
 
 ## Drills and curriculum
