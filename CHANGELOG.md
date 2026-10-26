@@ -2,6 +2,21 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.17.0 — 2026-10-26
+
+- Practice suggests one short session at the top, such as bringing back keys you haven't typed in a week or working on weak letter pairs, and says why. Once today's goal is met it suggests resting instead.
+- Problem keys only lists keys you miss more often than your pass mark allows, or that are clearly slower than the rest, and shows which keys the drill will use.
+- Your own text tells you when the box is empty and which characters aren't on your layout or unlocked yet.
+- Practice runs say "Back to practice" and "Practice again", and screen readers get named tables and readable column headers.
+
+## 0.16.0 — 2026-10-26
+
+- Loading a newer export of a layout you already have asks whether to update it and keep your progress, instead of quietly adding a second copy that starts from lesson 1.
+- Removing a layout says what goes with it (its progress and key stats) and has a Cancel button.
+- The Layouts page puts your layouts and the ways to add one at the top, preselects your keyboard's factory default among the Starter layouts, and says where to find your MoErgo or ZMK file.
+- Pasting something that isn't a usable layout explains what's wrong and keeps your text so you can fix it.
+- Screen readers hear the result of each action on the Layouts page, keep their place after it, and know which layer is showing.
+
 ## 0.15.0 — 2026-10-26
 
 - Once you've met your daily goal, Lessons says "Done for today" and suggests resting your hands. Keep going is still there, but Enter no longer starts another lesson.

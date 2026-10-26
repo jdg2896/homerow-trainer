@@ -37,7 +37,7 @@ const S = {
   activeId: store.get('active', null),
   settings: loadSettings(),
   welcomed: store.get('welcomed', false),
-  view: 'learn', layerView: 0, run: null, msg: null, confirmDel: null, renaming: null, updating: null, customText: '', presetSel: 0
+  view: 'learn', layerView: 0, run: null, msg: null, confirmDel: null, renaming: null, updating: null, customText: '', presetSel: null, pending: null, pasteText: ''
 };
 
 function today(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -77,6 +77,22 @@ function layoutForPreset(p){
   const txt = JSON.stringify(p);
   return ids.find(id => S.layouts[id].text === txt);
 }
+// A file that matches a saved layout (same MoErgo uuid, or same name and keyboard) is most likely a newer export of it.
+function savedMatch(L){
+  return Object.keys(S.layouts).find(id => { const r = S.layouts[id];
+    return L.uuid ? ('uuid' in r ? r.uuid : id) === L.uuid : r.name === L.title && r.keyboard === L.keyboard; });
+}
+function lessonsDone(id){ const p = (id === S.activeId ? S.stats : store.get('stats.' + id, {})).progress || {}; return Object.values(p).filter(x => x && x.stars > 0).length; }
+// Loading never silently starts a second copy of a saved layout at zero progress: a match waits in S.pending for the user to choose.
+function offerLoad(text, nameHint, from){
+  S.msg = null; S.confirmDel = null; S.pending = null;
+  const L = E.buildLayout(text, { name: nameHint }), id = savedMatch(L);
+  if (id && S.layouts[id].text === text) { activate(id); S.msg = { t: 'ok', m: `${S.layouts[id].name} is already saved, so Homerow Trainer switched to it.` }; return; }
+  if (id) { S.pending = { text, nameHint, id }; return; }
+  const N = loadLayoutText(text, nameHint);
+  S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${N.title}${from ? ' from ' + from : ''}. Lessons rebuilt for this layout.` };
+}
+const msgHtml = () => S.msg ? `<div class="msg ${S.msg.t}" role="status" tabindex="-1">${esc(S.msg.m)}</div>` : '';
 function activate(id){
   const rec = S.layouts[id]; if (!rec) return;
   S.layout = E.buildLayout(rec.text, { name: rec.name, id });
@@ -251,7 +267,7 @@ function welcomeCard(){
   return `<section class="card welcome" aria-labelledby="welcomeHead"><h3 id="welcomeHead">You're practising ${esc(S.layout.title)} on a ${esc(S.layout.geo.name)}</h3>
     <p>It's a starter layout so you can try the course. Pick another from the Starter layouts or load your own from MoErgo's Layout Editor or your ZMK config, and the lessons rebuild around your keys.</p>
     <p class="muted">Each lesson is a few short drills: meet the new keys, then type them in words and sentences. You move on at ${S.settings.passAcc}% accuracy, and speed only earns extra stars.</p>
-    <div class="actions"><button class="btn" data-view="layout">Choose a layout</button><button class="linkbtn" data-act="welcome-ok">Keep this one</button></div></section>`;
+    <div class="actions"><button class="btn" data-view="layout" data-goto="presetSel">Choose a layout</button><button class="linkbtn" data-act="welcome-ok">Keep this one</button></div></section>`;
 }
 // The new keys across some lessons, as small chips: previews for units and the locked tail of a unit.
 function keyPreview(lessons, max){
@@ -266,7 +282,7 @@ function learnView(){
   const head = done === ls.length ? 'Every lesson complete' : rest ? 'Done for today' : 'Next: ' + esc(nl.title);
   const sub = rest ? `That's your ${S.settings.dailyGoal}-minute goal. A good place to stop and rest your hands. Next time: ${esc(nl.title)}.`
     : `${done} of ${ls.length} lessons done on ${esc(S.layout.title)}`;
-  let html = (S.msg ? `<div class="msg ${S.msg.t}" role="status">${esc(S.msg.m)}</div>` : '') + whatsNew() + welcomeCard() + `<section class="hero${rest ? ' rest' : ''}"><div><h2>${head}</h2>
+  let html = msgHtml() + whatsNew() + welcomeCard() + `<section class="hero${rest ? ' rest' : ''}"><div><h2>${head}</h2>
     <p>${sub}</p></div>
     <div class="progress" aria-hidden="true"><i style="width:${(done / ls.length * 100).toFixed(1)}%"></i></div>
     <button class="btn${rest ? '' : ' go'}" data-start="${nxt}"><span class="tri"></span>${rest ? 'Keep going' : done || resumeStage(nl) ? 'Continue' : 'Start'}</button></section>
@@ -389,63 +405,80 @@ function practiceView(){
 }
 
 const KBD_NAME = { go60: 'Go60', glove80: 'Glove80' };
-function presetsCard(){
+// Example and wired-only presets go last in each group; most people want their keyboard's factory default or a known layout.
+const PRESET_LAST = /example|wired only/i;
+function presetPicker(){
   const presets = window.HOMEROW_TRAINER_PRESETS || [];
   if (!presets.length) return '';
   const groups = {};
   presets.forEach((p, i) => { (groups[p.keyboard] = groups[p.keyboard] || []).push(i); });
-  const sel = +S.presetSel >= 0 && +S.presetSel < presets.length ? +S.presetSel : 0;
+  // Until the user picks one, preselect the factory default for the keyboard they're on.
+  const mac = /Mac/.test(navigator.platform || navigator.userAgent), factory = p => p.keyboard === S.layout.keyboard && /factory default/i.test(p.title) && !PRESET_LAST.test(p.title);
+  const same = presets.findIndex(p => factory(p) && /macos/i.test(p.title) === mac), fallback = same >= 0 ? same : Math.max(0, presets.findIndex(factory));
+  const sel = S.presetSel != null && +S.presetSel >= 0 && +S.presetSel < presets.length ? +S.presetSel : fallback;
   const opt = i => { const p = presets[i], added = layoutForPreset(p);
     return `<option value="${i}" ${i === sel ? 'selected' : ''}>${esc(p.title || 'Layout')}${added ? ' ✓' : ''}</option>`; };
   const order = ['go60', 'glove80'];
   const keys = Object.keys(groups).sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
-  const optgroups = keys.map(k =>
-    `<optgroup label="${esc(KBD_NAME[k] || k)}">${groups[k].map(opt).join('')}</optgroup>`).join('');
+  const optgroups = keys.map(k => `<optgroup label="${esc(KBD_NAME[k] || k)}">${groups[k].slice().sort((a, b) => PRESET_LAST.test(presets[a].title) - PRESET_LAST.test(presets[b].title)).map(opt).join('')}</optgroup>`).join('');
   const curId = presets[sel] && layoutForPreset(presets[sel]);
-  const btn = curId && curId === S.activeId ? '<span class="badge" style="align-self:center">In use</span>'
+  const btn = curId && curId === S.activeId ? '<span class="badge inuse">In use</span>'
     : curId ? `<button class="btn primary" data-use="${esc(curId)}">Switch to it</button>`
     : `<button class="btn primary" data-act="add-selected">Add to my layouts</button>`;
-  return `<div class="card field"><h3 style="font-size:19px">Starter layouts</h3>
-    <small>Official MoErgo layouts from the Go60 and Glove80 editors (✓ = already added). Adding one switches to it; your current layout stays saved, and you can remove it below.</small>
-    <div style="display:flex;gap:10px;margin-top:12px;align-items:stretch;flex-wrap:wrap">
-      <div style="flex:1;min-width:240px"><select id="presetSel" aria-label="Choose a starter layout">${optgroups}</select></div>
-      ${btn}
-    </div></div>`;
+  return `<label for="presetSel">Starter layouts</label>
+    <small>Official MoErgo layouts for the Go60 and Glove80 (✓ = already added). Not sure? The factory default is what your keyboard shipped with.</small>
+    <div class="pickrow"><select id="presetSel">${optgroups}</select>${btn}</div>`;
+}
+
+function savedRow(id, r, onlyOne){
+  const name = esc(r.name), on = id === S.activeId ? ' on' : '';
+  if (S.renaming === id) return `<div class="row${on}"><input type="text" id="renameInput" maxlength="80" value="${name}" aria-label="Layout name" style="flex:1;min-width:180px">
+    <div class="rowacts"><button class="btn primary" data-act="rename-save">Save</button><button class="btn ghost" data-act="rename-cancel">Cancel</button></div></div>`;
+  // Removing deletes the layout's progress too, so the confirm step says so and can be backed out of.
+  if (S.confirmDel === id) { const n = lessonsDone(id);
+    return `<div class="row${on} confirm"><div><b>Remove ${name}?</b><div class="muted" style="font-size:13px">Its progress${n ? ` (${n} ${n === 1 ? 'lesson' : 'lessons'} done)` : ''} and key stats go with it. This can't be undone.</div></div>
+    <div class="rowacts"><button class="btn danger" data-del="${esc(id)}">Remove</button><button class="btn ghost" data-act="del-cancel">Cancel</button></div></div>`; }
+  return `<div class="row${on}"><div><b>${name}</b><div class="muted" style="font-size:13px">${esc(KBD_NAME[r.keyboard] || r.keyboard || 'keyboard')} · ${r.starter ? 'added' : 'updated'} ${new Date(r.savedAt).toLocaleDateString()}</div></div>
+    <div class="rowacts">${on ? '<span class="badge inuse">In use</span>' : `<button class="btn" data-use="${esc(id)}" aria-label="Use ${name}">Use</button>`}
+    <button class="btn ghost" data-rename="${esc(id)}" aria-label="Rename ${name}">Rename</button>
+    <button class="btn ghost" data-update="${esc(id)}" aria-label="Update ${name} from a newer file" title="Replace this layout's file with a newer export and keep its progress">Update</button>
+    ${onlyOne ? '' : `<button class="btn ghost danger" data-del="${esc(id)}" aria-label="Remove ${name}">Remove</button>`}</div></div>`;
 }
 
 function layoutView(){
-  const L = S.layout;
-  const tabs = L.layerNames.map((n, i) => `<button class="${S.layerView === i ? 'on' : ''}" data-layer="${i}">${esc(n)}</button>`).join('');
-  const chars = Object.keys(S.C.routes.chars).filter(c => c !== ' ').sort();
+  const L = S.layout, P = S.pending, pr = P && S.layouts[P.id];
+  const tabs = L.layerNames.map((n, i) => `<button class="${S.layerView === i ? 'on' : ''}" data-layer="${i}" aria-pressed="${S.layerView === i}">${esc(n)}</button>`).join('');
+  // Lowercase letters stand for their capitals too (Shift + the letter), and keycaps show letters in capitals anyway.
+  const all = Object.keys(S.C.routes.chars), chars = all.filter(c => c !== ' ' && !(/[A-Z]/.test(c) && all.includes(c.toLowerCase()))).sort();
   const onlyOne = Object.keys(S.layouts).length <= 1;
-  const saved = Object.entries(S.layouts).map(([id, r]) => S.renaming === id
-    ? `<div class="row ${id === S.activeId ? 'on' : ''}"><input type="text" id="renameInput" maxlength="80" value="${esc(r.name)}" aria-label="Layout name" style="flex:1;min-width:180px">
-    <div style="display:flex;gap:8px"><button class="btn primary" data-act="rename-save">Save</button><button class="btn ghost" data-act="rename-cancel">Cancel</button></div></div>`
-    : `<div class="row ${id === S.activeId ? 'on' : ''}"><div><b>${esc(r.name)}</b><div class="muted" style="font-size:13px">${esc(KBD_NAME[r.keyboard] || r.keyboard || 'keyboard')} · updated ${new Date(r.savedAt).toLocaleDateString()}</div></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">${id === S.activeId ? '<span class="badge">In use</span>' : `<button class="btn" data-use="${esc(id)}">Use</button>`}
-    <button class="btn ghost" data-rename="${esc(id)}">Rename</button>
-    <button class="btn ghost" data-update="${esc(id)}" title="Replace this layout's file with a newer export and keep its progress">Update</button>
-    <button class="btn ghost danger" data-del="${esc(id)}"${onlyOne ? ' disabled title="Keep at least one layout. Add another before removing this one."' : ''}>${S.confirmDel === id ? 'Confirm remove' : 'Remove'}</button></div></div>`).join('');
-  return `<div class="section-title"><h2>${esc(L.title)}</h2><span class="muted">${esc(L.geo.name)} · ${L.n} keys · ${L.format === 'moergo' ? 'MoErgo layout' : 'ZMK keymap'}</span></div>
-  <div class="tabs">${tabs}</div>
-  <div class="kbwrap">${kbSVG(S.layerView, {})}${legendHtml(false)}</div>
-  ${L.geo.name.includes('grid') ? '<p class="msg ok">This keyboard has no built-in shape, so keys are drawn as a plain grid. Lessons still follow your keymap.</p>' : ''}
-  <div class="card"><h3 style="font-size:19px">Characters you can type <span class="muted" style="font-size:14px;font-weight:400">${chars.length}</span></h3>
-    <div class="charmap" style="margin-top:10px">${chars.map(c => kc(c)).join('')}</div></div>
-  ${presetsCard()}
+  const pending = pr ? `<section class="card pending" aria-labelledby="pendHead"><h3 id="pendHead">Is this a newer version of ${esc(pr.name)}?</h3>
+    <p>You already have ${esc(pr.name)} for the ${esc(KBD_NAME[pr.keyboard] || pr.keyboard)} saved${lessonsDone(P.id) ? ` with ${lessonsDone(P.id)} lessons done` : ''}. Updating it rebuilds the lessons from this file and keeps that progress.</p>
+    <div class="actions"><button class="btn primary" data-act="pending-update">Update ${esc(pr.name)}</button><button class="btn" data-act="pending-new">Add as a new layout</button><button class="linkbtn" data-act="pending-cancel">Cancel</button></div></section>` : '';
+  return `<div class="section-title"><h2>Layouts</h2><span class="muted">Each layout keeps its own progress and key stats, like a save file.</span></div>
+  ${msgHtml()}${pending}
   <div class="grid2">
-    <div class="card field"><h3 style="font-size:19px">Load a layout</h3>
-      <small>MoErgo Layout Editor export (.json) for Go60 or Glove80, or a ZMK .keymap file. Layouts are saved in this browser.</small>
-      <input type="file" id="layoutFile" accept=".json,.keymap,.dtsi,.txt">
-      <label for="layoutPaste">Or paste the file contents</label>
-      <textarea id="layoutPaste" placeholder='{"keyboard":"go60","layers":[…]}'></textarea>
-      <div class="actions"><button class="btn primary" data-act="load-paste">Load pasted layout</button></div>
-      ${S.msg ? `<div class="msg ${S.msg.t}">${esc(S.msg.m)}</div>` : ''}
-    </div>
-    <div class="card"><h3 style="font-size:19px">Saved layouts</h3><div class="saved" style="margin-top:10px">${saved}</div>
+    <div class="card"><h3 style="font-size:19px">Your layouts</h3><div class="saved" style="margin-top:10px">${Object.entries(S.layouts).map(([id, r]) => savedRow(id, r, onlyOne)).join('')}</div>
       <input type="file" id="updateFile" accept=".json,.keymap,.dtsi,.txt" hidden>
-      <p class="muted" style="font-size:13px">Each layout keeps its own progress and key stats, like a save file. Update one with a newer export to keep its progress: lessons are rebuilt from the new keymap, and any lesson that still covers the same keys keeps its stars.</p></div>
-  </div>`;
+      <p class="muted" style="font-size:13px;margin-bottom:0">Update a layout with a newer export to keep its progress: lessons are rebuilt from the new keymap, and any lesson that still covers the same keys keeps its stars.</p></div>
+    <div class="card field" id="addLayout"><h3 style="font-size:19px">Add a layout</h3>
+      ${presetPicker()}
+      <label for="layoutFile">Your own layout file</label>
+      <small>A layout downloaded from MoErgo's Layout Editor (.json), or the .keymap file from your ZMK config (usually <code>config/&lt;board&gt;.keymap</code>). Layouts are saved in this browser.</small>
+      <input type="file" id="layoutFile" accept=".json,.keymap,.dtsi,.txt">
+      <details class="paste"${S.pasteText ? ' open' : ''}><summary>Or paste the file contents</summary>
+        <textarea id="layoutPaste" aria-label="Layout file contents" placeholder="e.g. the contents of your .json or .keymap file">${esc(S.pasteText || '')}</textarea>
+        <div class="actions"><button class="btn" data-act="load-paste">Load pasted layout</button></div></details>
+    </div>
+  </div>
+  <section class="kbsec" aria-labelledby="kbHead">
+    <div class="section-title"><h3 id="kbHead">${esc(L.title)}</h3><span class="muted">${esc(L.geo.name)} · ${L.n} keys · ${L.format === 'moergo' ? 'MoErgo layout' : 'ZMK keymap'}</span></div>
+    <div class="tabs" role="group" aria-label="Layers">${tabs}</div>
+    <div class="kbwrap">${kbSVG(S.layerView, {})}${legendHtml(false)}</div>
+    ${L.geo.name.includes('grid') ? '<p class="msg ok">This keyboard has no built-in shape, so keys are drawn as a plain grid. Lessons still follow your keymap.</p>' : ''}
+    <details class="card chars"><summary><b>Characters you can type</b> <span class="muted">${chars.length}</span></summary>
+      <p class="muted" style="font-size:13px">Letters include their capitals, typed with Shift.</p>
+      <div class="charmap">${chars.map(c => kc(c)).join('')}</div></details>
+  </section>`;
 }
 
 function settingsView(){
@@ -503,13 +536,30 @@ function whatsNew(){
     <ul>${BUILD.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>
     <a href="${repoFile('CHANGELOG.md')}" target="_blank" rel="noopener">Full changelog</a></section>`;
 }
+// Re-rendering replaces #app, so focus would fall to <body>. Find the same control again by its id or data-* key.
+const FOCUS_KEYS = ['act', 'use', 'del', 'rename', 'update', 'layer', 'view', 'start'];
+function focusKey(el){
+  if (!el || !$('#app').contains(el) || el === $('#app')) return null;
+  if (el.id) return '#' + CSS.escape(el.id);
+  const k = FOCUS_KEYS.find(k => el.dataset[k] != null);
+  return k ? `[data-${k}="${CSS.escape(el.dataset[k])}"]` : null;
+}
+let shownView = null, shownMsg = null, shownPending = null;
 function render(){
   if (S.run) { renderRun(true); return; }
+  const key = S.view === shownView && focusKey(document.activeElement); shownView = S.view;
+  // A message or choice that this render introduces gets focus, since a status region added with new content isn't reliably announced.
+  const freshMsg = S.msg && S.msg !== shownMsg, freshPending = S.pending && S.pending !== shownPending;
+  shownMsg = S.msg; shownPending = S.pending;
   const main = S.view === 'learn' ? learnView() : S.view === 'practice' ? practiceView() : S.view === 'layout' ? layoutView() : settingsView();
   $('#app').innerHTML = header() + `<div class="shell">${sidebar()}<main class="main">${main}</main></div>` + footer();
+  // Same view: back to the control that was used, or to the message it produced if that control is gone.
+  const back = key && ((freshPending && $('.main .pending .btn')) || (freshMsg && $('.main .msg')) || $(key) || $('.main .msg'));
+  if (back) { back.focus({ preventScroll: true }); return; }
   // Land on Start/Continue so Enter begins the next lesson, instead of tabbing past the header and sidebar first.
   // Not once the goal is met: Enter shouldn't start another lesson by default.
-  const go = S.view === 'learn' && $('.hero .btn.go'); if (go) go.focus({ preventScroll: true });
+  const go = S.view === 'learn' && $('.hero .btn.go'); if (go) { go.focus({ preventScroll: true }); return; }
+  if (S.view !== 'learn' && !key) { const n = $('.nav button.on'); if (n) n.focus({ preventScroll: true }); }
 }
 
 /* ---------- running a lesson ---------- */
@@ -688,9 +738,10 @@ function resultCard(){
       : `<p class="muted" style="margin:0">${fmtTime(today)} of your ${S.settings.dailyGoal} minutes today.${change}</p>`;
     const next = hasNext ? `<button class="btn ${rest ? '' : 'go'}" data-act="next-lesson">${rest ? '' : '<span class="tri"></span>'}Next lesson${rest ? '' : ' (Enter)'}</button>` : '';
     const back = `<button class="btn ${rest || !hasNext ? 'go' : 'ghost'}" data-act="exit">Back to ${r.lesson ? 'lessons' : 'practice'}${rest || !hasNext ? ' (Enter)' : ''}</button>`;
-    return `<div class="result"><h3>${res.stars ? 'Lesson complete' : 'Lesson finished'}</h3>${res.stars ? starsHtml(res.stars) : ''}
+    const what = r.lesson ? 'Lesson' : 'Practice';
+    return `<div class="result"><h3>${what} ${res.stars ? 'complete' : 'finished'}</h3>${res.stars ? starsHtml(res.stars) : ''}
       ${numsHtml(res)}${learned}${goal}
-      <div class="row">${rest ? back + next : next + back}<button class="btn ghost" data-act="redo-lesson">Redo lesson</button></div></div>`;
+      <div class="row">${rest ? back + next : next + back}<button class="btn ghost" data-act="redo-lesson">${r.lesson ? 'Redo lesson' : 'Practice again'}</button></div></div>`;
   }
   return `<div class="result"><h3>${res.pass ? 'Stage passed' : 'Not quite'}</h3>${res.pass ? starsHtml(res.stars) : ''}
     ${numsHtml(res)}
@@ -1058,17 +1109,20 @@ document.addEventListener('click', e => {
   const t = e.target.closest('button, a[data-jump]'); if (!t) return;
   const d = t.dataset;
   if (d.jump) { e.preventDefault(); const el = document.getElementById(d.jump); if (el) { if (el.tagName === 'DETAILS') el.open = true; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
-  if (d.view) { S.view = d.view; S.msg = null; S.confirmDel = null; S.renaming = null; render(); return; }
+  if (d.view) { S.view = d.view; S.msg = null; S.confirmDel = null; S.renaming = null; S.pending = null; render(); const g = d.goto && $('#' + d.goto); if (g) g.focus(); return; }
   if (d.start != null) { startLesson(+d.start); return; }
   if (d.layer != null) { S.layerView = +d.layer; render(); return; }
-  if (d.use) { activate(d.use); S.msg = null; render(); return; }
+  if (d.use) { activate(d.use); S.msg = null; S.confirmDel = null; render(); return; }
   if (d.rename) { S.renaming = d.rename; S.confirmDel = null; render(); const i = $('#renameInput'); if (i) { i.focus(); i.select(); } return; }
   if (d.update) { S.updating = d.update; const f = $('#updateFile'); if (f) { f.value = ''; f.click(); } return; }
   if (d.del) {
     if (Object.keys(S.layouts).length <= 1) { S.confirmDel = null; render(); return; }
-    if (S.confirmDel !== d.del) { S.confirmDel = d.del; render(); return; }
+    // The confirm step starts on Cancel, so a second Enter doesn't delete a layout and its progress.
+    if (S.confirmDel !== d.del) { S.confirmDel = d.del; render(); const c = $('[data-act="del-cancel"]'); if (c) c.focus(); return; }
+    const gone = S.layouts[d.del].name;
     delete S.layouts[d.del]; store.set('layouts', S.layouts); store.del('stats.' + d.del); S.confirmDel = null;
     if (d.del === S.activeId) activate(Object.keys(S.layouts)[0]);
+    S.msg = { t: 'ok', m: `Removed ${gone}.` };
     render(); return;
   }
   switch (d.act) {
@@ -1093,19 +1147,33 @@ document.addEventListener('click', e => {
     case 'practice-custom': S.customText = ($('#customText') || {}).value || ''; startPractice('custom'); break;
     case 'add-selected': {
       const i = ($('#presetSel') || {}).value, p = (window.HOMEROW_TRAINER_PRESETS || [])[+i];
-      S.presetSel = +i || 0;
+      S.presetSel = +i || 0; S.confirmDel = null; S.pending = null;
       const have = p && layoutForPreset(p);
       if (have) { activate(have); S.msg = null; render(); break; }
       if (p) { try { const L = loadLayoutText(JSON.stringify(p)); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Added ${L.title} and switched to it.` }; } catch (err) { S.msg = { t: 'err', m: err.message }; } }
       render(); break;
     }
     case 'load-paste': {
-      const txt = ($('#layoutPaste') || {}).value || '';
+      const txt = S.pasteText || '';
       if (!txt.trim()) { S.msg = { t: 'err', m: 'Paste the contents of a layout file first.' }; render(); break; }
-      try { const L = loadLayoutText(txt); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${L.title}. Lessons rebuilt for this layout.` }; }
+      // The pasted text stays in the box after an error, so it can be fixed instead of pasted again.
+      try { offerLoad(txt); if (!S.pending) S.pasteText = ''; } catch (err) { S.msg = { t: 'err', m: err.message }; }
+      render(); break;
+    }
+    case 'pending-update': {
+      const P = S.pending; S.pending = null;
+      try { const r = updateLayoutText(P.id, P.text, P.nameHint); activate(P.id); S.pasteText = ''; S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Updated ${r.name}. Lessons rebuilt, and your progress is kept.` }; }
       catch (err) { S.msg = { t: 'err', m: err.message }; }
       render(); break;
     }
+    case 'pending-new': {
+      const P = S.pending; S.pending = null;
+      try { const L = loadLayoutText(P.text, P.nameHint); S.pasteText = ''; S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Added ${L.title} as a new layout, starting from lesson 1.` }; }
+      catch (err) { S.msg = { t: 'err', m: err.message }; }
+      render(); break;
+    }
+    case 'pending-cancel': S.pending = null; render(); break;
+    case 'del-cancel': { const id = S.confirmDel; S.confirmDel = null; render(); const b = $(`[data-del="${CSS.escape(id || '')}"]`); if (b) b.focus(); break; }
     case 'rename-save': saveRename(); break;
     case 'rename-cancel': S.renaming = null; render(); break;
     case 'reset':
@@ -1123,7 +1191,7 @@ document.addEventListener('change', e => {
   }
   if (t.id === 'layoutFile' && t.files && t.files[0]) {
     const f = t.files[0], rd = new FileReader();
-    rd.onload = () => { try { const L = loadLayoutText(String(rd.result), f.name.replace(/\.[^.]+$/, '')); S.msg = S.msg && S.msg.t === 'err' ? S.msg : { t: 'ok', m: `Loaded ${L.title} from ${f.name}. Lessons rebuilt for this layout.` }; } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); };
+    rd.onload = () => { try { offerLoad(String(rd.result), f.name.replace(/\.[^.]+$/, ''), f.name); } catch (err) { S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); };
     rd.readAsText(f); return;
   }
   const keys = ['routePref', 'modPref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'hints', 'showFingers', 'unlockAll', 'theme'];
@@ -1150,7 +1218,10 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter') { e.preventDefault(); saveRename(); }
   else if (e.key === 'Escape') { e.preventDefault(); S.renaming = null; render(); }
 });
-document.addEventListener('input', e => { if (e.target.id === 'customText') { S.customText = e.target.value; paintCustomNote(false); } });
+document.addEventListener('input', e => {
+  if (e.target.id === 'customText') { S.customText = e.target.value; paintCustomNote(false); }
+  if (e.target.id === 'layoutPaste') S.pasteText = e.target.value;
+});
 
 /* ---------- boot ---------- */
 applyTheme(S.settings.theme);

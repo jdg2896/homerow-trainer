@@ -253,17 +253,34 @@ details.unit[open]>summary .chev{transform:rotate(45deg)}
 .suggest.rest{border-color:var(--line);box-shadow:none}
 .field{display:flex;flex-direction:column;gap:6px}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
-input[type=file]{margin-top:2px}
+input[type=file]{margin-top:2px;font-size:14px;color:var(--muted)}
+input[type=file]::file-selector-button{margin-right:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 14px;font:inherit;font-weight:700;cursor:pointer}
+input[type=file]::file-selector-button:hover{border-color:var(--accent)}
 .field label{font-weight:700;font-size:14px}
 .field small{color:var(--muted)}
-textarea,select,input[type=number],input[type=text]{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+/* Field edges are 70% Muted so an input's outline clears 3:1; a Line border was the only cue it's a field. */
+textarea,select,input[type=number],input[type=text]{background:var(--surface-2);border:1px solid color-mix(in srgb,var(--muted) 70%,var(--surface));border-radius:8px;padding:8px 10px;width:100%}
+::placeholder{color:var(--muted);opacity:1}
 textarea{min-height:120px;font-family:var(--mono);font-size:13px}
 .check{display:flex;gap:10px;align-items:flex-start}
 .check input{margin-top:4px}
 .saved{display:flex;flex-direction:column;gap:8px}
 .saved .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);flex-wrap:wrap}
 .saved .row.on{border-color:var(--accent)}
-.saved .row .badge{align-self:stretch;display:inline-flex;align-items:center;border-radius:8px;padding:0 14px}
+.badge.inuse{align-self:center}
+.rowacts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.saved .row.confirm{border-color:var(--err);background:var(--err-soft)}
+.pickrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.pickrow select{flex:1;min-width:220px;width:auto}
+.pending{border-color:var(--accent);box-shadow:var(--shadow)}
+.pending h3{font-size:17px}
+.pending p{margin:6px 0 0}
+details.paste>summary,details.chars>summary{cursor:pointer;font-weight:700;font-size:14px}
+details.paste[open]>summary{margin-bottom:6px}
+details.paste .actions{margin-top:8px}
+details.chars[open]>summary{margin-bottom:4px}
+.kbsec{display:flex;flex-direction:column;gap:12px}
+.kbsec .section-title h3{font-size:22px}
 .msg{padding:10px 12px;border-radius:8px;font-size:14px}
 .msg.err{background:var(--err-soft);color:var(--err)}
 .msg.ok{background:var(--accent-soft)}
