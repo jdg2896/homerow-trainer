@@ -62,6 +62,10 @@ CHANGELOG.md    release notes; build.mjs shows this version's section in the app
 
 This is a personal project, and I'm open to feedback. Also feel free to [file an issue](https://github.com/jdg2896/homerow-trainer/issues/new/choose) or make a pull request if you have interesting ideas, improvements, or bug fixes. Otherwise, you can fork this repository and adapt it to your liking.
 
+## Security
+
+Homerow Trainer is a static page with no backend, and your layouts and progress never leave your browser. Layout and backup files are treated as untrusted, since they're often shared. If you find a way for a file, a backup or pasted text to run code in the page, please report it privately as described in [SECURITY.md](SECURITY.md) instead of opening a public issue.
+
 ## Credits
 
 - [moosytype](https://github.com/moosylog/moosytype): layout-adaptive training, layout loading, on-screen keyboard and the typing interface

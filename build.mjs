@@ -22,6 +22,9 @@ const presetDir = path.join(root, 'data', 'presets');
 const presetFiles = fs.readdirSync(presetDir).filter(f => f.endsWith('.json')).sort();
 if (!presetFiles.length) throw new Error('data/presets/ is empty; run tools/fetch_presets.mjs first (the first-run default layout is seeded from it).');
 const presets = '[' + presetFiles.map(f => fs.readFileSync(path.join(presetDir, f), 'utf8')).join(',') + ']';
+// The data is downloaded from MoErgo and Tatoeba and goes inside <script>, where a "</script>" in any string
+// would end the block and run what follows. JSON allows \u003c anywhere a < can appear, so escape them all.
+const inline = json => json.replace(/</g, '\\u003c');
 
 // Inline favicon so the deployed page doesn't 404 on /favicon.ico.
 const FAVICON = 'data:image/svg+xml,'
@@ -41,7 +44,7 @@ const head = `<meta charset="utf-8">
 
 const body = `<div id="app"></div>
 <script>${read('src/errors.js')}</script>
-<script>window.HOMEROW_TRAINER_BUILD=${JSON.stringify(build)};window.HOMEROW_TRAINER_WORDS=${read('data/words.json')};window.HOMEROW_TRAINER_SENTENCES=${read('data/sentences.json')};window.HOMEROW_TRAINER_PRESETS=${presets};</script>
+<script>window.HOMEROW_TRAINER_BUILD=${inline(JSON.stringify(build))};window.HOMEROW_TRAINER_WORDS=${inline(read('data/words.json'))};window.HOMEROW_TRAINER_SENTENCES=${inline(read('data/sentences.json'))};window.HOMEROW_TRAINER_PRESETS=${inline(presets)};</script>
 <script>${read('src/engine.js')}</script>
 <script>${read('src/ui.js')}</script>`;
 

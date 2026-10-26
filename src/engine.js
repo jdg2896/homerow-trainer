@@ -303,11 +303,12 @@ function buildLayout(text, opts){
       g.role = d === 0 ? 'home' : d === -1 ? 'top' : d === 1 ? 'bottom' : d === -2 ? 'num' : d < -2 ? 'fn' : 'extra';
     }
   });
-  const layerNames = (raw.layer_names && raw.layer_names.length ? raw.layer_names : layers.map((_, i) => i ? 'Layer ' + i : 'Base')).slice(0, layers.length);
-  while (layerNames.length < layers.length) layerNames.push('Layer ' + layerNames.length);
+  // Names come from the file and are sliced and shown as text, so anything that isn't a string falls back.
+  const names = Array.isArray(raw.layer_names) ? raw.layer_names : [];
+  const layerNames = layers.map((_, i) => typeof names[i] === 'string' && names[i] ? names[i] : i ? 'Layer ' + i : 'Base');
   return {
-    id: String(opts.id || raw.uuid || hashStr(text)), uuid: raw.uuid ? String(raw.uuid) : '',
-    title: raw.title || opts.name || 'Untitled layout',
+    id: String(opts.id || (typeof raw.uuid === 'string' && raw.uuid) || hashStr(text)), uuid: typeof raw.uuid === 'string' ? raw.uuid : '',
+    title: (typeof raw.title === 'string' && raw.title) || opts.name || 'Untitled layout',
     keyboard: keyboard || 'generic', geo, keys, layers, layerNames, format: fmt, n
   };
 }

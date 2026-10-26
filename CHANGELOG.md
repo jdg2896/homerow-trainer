@@ -2,6 +2,11 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.20.2 — 2026-10-27
+
+- A layout file whose layer names or title aren't plain text loads with default names instead of breaking the on-screen keyboard.
+- There's now a security policy (SECURITY.md) that says how to report a problem privately and how Homerow Trainer handles the files you load.
+
 ## 0.20.1 — 2026-10-27
 
 - Restoring a backup only accepts the kinds of settings, stats and layout details Homerow Trainer writes itself, so an edited or malicious backup file can't run code in the page.
