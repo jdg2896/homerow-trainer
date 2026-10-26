@@ -260,10 +260,15 @@ function keyPreview(lessons, max){
 function learnView(){
   const ls = S.C.lessons, done = ls.filter(isDone).length, nxt = nextLessonIdx();
   const nl = ls[nxt];
-  let html = (S.msg ? `<div class="msg ${S.msg.t}" role="status">${esc(S.msg.m)}</div>` : '') + whatsNew() + welcomeCard() + `<section class="hero"><div><h2>${done === ls.length ? 'Every lesson complete' : 'Next: ' + esc(nl.title)}</h2>
-    <p>${done} of ${ls.length} lessons done on ${esc(S.layout.title)}</p></div>
+  // Once today's goal is met, stopping is the default: the hero says so and Keep going loses its amber.
+  const rest = done < ls.length && goalMet();
+  const head = done === ls.length ? 'Every lesson complete' : rest ? 'Done for today' : 'Next: ' + esc(nl.title);
+  const sub = rest ? `That's your ${S.settings.dailyGoal}-minute goal. A good place to stop and rest your hands. Next time: ${esc(nl.title)}.`
+    : `${done} of ${ls.length} lessons done on ${esc(S.layout.title)}`;
+  let html = (S.msg ? `<div class="msg ${S.msg.t}" role="status">${esc(S.msg.m)}</div>` : '') + whatsNew() + welcomeCard() + `<section class="hero${rest ? ' rest' : ''}"><div><h2>${head}</h2>
+    <p>${sub}</p></div>
     <div class="progress" aria-hidden="true"><i style="width:${(done / ls.length * 100).toFixed(1)}%"></i></div>
-    <button class="btn go" data-start="${nxt}"><span class="tri"></span>${done || resumeStage(nl) ? 'Continue' : 'Start'}</button></section>
+    <button class="btn${rest ? '' : ' go'}" data-start="${nxt}"><span class="tri"></span>${rest ? 'Keep going' : done || resumeStage(nl) ? 'Continue' : 'Start'}</button></section>
     <p class="muted keyhint"><span class="kc">↑</span><span class="kc">↓</span> move between lessons · <span class="kc">Enter</span> starts · <span class="kc">1</span>–<span class="kc">4</span> switch tabs · <span class="kc">Esc</span> pauses a lesson</p>`;
   S.C.units.forEach(u => {
     const d = u.lessons.filter(isDone).length;
@@ -454,7 +459,8 @@ function render(){
   const main = S.view === 'learn' ? learnView() : S.view === 'practice' ? practiceView() : S.view === 'layout' ? layoutView() : settingsView();
   $('#app').innerHTML = header() + `<div class="shell">${sidebar()}<main class="main">${main}</main></div>` + footer();
   // Land on Start/Continue so Enter begins the next lesson, instead of tabbing past the header and sidebar first.
-  if (S.view === 'learn') $('.hero .btn').focus({ preventScroll: true });
+  // Not once the goal is met: Enter shouldn't start another lesson by default.
+  const go = S.view === 'learn' && $('.hero .btn.go'); if (go) go.focus({ preventScroll: true });
 }
 
 /* ---------- running a lesson ---------- */

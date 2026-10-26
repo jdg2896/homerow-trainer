@@ -216,7 +216,7 @@ A cool neutral desk with two working accents and pastel finger colors on the key
 - **Keycap Blue Soft** (`keycap-blue-soft`): the tint behind the current character, the selected segment in the feedback type picker, and success messages.
 
 ### Secondary
-- **Go Amber** (`go-amber`): the target key on the keyboard, the hero's Start or Continue button (the only amber button on Lessons), the daily-goal ring while it fills, stars on the result card, and the lit middle row of the brand mark. It's the same in both themes. Text on it is always `go-amber-ink`, never white.
+- **Go Amber** (`go-amber`): the target key on the keyboard, the hero's Start or Continue button (the only amber button on Lessons, and gone once the daily goal is met), the daily-goal ring while it fills, stars on the result card, and the lit middle row of the brand mark. It's the same in both themes. Text on it is always `go-amber-ink`, never white.
 
 ### Tertiary
 - **Done Green** (`ok-green`): completed lessons (number disc), finished stage chips, the filled lesson segments, and the daily-goal ring once the goal is met. Text on it is `ok-green-ink`: white in light mode, near-black in dark, where the green lightens.
@@ -312,6 +312,7 @@ The signature primitive: an inline key legend that looks like a physical cap.
 - **Shadow:** none at rest (see Elevation).
 - **Internal padding:** 16px.
 - **Hero:** the Lessons banner is the one solid Keycap Blue block, with a Keycap Blue Ink progress fill on a translucent white track.
+- **Hero, done for today:** once the daily goal is met, the hero reads "Done for today", says it's a good place to stop and names the next lesson for next time. The progress bar hides, and the button becomes a Surface "Keep going" with Ink text instead of amber, and doesn't take focus on load, so Enter doesn't start another lesson by default.
 - **Starter-layout card:** on first run, while the bundled default layout is active and no lesson has been typed, a plain card above the hero names the layout and keyboard, says it's a stand-in, and explains a lesson in one line. "Choose a layout" is a default button and "Keep this one" a link button, so the hero's Start stays the only amber.
 
 ### Lesson Row
