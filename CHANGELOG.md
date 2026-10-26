@@ -2,6 +2,15 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.20.0 — 2026-10-26
+
+- Settings is regrouped by what you'd come to change: daily practice, passing lessons, while you type, the on-screen keyboard, your layout's keys, appearance and your data. Each card is only as tall as its settings.
+- You can download a backup of every layout with its progress and your settings, and restore it in another browser or after clearing site data.
+- Reset progress asks first, says what will be cleared, starts on Cancel and confirms when it's done.
+- The daily goal is a choice from 5 to 30 minutes, and the speed setting says how stars work: speed never holds you back.
+- The numbers & symbols choice only shows when your layout can type them both ways, and the next-key highlight and finger colours only show while the keyboard is on.
+- Settings ends with an About & feedback card: the version, what's new, credits, and ways to report a problem or share an idea.
+
 ## 0.19.0 — 2026-10-26
 
 - The header's "Report a bug" button is now a quieter "Feedback" button, and it's gone during lessons. The footer has one "Feedback & bug reports" link.

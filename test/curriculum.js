@@ -71,6 +71,15 @@ for (const file of presets) {
   console.log(`ok  ${where}`);
 }
 
+// Settings only offers the numbers & symbols choice when a layout has both a number row and a layer for them.
+{
+  const where = 'route kinds';
+  const both = f => E.buildRoutes(E.buildLayout(fs.readFileSync(path.join(presetDir, f), 'utf8')), 'layers').bothRouteKinds;
+  if (!both('go60-07-miryoku-macos.json')) fail(where, 'Miryoku on Go60 has a number row and a numbers layer, so should report both');
+  if (both('glove80-07-glove80-factory-default-layout.json')) fail(where, 'Glove80 factory default only types digits from the number row, so should report one');
+  console.log(`ok  ${where}`);
+}
+
 // Drill text varies its numbers, punctuation and letter groups (issue #3). Sampled many
 // times so the random choices can't make this flaky.
 {
