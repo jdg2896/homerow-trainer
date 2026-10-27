@@ -30,6 +30,31 @@ I only learned to touch type QWERTY around 2019, and [typing.com](https://www.ty
 
 Key codes are mapped assuming a US ANSI host layout. Go60/Glove80 key geometry is approximate.
 
+## FAQ
+
+### On my Mac, the backtick key types `§` (and tilde types `±`)
+
+macOS thinks your keyboard is ISO. It often decides that for a Go60 or Glove80, and with a U.S. or ABC input source that turns the backtick key into `§`/`±`. During a lesson, Homerow Trainer points this out when it happens. To fix it, set the keyboard type to **ANSI**:
+
+1. Open System Settings › Keyboard and use **Change Keyboard Type…** if it's there.
+2. If there's no such button, or the change doesn't stick, set it from Terminal as an admin user, then disconnect and reconnect the keyboard:
+
+   ```sh
+   sudo defaults write /Library/Preferences/com.apple.keyboardtype keyboardtype -dict-add 10203-5824-0 -int 40
+   ```
+
+   `10203-5824-0` is the Go60's product and vendor ID in decimal, and `40` means ANSI (`41` is ISO). For another keyboard, find its Product ID and Vendor ID in System Information (under Bluetooth or USB), convert them from hex to decimal, and use `<product>-<vendor>-0`. The setting only applies to that keyboard.
+
+ISO is only right if you type with an ISO-region input source, like British or German. Homerow Trainer assumes a US host layout either way.
+
+### Quotes, backticks, `~` and `^` count as an accidental ⌥
+
+You're probably using the **U.S. International** input source. It turns `'` `"` `` ` `` `~` `^` into dead keys that wait for the next letter, so the browser never sees the character. Switch to **U.S.** or **ABC** while you practise.
+
+### How do I move my progress to another browser or computer?
+
+Everything is stored in your browser, nowhere else. In **Settings › Your data**, use **Download backup**, then **Restore from backup…** in the other browser. The backup holds every layout, its progress and your settings.
+
 ## Develop
 
 No dependencies for the app itself, and Node is the only runtime. The `npm` scripts are thin wrappers (no packages to install).
