@@ -2,6 +2,11 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.20.5 — 2026-10-27
+
+- On the U.S. International input source, quotes, backticks, ~ and ^ are dead keys. Lessons now say so and suggest switching to U.S. or ABC, instead of blaming an Option key you didn't hold.
+- If Num Lock is off and your layout puts numbers on keypad keys, lessons tell you to turn it on, instead of quietly ignoring the key.
+
 ## 0.20.4 — 2026-10-27
 
 - The fonts are now part of the page instead of coming from Google Fonts, so Homerow Trainer makes no requests to anyone, and the fonts work offline too.
