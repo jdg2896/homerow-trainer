@@ -2,6 +2,11 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.20.6 — 2026-10-27
+
+- Accuracy is now rounded down, so a stage you missed by a fraction no longer says 95% next to "You need 95%".
+- Result screens have a link to report a problem, since the Feedback button is hidden while you're in a lesson.
+
 ## 0.20.5 — 2026-10-27
 
 - On the U.S. International input source, quotes, backticks, ~ and ^ are dead keys. Lessons now say so and suggest switching to U.S. or ABC, instead of blaming an Option key you didn't hold.
