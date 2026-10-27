@@ -47,9 +47,13 @@ macOS thinks your keyboard is ISO. It often decides that for a Go60 or Glove80, 
 
 ISO is only right if you type with an ISO-region input source, like British or German. Homerow Trainer assumes a US host layout either way.
 
-### Quotes, backticks, `~` and `^` count as an accidental ⌥
+### Quotes, backticks, `~` and `^` don't type
 
-You're probably using the **U.S. International** input source. It turns `'` `"` `` ` `` `~` `^` into dead keys that wait for the next letter, so the browser never sees the character. Switch to **U.S.** or **ABC** while you practise.
+You're probably using the **U.S. International** input source. It turns `'` `"` `` ` `` `~` `^` into dead keys that wait for the next letter, so the browser never gets the character. Homerow Trainer says so when it happens. Switch to **U.S.** or **ABC** while you practise.
+
+### My keypad keys don't type numbers (Windows, Linux)
+
+Some layouts, like the voyager-inspired Go60 preset, put numbers on keypad keys. With Num Lock off, those send End, Home, the arrows and so on instead, and Homerow Trainer tells you to turn Num Lock on. Macs have no Num Lock, so they always type the number.
 
 ### How do I move my progress to another browser or computer?
 

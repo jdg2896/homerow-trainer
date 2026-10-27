@@ -944,12 +944,19 @@ function onKey(e){
       return;
     }
     let typed = e.key === 'Enter' ? '\n' : e.key;
+    // A dead key without Option is the input source (U.S. International), not a modifier the user held.
+    const dead = e.key === 'Dead' && !e.altKey;
     if (e.metaKey || e.ctrlKey) misfire = e.metaKey ? 'meta' : 'ctrl';
-    else if (e.key === 'Dead' || (e.altKey && typed !== it.ch)) misfire = 'alt';
+    else if (e.altKey && typed !== it.ch) misfire = 'alt';
     else if (typed.length === 1 && typed !== it.ch && typed.toLowerCase() === it.ch.toLowerCase() && /[a-z]/i.test(typed)) misfire = typed === typed.toUpperCase() ? 'shift-extra' : 'shift-missing';
-    if (typed.length !== 1 && !misfire) return; // stray navigation key: ignore
+    if (typed.length !== 1 && !misfire && !dead) {
+      // With Num Lock off, keypad keys arrive as End, Clear and so on, which would otherwise be dropped without a word.
+      if (/^Numpad/.test(e.code) && !(r.note && r.note.numLock)) { r.note = { err: false, numLock: true, html: 'Num Lock is off, so your keypad keys type navigation keys instead of numbers. Turn Num Lock on to type them.' }; paintState(); }
+      return; // stray navigation key: ignore
+    }
     ok = !misfire && typed === it.ch;
     if (!misfire && ISO_SWAP[it.ch] === typed) note = { err: false, html: `Your Mac typed ${esc(typed)}: it thinks this keyboard is ISO. Set the keyboard type to ANSI in System Settings › Keyboard.` };
+    if (dead) note = { err: false, html: 'That key is a dead key in your input source, so it waits for the next letter instead of typing. U.S. International does this to quotes, backticks, ~ and ^. Switch to U.S. or ABC to practise.' };
     if (misfire) { const t = misfire === 'meta' || misfire === 'ctrl' ? 'mod' : misfire === 'alt' ? 'alt' : 'shift'; r.misfires[t]++; S.stats.misfires[t] = (S.stats.misfires[t] || 0) + 1; }
   } else {
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
