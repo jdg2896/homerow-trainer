@@ -22,3 +22,5 @@ jobs:
         run: node test/curriculum.js
       - name: Build dist/index.html
         run: node build.mjs
+      - name: Check the built page against its CSP
+        run: node test/page.js

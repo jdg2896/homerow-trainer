@@ -10,7 +10,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "test": "node test/curriculum.js",
+    "test": "node test/curriculum.js && node test/page.js",
     "build": "node build.mjs",
     "presets": "node tools/fetch_presets.mjs",
     "sentences": "node tools/fetch_sentences.mjs",

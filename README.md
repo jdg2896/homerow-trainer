@@ -36,7 +36,8 @@ No dependencies for the app itself, and Node is the only runtime. The `npm` scri
 
 ```sh
 npm run build      # node build.mjs — writes dist/index.html
-npm test           # node test/curriculum.js — builds every bundled layout and checks each drill item routes
+npm test           # builds every bundled layout and checks each drill item routes (test/curriculum.js),
+                   # then checks the built page against its Content Security Policy (test/page.js)
 npm run presets    # node tools/fetch_presets.mjs — refresh data/presets/ from MoErgo's live editors
 npm run sentences  # node tools/fetch_sentences.mjs — refresh data/sentences.json from Tatoeba
 npm run fonts      # node tools/fetch_fonts.mjs — refresh data/fonts/ from Google Fonts
