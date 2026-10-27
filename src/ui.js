@@ -734,7 +734,7 @@ function announceResult(){
   const card = $('#overlay .result'); if (!card) return;
   const res = S.run.result;
   say([card.querySelector('h3').textContent, res.stars ? `${res.stars} of 3 stars` : '',
-    `Accuracy ${Math.round(res.acc)} percent`, `Speed ${Math.round(res.wpm)} words per minute`,
+    `Accuracy ${accPct(res.acc)} percent`, `Speed ${Math.round(res.wpm)} words per minute`,
     ...[...card.querySelectorAll('p, .newkeys')].map(el => el.textContent.replace(/\s+/g, ' ').trim().replace(/\.$/, ''))
   ].filter(Boolean).join('. ') + '.');
   const go = card.querySelector('.btn'); if (go) go.focus({ preventScroll: true });
@@ -777,10 +777,14 @@ function paintHint(h){
 }
 function updateLive(){
   const r = S.run, n = r.tried.size, a = $('#lvA');
-  if (a) a.innerHTML = `${Math.round(n ? (n - r.errCount) / n * 100 : 100)}<em>%</em>`;
+  if (a) a.innerHTML = `${accPct(n ? (n - r.errCount) * 100 / n : 100)}<em>%</em>`;
 }
 
-const numsHtml = res => `<div class="nums"><div class="stat"><small>Accuracy</small><b>${Math.round(res.acc)}<em>%</em></b></div><div class="stat"><small>Speed</small><b>${Math.round(res.wpm)}<em>wpm</em></b></div></div>`;
+// Rounded down, so 94.6% never shows as the 95% it didn't reach.
+const accPct = a => Math.floor(a);
+const numsHtml = res => `<div class="nums"><div class="stat"><small>Accuracy</small><b>${accPct(res.acc)}<em>%</em></b></div><div class="stat"><small>Speed</small><b>${Math.round(res.wpm)}<em>wpm</em></b></div></div>`;
+// The header hides Feedback during a run, so a result that looks wrong can still be reported from where it shows.
+const reportLink = `<button class="linkbtn muted" data-act="feedback" data-fbtype="bug" style="font-size:13px">Something look wrong? Report it</button>`;
 // Once today's goal is met, the lesson end steers toward stopping rather than chaining into the next lesson.
 function goalMet(){ return overall().todaySecs >= S.settings.dailyGoal * 60; }
 function resultCard(){
@@ -798,21 +802,21 @@ function resultCard(){
     const what = r.lesson ? 'Lesson' : 'Practice';
     return `<div class="result"><h3>${what} ${res.stars ? 'complete' : 'finished'}</h3>${res.stars ? starsHtml(res.stars) : ''}
       ${numsHtml(res)}${learned}${goal}
-      <div class="row">${rest ? back + next : next + back}<button class="btn ghost" data-act="redo-lesson">${r.lesson ? 'Redo lesson' : 'Practice again'}</button></div></div>`;
+      <div class="row">${rest ? back + next : next + back}<button class="btn ghost" data-act="redo-lesson">${r.lesson ? 'Redo lesson' : 'Practice again'}</button></div>${reportLink}</div>`;
   }
   return `<div class="result"><h3>${res.pass ? 'Stage passed' : 'Not quite'}</h3>${res.pass ? starsHtml(res.stars) : ''}
     ${numsHtml(res)}
     ${res.pass ? '' : `<p class="muted" style="margin:0">You need ${S.settings.passAcc}% accuracy to move on. Slow down a little.</p>`}
     ${res.missed.length ? `<div class="newkeys">Missed ${res.missed.map(c => kc(c, 'warn')).join('')}</div>` : ''}
     ${mfParts.length ? `<p class="muted" style="margin:0">Modifiers fired by accident: ${mfParts.join(', ')}. Tap home-row keys and let go before the next key.</p>` : ''}
-    <div class="row">${res.pass ? `<button class="btn go" data-act="next-stage"><span class="tri"></span>${lastStage ? 'Finish lesson' : 'Next stage'} (Enter)</button><button class="btn" data-act="retry-stage">Retry</button>` : `<button class="btn go" data-act="retry-stage"><span class="tri"></span>Try again (Enter)</button>`}</div></div>`;
+    <div class="row">${res.pass ? `<button class="btn go" data-act="next-stage"><span class="tri"></span>${lastStage ? 'Finish lesson' : 'Next stage'} (Enter)</button><button class="btn" data-act="retry-stage">Retry</button>` : `<button class="btn go" data-act="retry-stage"><span class="tri"></span>Try again (Enter)</button>`}</div>${reportLink}</div>`;
 }
 
 function finishStage(now){
   const r = S.run;
   const secs = Math.max(1, (now - r.t0) / 1000);
   const n = r.items.length;
-  const acc = (n - r.errCount) / n * 100;
+  const acc = (n - r.errCount) * 100 / n;
   const wpm = (n / 5) / (secs / 60);
   const kind = r.lesson ? (r.lesson.kind === 'review' ? r.lesson.reviewKind : r.lesson.kind) : 'practice';
   const stars = computeStars(acc, wpm, kind);
@@ -1084,7 +1088,7 @@ function diagnostics(){
     `Browser: ${navigator.userAgent}`,
     `Screen: viewport ${innerWidth}x${innerHeight} @${devicePixelRatio}x, language ${navigator.language}, theme ${S.settings.theme}`,
     `Layout: ${L.title} (${L.geo.name}, ${L.layers.length} layers, keyboard ${L.keyboard || '?'}, id ${L.id})`,
-    `View: ${r ? `lesson "${r.title}", stage ${r.si + 1}/${r.stages.length} (${r.stages[r.si].name}), item ${r.idx}/${r.items.length}` : S.view}`,
+    `View: ${r ? `lesson "${r.title}", stage ${r.si + 1}/${r.stages.length} (${r.stages[r.si].name}), item ${r.idx}/${r.items.length}${r.result ? `, result ${r.result.acc.toFixed(2)}% at ${r.result.wpm.toFixed(1)} wpm` : ''}` : S.view}`,
     `Progress: ${S.C.lessons.filter(isDone).length}/${S.C.lessons.length} lessons done, ${S.stats.sessions.length} sessions`,
     `Settings: ${JSON.stringify(S.settings)}`,
     errs.length ? 'Recent errors:\n' + errs.map(x => `  [${x.at}] ${x.kind}: ${x.msg}${x.where ? ' @ ' + x.where : ''}`).join('\n') : 'Recent errors: none'
