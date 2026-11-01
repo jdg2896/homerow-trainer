@@ -2,6 +2,11 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.21.0 — 2026-11-01
+
+- Hints now always show by default when you start out. If you've used Homerow Trainer before, your setting stays as it was.
+- If hints fade for you, a "How fading works" link explains why a key's hint waits: it stays hidden for keys you already know until you pause or miss. You'll find the same link in Settings, along with a button to always show hints.
+
 ## 0.20.6 — 2026-10-27
 
 - Accuracy is now rounded down, so a stage you missed by a fraction no longer says 95% next to "You need 95%".
