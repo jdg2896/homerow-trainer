@@ -52,7 +52,11 @@ Skills fade without use. Spacing reviews out, and returning to older material, k
 
 Touch typing means not looking down. Visual hints help at first but should fade so you recall positions from memory.
 
-**In the app:** the on-screen keyboard shows fingers, layers and held keys. Hints fade per key by default (`hints: 'fade'`): once a key is typed accurately and without hesitation (at least 40 presses, a miss rate of 4% or less and under 800 ms on average, from `stats.<layoutId>`), its hint, highlight and layer are hidden until you miss it or pause for 1.5 seconds. *Hints* can also be set to always show, or to show for every key only after a miss, and the keyboard and highlight can be turned off.
+**In the app:** the on-screen keyboard shows fingers, layers and held keys. With *Hints* set to fade (`hints: 'fade'`), once a key is typed accurately and without hesitation (at least 40 presses, a miss rate of 4% or less and under 800 ms on average, from `stats.<layoutId>`), its hint, highlight and layer are hidden until you miss it or pause for 1.5 seconds. *Hints* can also be set to always show, or to show for every key only after a miss, and the keyboard and highlight can be turned off.
+
+Hints always show by default, which departs from this principle. Fading was the default until 0.21.0, but a hint held back without warning looked like a bug ([#42](https://github.com/jdg2896/homerow-trainer/issues/42)), so fading is now something you turn on. A drill links to *How fading works* while a hint is held back, and adds *Why the wait?* when one appears after the pause. Settings links to the same explanation. Anyone who used the app before 0.21.0 keeps the setting they had.
+
+**Gap:** nothing suggests turning fading on once you know most of your keys.
 
 ## Changing drills
 

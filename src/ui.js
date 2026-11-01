@@ -15,7 +15,7 @@ const store = {
   del(k){ try { localStorage.removeItem('homerow-trainer.' + k); } catch (e) {} }
 };
 const DEFAULT_SETTINGS = { passAcc: 95, targetWpm: 20, stopOnError: true, stageLen: 90, routePref: 'layers', modPref: 'auto',
-  showFingers: true, showKeyboard: true, keyHighlight: 'bright', hints: 'fade', dailyGoal: 15, unlockAll: false, theme: 'system' };
+  showFingers: true, showKeyboard: true, keyHighlight: 'bright', hints: 'always', dailyGoal: 15, unlockAll: false, theme: 'system' };
 
 /* ---------- theme ---------- */
 function applyTheme(t){
@@ -25,9 +25,16 @@ function applyTheme(t){
 }
 
 // hints replaced the hintOnMiss checkbox in 0.8.0; carry a ticked box over as 'miss'.
+// Hints defaulted to 'fade' before 0.21.0, and settings were only saved once one was changed, so a returning
+// user who never opened Settings keeps 'fade' rather than having it switch under them.
 function loadSettings(){
-  const saved = store.get('settings', {}) || {};
+  const raw = store.get('settings', null), saved = raw && typeof raw === 'object' ? raw : {};
   if (saved.hintOnMiss && !saved.hints) saved.hints = 'miss';
+  if (!raw && Object.keys(store.get('layouts', {}) || {}).length) {
+    const kept = cleanSettings(Object.assign(saved, { hints: 'fade' }));
+    store.set('settings', kept);
+    return kept;
+  }
   return cleanSettings(saved);
 }
 // Settings are interpolated into the page as-is, and a backup file can carry any value, so only the
@@ -548,7 +555,8 @@ function settingsView(){
       ${check('stopOnError', 'Stop on errors', 'You must type the right key before moving on.')}
       <label for="hints">Hints</label>
       ${sel('hints', [['fade', 'Fade as you learn each key'], ['always', 'Always show'], ['miss', 'Only after a miss']], s.hints, true)}
-      ${help('hints', 'Fading hides the hint and key highlight for keys you type accurately until you pause or miss, so you recall them from memory.')}</section>
+      ${help('hints', 'Fading hides the hint and key highlight for keys you type accurately until you pause or miss, so you recall them from memory.')}
+      <button class="linkbtn muted fadehelp" data-act="fade-help">How fading works</button></section>
     <section class="card field" aria-labelledby="setKb"><h3 id="setKb">On-screen keyboard</h3>
       ${check('showKeyboard', 'Show the keyboard during lessons')}
       ${s.showKeyboard ? `<label for="keyHighlight">Next-key highlight</label>
@@ -743,10 +751,12 @@ function announceResult(){
 // hints: 'fade' holds the hint and highlight back for keys you already know until a miss or a pause, 'miss' holds them back
 // for every key until a miss, 'always' never does. Fading is what moves you from reading the hint to recalling the key.
 const PAUSE_MS = 1500;
+// When a key counts as known, also quoted in the fading help so the two can't drift apart.
+const KNOWN = { n: 40, err: 0.04, lat: 800 };
 let pauseTimer = null;
 function knownKey(it){
   const s = S.stats.keys[it.t === 'c' ? it.ch : E.keyId(it)];
-  return !!s && s.n >= 40 && s.err / s.n <= 0.04 && (!s.ln || s.lat / s.ln <= 800);
+  return !!s && s.n >= KNOWN.n && s.err / s.n <= KNOWN.err && (!s.ln || s.lat / s.ln <= KNOWN.lat);
 }
 function hintState(){
   const r = S.run, it = r.items[r.idx], mode = S.settings.hints;
@@ -761,7 +771,10 @@ function paintHint(h){
     const at = r.idx;
     pauseTimer = setTimeout(() => { if (S.run === r && !r.result && r.idx === at) { r.paused = at; paintHint(hintFor(r.items[at])); } }, PAUSE_MS);
   }
-  $('#hint').innerHTML = (show ? h.html : st === 'fade' ? '<span class="muted">From memory. Pause for a hint.</span>' : '')
+  // A hint that only showed after the pause gets a pointer to why, since a late hint otherwise looks like a bug.
+  const late = show && S.settings.hints === 'fade' && r.paused === r.idx && !r.wrong.has(r.idx);
+  const why = t => ` <button class="linkbtn muted fadehelp" data-act="fade-help">${t}</button>`;
+  $('#hint').innerHTML = (show ? h.html + (late ? why('Why the wait?') : '') : st === 'fade' ? `<span class="muted">From memory. Pause for a hint.${why('How fading works')}</span>` : '')
     + (r.note && !r.result ? `<span class="${r.note.err ? 'misfire' : 'note'}">${r.note.html}</span>` : '');
   const kb = $('#kb'); if (!kb) return;
   // The hint as plain text, so the keyboard's accessible name says what to press, not just which layer is shown.
@@ -917,7 +930,7 @@ function misfireHtml(kind, it){
 }
 
 function onKey(e){
-  if (fbOpen()) return;
+  if (dialogOpen()) return;
   const r = S.run; if (!r) { onNavKey(e); return; }
   if (r.result) {
     // A focused button (Retry, Redo, Back) handles its own Enter; only an Enter with nothing focused means the primary action.
@@ -1078,7 +1091,7 @@ const FB_TYPES = {
 const MAX_URL = 8000; // GitHub rejects much longer issue URLs; longer reports go via the clipboard
 const MAX_BODY = 65000; // GitHub's issue body limit is 65,536 characters
 let fbDialog = null, fbFile = null; // fbFile: a layout that failed to load, attached instead of the active one
-function fbOpen(){ return !!(fbDialog && fbDialog.open); }
+const dialogOpen = () => !!document.querySelector('dialog[open]');
 
 function diagnostics(){
   const L = S.layout, r = S.run, errs = window.HOMEROW_TRAINER_ERRORS || [];
@@ -1134,6 +1147,42 @@ function fbSync(){
   fbDialog.querySelector('label[for=fbDetails]').textContent = FB_TYPES[type].ask;
   fbDialog.querySelector('#fbDiagText').textContent = diagnostics();
 }
+// Pausing for an open dialog, so reading it or writing in it doesn't count as drill time.
+function pauseForDialog(){ const r = S.run; if (r && !r.result && r.t0 != null) { r.escPaused = true; pauseClock(); paintState(); } }
+
+let fadeDialog = null;
+function openFadeHelp(){
+  if (!fadeDialog) {
+    fadeDialog = document.createElement('dialog');
+    fadeDialog.className = 'fb';
+    fadeDialog.setAttribute('aria-labelledby', 'fadeHead');
+    document.body.appendChild(fadeDialog);
+    fadeDialog.addEventListener('click', e => { if (e.target === fadeDialog) fadeDialog.close(); }); // backdrop
+    // The trigger link is replaced on the next repaint; drop focus so typing goes back to the drill.
+    fadeDialog.addEventListener('close', () => { if (S.run && document.activeElement) document.activeElement.blur(); });
+  }
+  const fading = S.settings.hints === 'fade';
+  fadeDialog.innerHTML = `<div class="field">
+    <h3 id="fadeHead">How fading hints work</h3>
+    <p>With <b>Hints</b> set to <b>Fade as you learn each key</b>, the hint and key highlight step back once you know a key, so you practise recalling where it is instead of reading it.</p>
+    <ul>
+      <li>A key counts as known after ${KNOWN.n} presses, with ${KNOWN.err * 100}% or fewer missed and under ${KNOWN.lat / 1000} seconds per press on average.</li>
+      <li>For a known key you see “From memory. Pause for a hint.” The hint comes back as soon as you press a wrong key, or after a ${PAUSE_MS / 1000}-second pause.</li>
+      <li>Keys you're still learning, and keys you start missing or slowing down on, show their hint straight away.</li>
+    </ul>
+    <p class="muted">${fading ? 'Hints are fading for you now.' : 'Fading is off for you now.'} You can change this any time under Settings › While you type › Hints.</p>
+    <div class="actions">${fading ? '<button type="button" class="btn ghost" data-act="hints-always">Always show hints</button>' : ''}<button type="button" class="btn primary" data-act="fade-close">Got it</button></div>
+  </div>`;
+  pauseForDialog();
+  fadeDialog.showModal();
+  fadeDialog.querySelector('[data-act="fade-close"]').focus();
+}
+function setHints(v){
+  S.settings.hints = v; store.set('settings', S.settings);
+  if (fadeDialog) fadeDialog.close();
+  if (S.run) paintState(); else render();
+}
+
 function openFeedback(type, prefill){
   if (!fbDialog) {
     fbDialog = document.createElement('dialog');
@@ -1167,7 +1216,7 @@ function openFeedback(type, prefill){
     fbDialog.addEventListener('close', () => fbDialog.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid')));
   }
   // The dialog doesn't blur the window, so pause here or writing the report counts as drill time.
-  const r = S.run; if (r && !r.result && r.t0 != null) { r.escPaused = true; pauseClock(); paintState(); }
+  pauseForDialog();
   // A prefilled report is about that one file, so it isn't kept as a draft for the next time the dialog opens.
   if (fbFile || prefill) fbDialog.querySelector('form').reset();
   fbFile = prefill && prefill.file || null;
@@ -1248,6 +1297,9 @@ document.addEventListener('click', e => {
     case 'feedback': openFeedback(d.fbtype); break;
     case 'fb-cancel': fbDialog.close(); break;
     case 'fb-submit': submitFeedback(); break;
+    case 'fade-help': openFadeHelp(); break;
+    case 'fade-close': fadeDialog.close(); break;
+    case 'hints-always': setHints('always'); break;
     case 'exit': exitRun(); break;
     case 'change-goal': S.run = null; S.view = 'settings'; render(); $('#dailyGoal').focus(); break;
     case 'focus': window.focus(); paintState(); break;
@@ -1377,6 +1429,8 @@ function seedDefault(){
 // Returning users see the newest changelog notes once per version; first-time visitors start as caught up.
 const seenVersion = store.get('seenVersion', null), returning = Object.keys(S.layouts).length > 0;
 if (!returning && !seenVersion) store.set('seenVersion', BUILD.version);
+// Saved on the first visit too, so 'layouts but no settings' in loadSettings() only ever means a pre-0.21.0 user.
+if (!returning) store.set('settings', S.settings);
 S.whatsNew = returning && seenVersion !== BUILD.version && BUILD.notes.length > 0;
 try {
   if (S.activeId && S.layouts[S.activeId]) activate(S.activeId);

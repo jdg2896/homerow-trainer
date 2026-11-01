@@ -333,6 +333,10 @@ dialog.fb textarea{font-family:var(--body);font-size:15px;min-height:0;resize:ve
 dialog.fb:not([data-type="bug"]) .bug-only{display:none}
 dialog.fb .check{margin-top:6px}
 dialog.fb .actions{justify-content:flex-end}
+dialog.fb p{margin:0;line-height:1.5}
+dialog.fb ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.5}
+/* Fading help links: small, and left-aligned inside a column flex field. */
+.fadehelp{font-size:13px;align-self:flex-start}
 .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:6px}
 .seg label{flex:1;font-size:14px}
 .seg input{position:absolute;opacity:0;pointer-events:none}
