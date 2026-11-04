@@ -93,7 +93,7 @@ function tapInfo(t){
 
 function isNum(p){ return p != null && /^\d+$/.test(String(p.value)); }
 
-function parseBinding(b, ht){
+function parseBinding(b, ht, lower){
   const v = b && b.value ? String(b.value) : '&none';
   const P = (b && b.params) || [];
   const k = { beh: v, tap: null, hold: null, label: '' };
@@ -101,6 +101,8 @@ function parseBinding(b, ht){
   else if (v === '&mt') { const m = MODS[parseParam(P[0]).code]; if (m) k.hold = { mod: m }; k.tap = tapInfo(parseParam(P[1])); }
   else if (v === '&lt') { k.hold = { layer: +P[0].value }; k.tap = tapInfo(parseParam(P[1])); }
   else if (v === '&mo') { k.hold = { layer: +P[0].value }; }
+  // MoErgo's built-in &lower (hold for Lower, double-tap to lock it) isn't defined in the file, so find Lower by name.
+  else if (v === '&lower' && lower > 0) k.hold = { layer: lower, lower: true };
   else if (v === '&sk') { const m = MODS[parseParam(P[0]).code]; if (m) k.hold = { mod: m, sticky: true }; k.label = m ? 'Sticky ' + MOD_SYM[m] : 'Sticky'; }
   else if (v === '&trans') k.trans = true;
   else if (v === '&none') k.none = true;
@@ -281,7 +283,9 @@ function buildLayout(text, opts){
   if (!keyboard) keyboard = n === 80 ? 'glove80' : n === 60 ? 'go60' : '';
   const ht = {};
   (raw.holdTaps || []).forEach(h => { ht[h.name] = h; });
-  const layers = raw.layers.map(l => l.map(b => parseBinding(b, ht)));
+  const names = Array.isArray(raw.layer_names) ? raw.layer_names : [];
+  const lower = names.findIndex(x => typeof x === 'string' && x.toLowerCase() === 'lower');
+  const layers = raw.layers.map(l => l.map(b => parseBinding(b, ht, lower)));
   // resolve &trans to base
   layers.forEach((l, li) => { if (li) l.forEach((k, p) => { if (k.trans) l[p] = Object.assign({}, layers[0][p], { inherited: true }); }); });
   // A file can parse but type nothing (an empty or placeholder export); refuse it rather than build an empty course.
@@ -304,7 +308,6 @@ function buildLayout(text, opts){
     }
   });
   // Names come from the file and are sliced and shown as text, so anything that isn't a string falls back.
-  const names = Array.isArray(raw.layer_names) ? raw.layer_names : [];
   const layerNames = layers.map((_, i) => typeof names[i] === 'string' && names[i] ? names[i] : i ? 'Layer ' + i : 'Base');
   return {
     id: String(opts.id || (typeof raw.uuid === 'string' && raw.uuid) || hashStr(text)), uuid: typeof raw.uuid === 'string' ? raw.uuid : '',
@@ -336,6 +339,9 @@ function pickHolder(L, list, p, pref){
     let c = keyCost(L, h, pref);
     if (g && hg.hand === g.hand) c += g.thumb ? 0.5 : 3;
     if (hg.thumb) c -= 0.3;
+    // &lower is a tap-dance, so holding it waits out the tapping term; a plain layer key is quicker.
+    const hk = L.layers[0][h];
+    if (hk && hk.hold && hk.hold.lower) c += 1;
     if (c < bc) { bc = c; best = h; }
   }
   return best == null ? null : { pos: best, cost: bc };
@@ -355,7 +361,10 @@ function modifierKeys(L){
   return Object.assign(kinds, { both });
 }
 
-function buildRoutes(L, pref, modPref){
+/* A layer only &lower reaches is MoErgo's numpad. Most owners type digits on the number row, so the numpad
+   teaches them only with numPref 'numpad', and anything else on it is a last resort: its symbols and keys
+   don't pull lessons away from where the layout already types them. */
+function buildRoutes(L, pref, modPref, numPref){
   const base = L.layers[0];
   const mk = modifierKeys(L), modHolders = {}, layerActs = {};
   for (const m of MOD_ORDER) {
@@ -366,6 +375,8 @@ function buildRoutes(L, pref, modPref){
   base.forEach((k, p) => {
     if (k.hold && k.hold.layer != null) (layerActs[k.hold.layer] = layerActs[k.hold.layer] || []).push(p);
   });
+  const lowerOnly = li => (layerActs[li] || []).every(p => base[p].hold.lower);
+  const numpadDigits = {}, otherDigits = new Set();
   const chars = {}, keys = {};
   // Characters a layer key and a base-layer number-row or reach key both type: the only ones the routing preference changes.
   const viaLayer = new Set(), viaReach = new Set();
@@ -381,10 +392,14 @@ function buildRoutes(L, pref, modPref){
         holds = [{ pos: a.pos, kind: 'layer', layer: li }];
         c += 1;
       }
-      const r = { layer: li, pos: p, holds, cost: c };
+      const numpad = li > 0 && lowerOnly(li), digit = /^[0-9]$/.test(t.ch || '');
+      if (digit) { if (numpad) numpadDigits[t.ch] = li; else otherDigits.add(t.ch); }
+      if (numpad && !(digit && numPref === 'numpad')) c += 8;
+      // Only the digit itself steps aside for the numpad, not the symbol Shift makes on the same key.
+      const r = { layer: li, pos: p, holds, cost: c + (!numpad && digit && numPref === 'numpad' ? 8 : 0) };
       if (t.ch) {
         consider(chars, t.ch, r);
-        if (li > 0) viaLayer.add(t.ch); else if (reach) viaReach.add(t.ch);
+        if (li > 0 && !numpad) viaLayer.add(t.ch); else if (reach) viaReach.add(t.ch);
         if (li === 0) {
           const sh = CH[t.code] && CH[t.code][1];
           if (sh && sh !== t.ch) {
@@ -397,7 +412,9 @@ function buildRoutes(L, pref, modPref){
       if (t.key) consider(keys, keyId(t.key), Object.assign({ key: t.key, label: t.label }, r));
     });
   });
-  return { chars, keys, modHolders, layerActs, bothModKinds: mk.both, bothRouteKinds: [...viaReach].some(c => viaLayer.has(c)) };
+  return { chars, keys, modHolders, layerActs, bothModKinds: mk.both, bothRouteKinds: [...viaReach].some(c => viaLayer.has(c)),
+    // The numpad layer, when digits can come from it or from somewhere else.
+    numpad: numpadDigits[[...otherDigits].find(c => c in numpadDigits)] || null };
 }
 function keyId(k){ return (k.mods || []).slice().sort().join('+') + (k.mods && k.mods.length ? '+' : '') + k.key; }
 
@@ -449,8 +466,8 @@ const CHORD_SETS = [
   { title: 'Control line editing', mods: ['ctrl'], letters: ['a', 'e', 'k'] }
 ];
 
-function buildCurriculum(L, pref, modPref){
-  const R = buildRoutes(L, pref, modPref);
+function buildCurriculum(L, pref, modPref, numPref){
+  const R = buildRoutes(L, pref, modPref, numPref);
   const units = [];
   const used = new Set();
   const rOf = c => R.chars[c];

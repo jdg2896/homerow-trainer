@@ -2,6 +2,11 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.22.0 — 2026-11-04
+
+- Glove80 and Go60 layouts that switch to the Lower layer with MoErgo's Lower key can now learn digits on its number pad. Pick "Number pad on the Lower layer" under Settings → Your layout's keys → Numbers. Lessons keep using the number row until you do.
+- On layouts with both a layer key and the Lower key for the Lower layer, hints may now tell you to hold the one on your other hand.
+
 ## 0.21.0 — 2026-11-01
 
 - Hints now always show by default when you start out. If you've used Homerow Trainer before, your setting stays as it was.

@@ -14,7 +14,7 @@ const store = {
   set(k, v){ try { localStorage.setItem('homerow-trainer.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
   del(k){ try { localStorage.removeItem('homerow-trainer.' + k); } catch (e) {} }
 };
-const DEFAULT_SETTINGS = { passAcc: 95, targetWpm: 20, stopOnError: true, stageLen: 90, routePref: 'layers', modPref: 'auto',
+const DEFAULT_SETTINGS = { passAcc: 95, targetWpm: 20, stopOnError: true, stageLen: 90, routePref: 'layers', modPref: 'auto', numPref: 'row',
   showFingers: true, showKeyboard: true, keyHighlight: 'bright', hints: 'always', dailyGoal: 15, unlockAll: false, theme: 'system' };
 
 /* ---------- theme ---------- */
@@ -39,7 +39,7 @@ function loadSettings(){
 }
 // Settings are interpolated into the page as-is, and a backup file can carry any value, so only the
 // shapes the app writes itself get through: numbers in range, booleans, and the listed choices.
-const SETTING_CHOICES = { routePref: ['layers', 'reach'], modPref: ['auto', 'dedicated', 'homerow'], keyHighlight: ['bright', 'subtle', 'off'],
+const SETTING_CHOICES = { routePref: ['layers', 'reach'], modPref: ['auto', 'dedicated', 'homerow'], numPref: ['row', 'numpad'], keyHighlight: ['bright', 'subtle', 'off'],
   hints: ['fade', 'always', 'miss'], theme: ['system', 'light', 'dark'] };
 const SETTING_RANGE = { passAcc: [50, 100], targetWpm: [5, 150], stageLen: [20, 400], dailyGoal: [1, 120] };
 function cleanSettings(raw){
@@ -142,7 +142,7 @@ function activate(id){
   rebuild();
 }
 function rebuild(){
-  S.C = E.buildCurriculum(S.layout, S.settings.routePref, S.settings.modPref);
+  S.C = E.buildCurriculum(S.layout, S.settings.routePref, S.settings.modPref, S.settings.numPref);
   // Reviews used to be numbered by position; carry their progress over to the content-based ids.
   let moved = false;
   S.C.lessons.forEach(l => { const pr = S.stats.progress; if (l.legacyId && pr[l.legacyId]) { if (!pr[l.id]) pr[l.id] = pr[l.legacyId]; delete pr[l.legacyId]; moved = true; } });
@@ -562,10 +562,13 @@ function settingsView(){
       ${s.showKeyboard ? `<label for="keyHighlight">Next-key highlight</label>
       ${sel('keyHighlight', [['bright', 'Fill the key'], ['subtle', 'Outline the key'], ['off', 'Off']], s.keyHighlight)}
       ${check('showFingers', 'Colour keys by finger')}` : ''}</section>
-    ${R.bothRouteKinds || R.bothModKinds ? `<section class="card field" aria-labelledby="setRoute"><h3 id="setRoute">Your layout’s keys</h3>
+    ${R.bothRouteKinds || R.bothModKinds || R.numpad ? `<section class="card field" aria-labelledby="setRoute"><h3 id="setRoute">Your layout’s keys</h3>
       ${R.bothRouteKinds ? `<label for="routePref">Numbers &amp; symbols</label>
       ${sel('routePref', [['layers', 'Thumb layers (Miryoku style)'], ['reach', 'Number row and reach keys']], s.routePref, true)}
       ${help('routePref', `${esc(L.title)} can type digits and symbols both ways. Lessons teach the one you pick.`)}` : ''}
+      ${R.numpad ? `<label for="numPref">Numbers</label>
+      ${sel('numPref', [['row', 'Number row'], ['numpad', `Number pad on the ${esc(L.layerNames[R.numpad])} layer`]], s.numPref, true)}
+      ${help('numPref', `${esc(L.title)} can type digits on the number row or on a number pad. Lessons teach the one you pick.`)}` : ''}
       ${R.bothModKinds ? `<label for="modPref">Shift and other modifiers</label>
       ${sel('modPref', [['auto', 'Easiest to reach'], ['dedicated', 'Dedicated modifier keys'], ['homerow', 'Home row mods']], s.modPref, true)}
       ${help('modPref', `${esc(L.title)} has both, so pick which ones lessons tell you to hold.`)}` : ''}</section>` : ''}
@@ -1377,12 +1380,12 @@ document.addEventListener('change', e => {
     rd.onload = () => { try { S.restore = readBackup(String(rd.result)); S.msg = null; } catch (err) { S.restore = null; S.msg = { t: 'err', m: `${f.name}: ${err.message}` }; } render(); const b = $('[data-act="restore-ok"]'); if (b) b.focus(); };
     rd.readAsText(f); return;
   }
-  const keys = ['routePref', 'modPref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'hints', 'showFingers', 'unlockAll', 'theme'];
+  const keys = ['routePref', 'modPref', 'numPref', 'passAcc', 'targetWpm', 'stageLen', 'dailyGoal', 'stopOnError', 'showKeyboard', 'keyHighlight', 'hints', 'showFingers', 'unlockAll', 'theme'];
   if (keys.includes(t.id)) {
-    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && ['routePref', 'modPref', 'keyHighlight', 'hints', 'theme'].includes(t.id)) ? t.value
+    const v = t.type === 'checkbox' ? t.checked : (t.tagName === 'SELECT' && ['routePref', 'modPref', 'numPref', 'keyHighlight', 'hints', 'theme'].includes(t.id)) ? t.value
       : Math.min(+t.max || Infinity, Math.max(+t.min || 1, +t.value || DEFAULT_SETTINGS[t.id]));
     S.settings[t.id] = v; store.set('settings', S.settings);
-    if (t.id === 'routePref' || t.id === 'modPref') rebuild();
+    if (t.id === 'routePref' || t.id === 'modPref' || t.id === 'numPref') rebuild();
     if (t.id === 'theme') applyTheme(v);
     render();
   }

@@ -80,6 +80,27 @@ for (const file of presets) {
   console.log(`ok  ${where}`);
 }
 
+// MoErgo's &lower reaches the Lower layer's number pad (issue #45). Digits stay on the number row
+// unless numPref asks for the numpad, and nothing else moves to Lower when another key types it.
+{
+  const where = 'lower numpad';
+  const L = E.buildLayout(fs.readFileSync(path.join(presetDir, 'glove80-07-glove80-factory-default-layout.json'), 'utf8'));
+  const lower = L.layerNames.indexOf('Lower');
+  const lk = L.layers[0].find(k => k.beh === '&lower');
+  if (!lk || !lk.hold || lk.hold.layer !== lower) fail(where, `&lower should hold the Lower layer (${lower})`);
+  const row = E.buildCurriculum(L, 'layers', 'auto', 'row'), pad = E.buildCurriculum(L, 'layers', 'auto', 'numpad');
+  if (row.routes.numpad !== lower) fail(where, `routes should name Lower (${lower}) as the numpad, got ${row.routes.numpad}`);
+  for (const d of '0123456789') {
+    if (row.routes.chars[d].layer !== 0) fail(where, `${d} should stay on the number row by default`);
+    if (pad.routes.chars[d].layer !== lower) fail(where, `${d} should come from Lower with numPref numpad`);
+  }
+  if (row.units.some(u => u.id === 'layer-' + lower)) fail(where, 'the default course should not gain a Lower unit');
+  for (const c of '%)*') if (pad.routes.chars[c].layer !== 0) fail(where, `${c} should still be Shift on the number row with the numpad on`);
+  const M = E.buildRoutes(E.buildLayout(fs.readFileSync(path.join(presetDir, 'go60-07-miryoku-macos.json'), 'utf8')), 'layers');
+  if (M.numpad != null) fail(where, 'Miryoku has no &lower numpad, so should not offer one');
+  console.log(`ok  ${where}`);
+}
+
 // Drill text varies its numbers, punctuation and letter groups (issue #3). Sampled many
 // times so the random choices can't make this flaky.
 {
