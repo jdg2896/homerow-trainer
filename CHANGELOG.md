@@ -2,6 +2,11 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.25.0 — 2026-11-07
+
+- New "layer shortcuts" lessons teach the shortcuts your layers send, like Copy and Undo on TailorKey's Cursor layer or the Go60 Keypad layer. The hint shows which layer key to hold.
+- A shortcut your layout puts on a layer key is now taught there, not also with home row mods, so some Shortcuts lessons change or go away and their progress starts over. Shortcuts with two modifiers, like Ctrl+Shift+Z, now hint the key that sends them.
+
 ## 0.24.0 — 2026-11-06
 
 - On Windows and Linux, shortcut lessons now teach Ctrl+C, Ctrl+Z and so on instead of the Windows key. The Control line editing lesson (Ctrl+A, E, K) is now only offered on a Mac.

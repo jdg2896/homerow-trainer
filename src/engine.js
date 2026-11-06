@@ -93,9 +93,11 @@ function tapInfo(t){
 
 function isNum(p){ return p != null && /^\d+$/.test(String(p.value)); }
 
-function parseBinding(b, ht, lower, nLayers){
+function parseBinding(b, ht, lower, nLayers, macros){
   const v = b && b.value ? String(b.value) : '&none';
   const P = (b && b.params) || [];
+  // A macro that only presses one key (TailorKey's &cur_COPY is &kp LC(C)) types what that key does.
+  if (macros && !P.length && Object.prototype.hasOwnProperty.call(macros, v)) return parseBinding(macros[v], ht, lower, nLayers);
   const k = { beh: v, tap: null, hold: null, label: '' };
   if (v === '&kp') k.tap = tapInfo(parseParam(P[0]));
   else if (v === '&mt') { const m = MODS[parseParam(P[0]).code]; if (m) k.hold = { mod: m }; k.tap = tapInfo(parseParam(P[1])); }
@@ -287,7 +289,12 @@ function buildLayout(text, opts){
   (raw.holdTaps || []).forEach(h => { ht[h.name] = h; });
   const names = Array.isArray(raw.layer_names) ? raw.layer_names : [];
   const lower = names.findIndex(x => typeof x === 'string' && x.toLowerCase() === 'lower');
-  const layers = raw.layers.map(l => l.map(b => parseBinding(b, ht, lower, raw.layers.length)));
+  const macros = {};
+  (Array.isArray(raw.macros) ? raw.macros : []).forEach(m => {
+    const b = m && Array.isArray(m.bindings) && m.bindings.length === 1 && m.bindings[0];
+    if (b && b.value === '&kp' && typeof m.name === 'string') macros[m.name] = b;
+  });
+  const layers = raw.layers.map(l => l.map(b => parseBinding(b, ht, lower, raw.layers.length, macros)));
   // resolve &trans to base
   layers.forEach((l, li) => { if (li) l.forEach((k, p) => { if (k.trans) l[p] = Object.assign({}, layers[0][p], { inherited: true }); }); });
   // A file can parse but type nothing (an empty or placeholder export); refuse it rather than build an empty course.
@@ -476,7 +483,29 @@ const CHORD_SETS = [
   { title: 'Control line editing', mods: ['ctrl'], letters: ['a', 'e', 'k'], macOnly: true }
 ];
 
+/* Shortcuts the browser or OS acts on before the page sees the keydown, so a drill would never register
+   them: new or closed windows and tabs, quit, and tab and app switching. On a Mac also hide, minimize,
+   Spotlight, input sources (Ctrl+Space) and Spaces (Ctrl+arrows); elsewhere every Windows/Super key shortcut. */
+function browserKeeps(k, mac){
+  const m = k.mods.filter(x => x !== 'shift'), one = m.length === 1 && (m[0] === 'ctrl' || m[0] === 'meta');
+  if (one && 'ntwq'.includes(k.key) && k.key.length === 1) return true;
+  if (k.key === 'Tab' && m.length) return true;
+  if (/^Page(Up|Down)$/.test(k.key) && m.length === 1 && m[0] === 'ctrl') return true;
+  if (!mac) return m.includes('meta');
+  if (k.mods.length === 1 && k.mods[0] === 'ctrl' && (k.key === ' ' || /^Arrow/.test(k.key))) return true;
+  return m.includes('meta') && ['h', 'm', '`', ' '].includes(k.key);
+}
+// Names for the few shortcuts that mean the same thing in almost every app, so a lesson reads "Cut, copy and paste".
+// Only with the platform's own modifier ('cmd'): on a Mac, Ctrl+C isn't Copy.
+const SHORTCUT_NAMES = { x: 'Cut', c: 'Copy', v: 'Paste', z: 'Undo', y: 'Redo', 'shift+z': 'Redo', a: 'Select all', s: 'Save', f: 'Find' };
+function shortcutName(id, first, cmd, names){
+  const k = keyItem(id), m = k.mods.filter(x => x !== 'shift');
+  const n = m.length === 1 && m[0] === cmd && SHORTCUT_NAMES[(k.mods.includes('shift') ? 'shift+' : '') + k.key];
+  return !n ? keyItemLabel(k, names) : first ? n : n.toLowerCase();
+}
+
 // opts.mac: false for Windows, Linux and the rest. The engine can't see the platform, so the UI says; it defaults to a Mac.
+// opts.names: modifier names for lesson titles off a Mac ({ ctrl: 'Ctrl', … }), as keyItemLabel takes them.
 function buildCurriculum(L, pref, modPref, numPref, opts){
   const mac = !opts || opts.mac !== false, cmd = mac ? 'meta' : 'ctrl', platMods = ms => ms.map(m => m === 'cmd' ? cmd : m);
   const R = buildRoutes(L, pref, modPref, numPref);
@@ -570,34 +599,63 @@ function buildCurriculum(L, pref, modPref, numPref, opts){
     units.push({ id: 'nav', title: 'Navigation', blurb: 'Move the cursor without leaving the home row.', lessons });
   }
 
-  // Shortcuts via home-row mods
+  // Shortcuts a layer key sends (&kp LC(C)): hold the layer, tap one key. They come after Navigation, which often
+  // teaches the same layer, and before the home-row-mod shortcuts, since one held key is simpler than one or two
+  // mods on the other hand. Shift alone (Shift+Tab) isn't a shortcut, and bare named keys are Navigation's.
+  const layerShortcuts = new Set();
+  const namesTitle = ids => { const t = ids.map((id, j) => shortcutName(id, !j, cmd, !mac && opts.names)); return t.length > 1 ? t.slice(0, -1).join(', ') + ' and ' + t[t.length - 1] : t[0]; };
+  for (let li = 1; li < L.layers.length; li++) {
+    const ids = Object.keys(R.keys).filter(id => { const r = R.keys[id]; return r.layer === li && r.key.mods.some(m => m !== 'shift') && !browserKeeps(r.key, mac); });
+    if (!ids.length) continue;
+    ids.forEach(id => layerShortcuts.add(id));
+    // Home row first, then left to right, which keeps a row like Undo, Cut, Copy, Paste together.
+    const ROLES = ['home', 'top', 'bottom', 'thumb', 'num', 'extra', 'fn'], at = id => L.keys[R.keys[id].pos];
+    const sorted = ids.sort((a, b) => ROLES.indexOf(at(a).role) - ROLES.indexOf(at(b).role) || at(a).x - at(b).x);
+    const name = L.layerNames[li] || 'Layer ' + li, lessons = [], groups = chunk(sorted, 3);
+    let since = [];
+    groups.forEach((g, i) => {
+      lessons.push({ id: 'lkeys:' + g.join(','), title: namesTitle(g), kind: 'chords', items: g });
+      since.push(...g);
+      const last = i === groups.length - 1;
+      // A review every four lessons and at the end, as in the other units.
+      if (((i + 1) % 4 === 0 && !last) || (last && groups.length > 1)) {
+        lessons.push({ id: 'lkeys:review:' + since.join(','), title: last ? name + ' layer shortcuts review' : 'Review', kind: 'review', reviewKind: 'chords', items: since });
+        since = [];
+      }
+    });
+    units.push({ id: 'lkeys-' + li, title: name + ' layer shortcuts', blurb: `Hold the key for the ${name} layer, then tap the shortcut.`, lessons });
+  }
+
+  // Shortcuts via home-row mods. One a layer key already sends is taught there instead, the way the layout's author types it.
   const chordLessons = [];
   CHORD_SETS.forEach(s => {
     if (s.macOnly && !mac) return;
     const items = [];
-    s.letters.concat((s.extra || []).map(e => e.letter)).forEach((l, i) => {
-      const mods = platMods(i < s.letters.length ? s.mods : s.extra[i - s.letters.length].mods);
-      if (chordRoute(L, R, mods, l, pref)) items.push(keyId({ key: l, mods }));
-    });
-    if (items.length >= 2) chordLessons.push({ id: 'chord:' + items.join(','), title: s.title, kind: 'chords', items });
+    let moved = false;
+    const add = (mods, l) => { const id = keyId({ key: l, mods }); if (layerShortcuts.has(id)) moved = true; else if (chordRoute(L, R, mods, l, pref)) items.push(id); };
+    s.letters.forEach(l => add(platMods(s.mods), l));
+    (s.extra || []).forEach(e => add(platMods(e.mods), e.letter));
+    // Once a layer unit takes some, the set's title no longer fits ("Undo, select all, save" without Undo).
+    if (items.length >= 2) chordLessons.push({ id: 'chord:' + items.join(','), title: moved ? namesTitle(items) : s.title, kind: 'chords', items });
   });
   if (chordLessons.length) units.push({ id: 'chords', title: 'Shortcuts', blurb: 'Hold the modifier on the opposite hand, then tap.', lessons: chordLessons });
 
   // number lessons globally
   let n = 0;
   units.forEach(u => u.lessons.forEach(l => { l.num = ++n; l.unit = u.id; }));
-  return { units, routes: R, lessons: units.flatMap(u => u.lessons) };
+  return { units, routes: R, lessons: units.flatMap(u => u.lessons), layerShortcuts };
 }
 
 /* Resolve the route (hint) for a drill item */
 function routeFor(L, C, item, pref){
   if (item.t === 'c') return C.routes.chars[item.ch] || null;
   if (item.t === 'k') {
-    const own = C.routes.keys[keyId(item)] || null;
-    // A shortcut on a tap-dance-only layer (Go60's Keypad has Ctrl+C) is a last resort: hint the modifier chord while there is one.
-    if (!item.mods.length || (item.mods.length === 1 && own && !own.lastResort)) return own;
-    const letter = item.key.length === 1 ? item.key : null;
-    return letter ? chordRoute(L, C.routes, item.mods, letter, pref) || (own && own.lastResort ? own : null) : own;
+    // A key that sends the whole shortcut beats building it from mods, unless it's a last resort (a tap-dance-only
+    // layer). One a layer shortcuts unit teaches always hints that key, since the home-row-mod lessons leave it out.
+    const id = keyId(item), own = C.routes.keys[id];
+    if (own && (!own.lastResort || C.layerShortcuts.has(id))) return own;
+    const chord = item.mods.length && item.key.length === 1 ? chordRoute(L, C.routes, item.mods, item.key, pref) : null;
+    return chord || own || null;
   }
   return null;
 }
@@ -874,8 +932,9 @@ function unlockedBefore(C, lesson, inclusive){
 
 function textItems(str){ return [...str].map(ch => ({ t: 'c', ch })); }
 function keyItem(id){
-  const parts = id.split('+'); const key = parts.pop();
-  return { t: 'k', key, mods: parts };
+  // Split on the last + that follows a modifier, so meta++ is Cmd and +.
+  const m = id.match(/^((?:[a-z]+\+)*)([\s\S]+)$/);
+  return { t: 'k', key: m[2], mods: m[1].split('+').filter(Boolean) };
 }
 // names: modifier names to spell out as "Ctrl+Shift+Z", the convention off a Mac; without them, Mac symbols ("⇧⌘Z").
 function keyItemLabel(it, names){
@@ -954,6 +1013,8 @@ function keyStages(ids, len){
 function makeStages(C, lesson, WORDS, len, SENTS, weak, stale){
   len = len || 90;
   if (lesson.kind === 'keys' || lesson.kind === 'chords') return keyStages(lesson.items, len);
+  // A review of shortcuts skips the introduction, like a review of letters.
+  if (lesson.reviewKind === 'chords') return keyStages(lesson.items, len).slice(1);
   const isReview = lesson.kind === 'review';
   const before = unlockedBefore(C, lesson, false);
   const unlocked = unlockedBefore(C, lesson, true);
