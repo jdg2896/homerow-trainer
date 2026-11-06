@@ -2,6 +2,11 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.24.0 — 2026-11-06
+
+- On Windows and Linux, shortcut lessons now teach Ctrl+C, Ctrl+Z and so on instead of the Windows key. The Control line editing lesson (Ctrl+A, E, K) is now only offered on a Mac.
+- Off a Mac, shortcuts, hints and keycaps now say Ctrl, Alt, Shift and Win instead of Mac symbols. If you finished the old shortcut lessons on Windows or Linux, they start over, since they taught the wrong key.
+
 ## 0.22.0 — 2026-11-04
 
 - Glove80 and Go60 layouts that switch to the Lower layer with MoErgo's Lower key can now learn digits on its number pad. Pick "Number pad on the Lower layer" under Settings → Your layout's keys → Numbers. Lessons keep using the number row until you do.

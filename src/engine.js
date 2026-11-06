@@ -459,14 +459,18 @@ function chunk(items, size){
   return out;
 }
 
+/* 'cmd' is Command on a Mac and Ctrl elsewhere, where the Windows/Super key (meta) is the OS's, not the app's.
+   Ctrl line editing (Emacs keys in macOS text fields) only exists on a Mac; elsewhere Ctrl+A is select all. */
 const CHORD_SETS = [
-  { title: 'Copy, paste, cut', mods: ['meta'], letters: ['c', 'v', 'x'] },
-  { title: 'Undo, select all, save', mods: ['meta'], letters: ['z', 'a', 's'] },
-  { title: 'Redo and formatting', mods: ['meta'], letters: ['b', 'i', 'k'], extra: [{ mods: ['meta', 'shift'], letter: 'z' }] },
-  { title: 'Control line editing', mods: ['ctrl'], letters: ['a', 'e', 'k'] }
+  { title: 'Copy, paste, cut', mods: ['cmd'], letters: ['c', 'v', 'x'] },
+  { title: 'Undo, select all, save', mods: ['cmd'], letters: ['z', 'a', 's'] },
+  { title: 'Redo and formatting', mods: ['cmd'], letters: ['b', 'i', 'k'], extra: [{ mods: ['cmd', 'shift'], letter: 'z' }] },
+  { title: 'Control line editing', mods: ['ctrl'], letters: ['a', 'e', 'k'], macOnly: true }
 ];
 
-function buildCurriculum(L, pref, modPref, numPref){
+// opts.mac: false for Windows, Linux and the rest. The engine can't see the platform, so the UI says; it defaults to a Mac.
+function buildCurriculum(L, pref, modPref, numPref, opts){
+  const mac = !opts || opts.mac !== false, cmd = mac ? 'meta' : 'ctrl', platMods = ms => ms.map(m => m === 'cmd' ? cmd : m);
   const R = buildRoutes(L, pref, modPref, numPref);
   const units = [];
   const used = new Set();
@@ -561,9 +565,12 @@ function buildCurriculum(L, pref, modPref, numPref){
   // Shortcuts via home-row mods
   const chordLessons = [];
   CHORD_SETS.forEach(s => {
+    if (s.macOnly && !mac) return;
     const items = [];
-    s.letters.forEach(l => { const rr = chordRoute(L, R, s.mods, l, pref); if (rr) items.push(keyId({ key: l, mods: s.mods })); });
-    (s.extra || []).forEach(e => { const rr = chordRoute(L, R, e.mods, e.letter, pref); if (rr) items.push(keyId({ key: e.letter, mods: e.mods })); });
+    s.letters.concat((s.extra || []).map(e => e.letter)).forEach((l, i) => {
+      const mods = platMods(i < s.letters.length ? s.mods : s.extra[i - s.letters.length].mods);
+      if (chordRoute(L, R, mods, l, pref)) items.push(keyId({ key: l, mods }));
+    });
     if (items.length >= 2) chordLessons.push({ id: 'chord:' + items.join(','), title: s.title, kind: 'chords', items });
   });
   if (chordLessons.length) units.push({ id: 'chords', title: 'Shortcuts', blurb: 'Hold the modifier on the opposite hand, then tap.', lessons: chordLessons });
@@ -860,9 +867,12 @@ function keyItem(id){
   const parts = id.split('+'); const key = parts.pop();
   return { t: 'k', key, mods: parts };
 }
-function keyItemLabel(it){
+// names: modifier names to spell out as "Ctrl+Shift+Z", the convention off a Mac; without them, Mac symbols ("⇧⌘Z").
+function keyItemLabel(it, names){
   const NL = { ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', PageUp: 'PgUp', PageDown: 'PgDn' };
-  return modsLabel(new Set(it.mods)) + (NL[it.key] || (it.key.length === 1 ? it.key.toUpperCase() : it.key));
+  const key = NL[it.key] || (it.key.length === 1 ? it.key.toUpperCase() : it.key);
+  if (names) return MOD_ORDER.filter(m => it.mods.includes(m)).map(m => names[m]).concat(key).join('+');
+  return modsLabel(new Set(it.mods)) + key;
 }
 
 function altText(chars, len){

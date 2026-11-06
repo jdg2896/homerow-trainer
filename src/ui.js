@@ -8,6 +8,14 @@ const SENTENCES = window.HOMEROW_TRAINER_SENTENCES || [];
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+/* ---------- platform ----------
+   Shortcuts use Command on a Mac and Ctrl elsewhere, and only a Mac's keycaps say ⌘ and ⌥. iPadOS reports MacIntel. */
+const PLATFORM = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || '';
+const MAC = /mac|iphone|ipad|ipod/i.test(PLATFORM);
+const MOD_PC = { ctrl: 'Ctrl', alt: 'Alt', shift: 'Shift', meta: /win/i.test(PLATFORM) ? 'Win' : 'Super' };
+const modSym = m => MAC ? E.MOD_SYM[m] : MOD_PC[m], modName = m => MAC ? E.MOD_NAME[m] : MOD_PC[m];
+const keyLabel = it => E.keyItemLabel(it, MAC ? null : MOD_PC);
+
 /* ---------- storage ---------- */
 const store = {
   get(k, d){ try { const v = localStorage.getItem('homerow-trainer.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -142,7 +150,7 @@ function activate(id){
   rebuild();
 }
 function rebuild(){
-  S.C = E.buildCurriculum(S.layout, S.settings.routePref, S.settings.modPref, S.settings.numPref);
+  S.C = E.buildCurriculum(S.layout, S.settings.routePref, S.settings.modPref, S.settings.numPref, { mac: MAC });
   // Reviews used to be numbered by position; carry their progress over to the content-based ids.
   let moved = false;
   S.C.lessons.forEach(l => { const pr = S.stats.progress; if (l.legacyId && pr[l.legacyId]) { if (!pr[l.id]) pr[l.id] = pr[l.legacyId]; delete pr[l.legacyId]; moved = true; } });
@@ -176,10 +184,12 @@ function overall(){
 }
 // A key is a problem when it's missed more often than the pass mark allows, or is clearly slower than your other keys:
 // half again the median of its kind, since shortcuts are slower than letters by nature. Misses rank first, worst first.
-// Two misses at least, so one slip in six presses doesn't flag a key.
+// Two misses at least, so one slip in six presses doesn't flag a key. Shortcuts count only while a lesson teaches them:
+// off a Mac, older versions taught Win+C where Ctrl+C belongs, and those stats shouldn't come back as drills.
 function problemKeys(limit){
   const ks = S.stats.keys, unlocked = unlockedChars(), maxEr = (100 - S.settings.passAcc) / 100;
-  const rows = Object.keys(ks).filter(k => ks[k].n >= 6 && k !== ' ' && (k.length === 1 ? unlocked.has(k) : true)).map(k => {
+  const taught = new Set(S.C.lessons.flatMap(l => l.kind === 'learn' ? [] : l.items));
+  const rows = Object.keys(ks).filter(k => ks[k].n >= 6 && k !== ' ' && (k.length === 1 ? unlocked.has(k) : taught.has(k))).map(k => {
     const s = ks[k]; return { k, er: s.err / s.n, err: s.err, lat: s.ln >= 6 ? s.lat / s.ln : 0, n: s.n };
   });
   const median = one => { const l = rows.filter(r => r.lat && (r.k.length === 1) === one).map(r => r.lat).sort((a, b) => a - b); return l.length >= 5 ? l[l.length >> 1] : Infinity; };
@@ -206,8 +216,8 @@ function staleKeys(limit){
 }
 function fmtTime(s){ s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60; return h ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`; }
 function starsHtml(n, max){ let s = ''; for (let i = 0; i < (max || 3); i++) s += `<span class="${i < n ? 'on' : ''}">★</span>`; return `<span class="stars" role="img" aria-label="${n} of ${max || 3} stars">${s}</span>`; }
-function kc(c, cls){ const lab = c.length > 1 ? E.keyItemLabel(E.keyItem(c)) : E.charName(c); return `<span class="kc ${cls || ''}">${esc(lab)}</span>`; }
-function itemLabel(id){ return id.length > 1 ? E.keyItemLabel(E.keyItem(id)) : E.charName(id); }
+function kc(c, cls){ const lab = c.length > 1 ? keyLabel(E.keyItem(c)) : E.charName(c); return `<span class="kc ${cls || ''}">${esc(lab)}</span>`; }
+function itemLabel(id){ return id.length > 1 ? keyLabel(E.keyItem(id)) : E.charName(id); }
 
 /* ---------- keyboard SVG ---------- */
 const U = 60;
@@ -216,9 +226,12 @@ function keyLabels(li, p){
   if (!k || k.none) return { main: '', sub: '' };
   let main = k.tap ? k.tap.label : (k.label || '');
   if (k.inherited) main = '';
+  // The layout names modifier keys with Mac symbols; a shortcut hint says "Hold Ctrl", so the keycap should too.
+  else if (!MAC && k.tap && k.tap.bareMod) main = MOD_PC[k.tap.bareMod];
+  else if (!MAC && !k.tap && k.hold && k.hold.sticky) main = 'Sticky ' + MOD_PC[k.hold.mod];
   let sub = '';
   if (k.hold && k.hold.layer != null) sub = (S.layout.layerNames[k.hold.layer] || 'L' + k.hold.layer).slice(0, 3);
-  else if (k.hold && k.hold.mod) sub = E.MOD_SYM[k.hold.mod];
+  else if (k.hold && k.hold.mod) sub = modSym(k.hold.mod);
   return { main, sub };
 }
 function kbSVG(li, hl){
@@ -253,8 +266,8 @@ function hintFor(item){
   if (!r) return { r: null, html: '<span class="muted">This character is not on your layout. Type it however you can.</span>' };
   const parts = r.holds.map(h => {
     const lab = keyLabels(0, h.pos);
-    const what = h.kind === 'layer' ? (S.layout.layerNames[h.layer] || 'layer') : E.MOD_NAME[h.mod];
-    return `Hold <span class="kc">${esc(lab.main || '?')}</span> for ${esc(what)} <span class="muted">(${fingerName(h.pos)})</span>`;
+    const what = h.kind === 'layer' ? (S.layout.layerNames[h.layer] || 'layer') : modName(h.mod);
+    return `Hold <span class="kc">${esc(lab.main || '?')}</span>${lab.main === what ? '' : ' for ' + esc(what)} <span class="muted">(${fingerName(h.pos)})</span>`;
   });
   const t = keyLabels(r.layer, r.pos);
   parts.push(`${r.holds.length ? 'then press' : 'Press'} <span class="kc">${esc(t.main || '?')}</span> <span class="muted">(${fingerName(r.pos)})</span>`);
@@ -426,12 +439,12 @@ function practiceView(){
       <div class="actions"><button class="btn" data-act="practice-pairs"><span class="tri"></span>Practice weak pairs</button></div>`
       : `<p class="muted">No weak pairs yet. Pairs you miss more often than their second letter on its own show up here, and Common combos drills them more often.</p>`}
     </div>`;
-  const mf = [['Accidental Shift', misf.shift], ['Accidental ⌘ or ⌃', misf.mod], ['Accidental ⌥', misf.alt]];
+  const mf = [['Accidental Shift', misf.shift], [`Accidental ${modSym('meta')} or ${modSym('ctrl')}`, misf.mod], ['Accidental ' + modSym('alt'), misf.alt]];
   const misfCard = `<div class="card field pcard"><h3 id="mfHead">Home-row mod misfires</h3>
       ${mf.some(x => x[1]) ? `<p class="muted">Counts each modifier that fires while you meant to type a letter.</p>
       <table class="ptable" aria-labelledby="mfHead"><tbody>${mf.map(([t, n]) => `<tr><th scope="row">${t}</th><td>${n || 0}</td></tr>`).join('')}</tbody></table>
       <p class="muted note">If one keeps climbing, type that finger's key a little more crisply or raise its tapping term.</p>`
-      : `<p class="muted">No misfires yet. When Shift, ⌘, ⌃ or ⌥ fires while you meant to type a letter, it's counted here.</p>`}
+      : `<p class="muted">No misfires yet. When Shift, ${modSym('meta')}, ${modSym('ctrl')} or ${modSym('alt')} fires while you meant to type a letter, it's counted here.</p>`}
     </div>`;
   return `<div class="section-title"><h2>Practice</h2></div>
   ${suggestCard()}
@@ -450,8 +463,8 @@ function presetPicker(){
   const groups = {};
   presets.forEach((p, i) => { (groups[p.keyboard] = groups[p.keyboard] || []).push(i); });
   // Until the user picks one, preselect the factory default for the keyboard they're on.
-  const mac = /Mac/.test(navigator.platform || navigator.userAgent), factory = p => p.keyboard === S.layout.keyboard && /factory default/i.test(p.title) && !PRESET_LAST.test(p.title);
-  const same = presets.findIndex(p => factory(p) && /macos/i.test(p.title) === mac), fallback = same >= 0 ? same : Math.max(0, presets.findIndex(factory));
+  const factory = p => p.keyboard === S.layout.keyboard && /factory default/i.test(p.title) && !PRESET_LAST.test(p.title);
+  const same = presets.findIndex(p => factory(p) && /macos/i.test(p.title) === MAC), fallback = same >= 0 ? same : Math.max(0, presets.findIndex(factory));
   const sel = S.presetSel != null && +S.presetSel >= 0 && +S.presetSel < presets.length ? +S.presetSel : fallback;
   const opt = i => { const p = presets[i], added = layoutForPreset(p);
     return `<option value="${i}" ${i === sel ? 'selected' : ''}>${esc(p.title || 'Layout')}${added ? ' ✓' : ''}</option>`; };
@@ -665,7 +678,7 @@ function resumeClock(){
   const r = S.run; if (r.awayAt == null) return;
   const d = performance.now() - r.awayAt; if (r.t0 != null) r.t0 += d; if (r.last != null) r.last += d; r.awayAt = null;
 }
-const itemText = it => it.t === 'k' ? E.keyItemLabel(it) + ' ' : it.ch;
+const itemText = it => it.t === 'k' ? keyLabel(it) + ' ' : it.ch;
 function renderRun(full){
   const r = S.run;
   if (full) {
@@ -681,7 +694,7 @@ function renderRun(full){
       <div class="hint" id="hint"></div>
       ${S.settings.showKeyboard ? `<div class="kbwrap" id="kb"></div>` : ''}
       <p class="sr-only" id="runSr" aria-live="polite"></p>
-      <p class="muted" style="font-size:13px;margin:0"><span class="kc">Esc</span> pauses, and <span class="kc">Esc</span> again leaves the lesson. Homerow Trainer can't block every browser shortcut, like ⌘W, so watch for accidental Command holds.</p>
+      <p class="muted" style="font-size:13px;margin:0"><span class="kc">Esc</span> pauses, and <span class="kc">Esc</span> again leaves the lesson. Homerow Trainer can't block every browser shortcut, like ${MAC ? '⌘W' : 'Ctrl+W'}, so watch for accidental ${MAC ? 'Command' : 'Ctrl'} holds.</p>
     </div></div>` + footer();
     paintText();
     // A live region inserted with its text is often skipped, so announce the stage once it's in the page.
@@ -699,7 +712,7 @@ function paintText(){
   const r = S.run;
   let html = '<span class="w">';
   r.items.forEach((it, i) => {
-    if (it.t === 'k') { html += `</span><span class="w"><span class="c kchip" id="c${i}">${esc(E.keyItemLabel(it))}</span></span><span class="w">`; return; }
+    if (it.t === 'k') { html += `</span><span class="w"><span class="c kchip" id="c${i}">${esc(keyLabel(it))}</span></span><span class="w">`; return; }
     if (it.ch === ' ') html += `<span class="c sp" id="c${i}">&nbsp;</span></span><span class="w">`;
     else html += `<span class="c" id="c${i}">${esc(it.ch)}</span>`;
   });
@@ -806,7 +819,7 @@ function goalMet(){ return overall().todaySecs >= S.settings.dailyGoal * 60; }
 function resultCard(){
   const r = S.run, res = r.result;
   const lastStage = r.si === r.stages.length - 1;
-  const mf = res.misfires, mfParts = [['⌘ or ⌃', mf.mod], ['Shift', mf.shift], ['⌥', mf.alt]].filter(x => x[1]).map(([m, n]) => `${m} ${n}×`);
+  const mf = res.misfires, mfParts = [[`${modSym('meta')} or ${modSym('ctrl')}`, mf.mod], ['Shift', mf.shift], [modSym('alt'), mf.alt]].filter(x => x[1]).map(([m, n]) => `${m} ${n}×`);
   if (res.lessonDone) {
     const hasNext = r.lesson && r.lessonIdx < S.C.lessons.length - 1, rest = goalMet(), today = overall().todaySecs;
     const learned = r.lesson && r.lesson.kind === 'learn' ? `<div class="newkeys">Learned ${r.lesson.items.map(c => kc(c)).join('')}</div>` : '';
@@ -919,12 +932,12 @@ function modKeys(mod){
 }
 function misfireHtml(kind, it){
   const want = kc(it.ch);
-  if (kind === 'wrongmod') return `Wrong modifier held. This shortcut is ${cap(E.keyItemLabel(it))}.`;
+  if (kind === 'wrongmod') return `Wrong modifier held. This shortcut is ${cap(keyLabel(it))}.`;
   if (kind === 'shift-missing') {
     const rt = E.routeFor(S.layout, S.C, it, S.settings.routePref), h = rt && rt.holds.find(x => x.mod === 'shift');
     return h ? `Shift wasn't held. Hold ${cap(keyLabels(0, h.pos).main)} (${fingerName(h.pos)}) for ${want}.` : `Shift wasn't held for ${want}.`;
   }
-  const mod = kind === 'shift-extra' ? 'shift' : kind, sym = mod === 'shift' ? 'Shift' : E.MOD_SYM[mod];
+  const mod = kind === 'shift-extra' ? 'shift' : kind, sym = mod === 'shift' ? 'Shift' : modSym(mod);
   // A home-row key held a little too long fires its own modifier instead of its letter.
   const rt = E.routeFor(S.layout, S.C, it, S.settings.routePref), own = rt && !rt.layer && !rt.holds.length && S.layout.layers[0][rt.pos];
   if (own && own.hold && own.hold.mod === mod) return `${sym} fired instead of ${want}: it was held a little long. Tap it and let go before the next key.`;

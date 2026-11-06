@@ -12,7 +12,7 @@ I only learned to touch type QWERTY around 2019, and [typing.com](https://www.ty
 
 ## What it does
 
-- **Layout-driven curriculum.** Home row → top row → bottom row → reach keys → capitals → shifted symbols → each thumb layer → navigation keys → ⌘/⌃ shortcuts. Two new keys per lesson, with review lessons along the way.
+- **Layout-driven curriculum.** Home row → top row → bottom row → reach keys → capitals → shifted symbols → each thumb layer → navigation keys → shortcuts (⌘ on a Mac, Ctrl on Windows and Linux). Two new keys per lesson, with review lessons along the way.
 - **Staged drills.** Meet the keys → mixed drill → words → sentences (code-style snippets for symbol layers). Words only use keys you've already unlocked, and real sentences from Tatoeba take over once you know every letter in them.
 - **Hints from the keymap.** "Hold Enter for Symbols (right thumb), then press `(` (left thumb)", with the target and held keys lit on an on-screen keyboard.
 - **Home-row mod aware.** Capitals use the opposite-hand shift. Accidental ⌘/⌃/⌥/Shift firing while typing letters is counted as a misfire.
