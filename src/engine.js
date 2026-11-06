@@ -93,7 +93,7 @@ function tapInfo(t){
 
 function isNum(p){ return p != null && /^\d+$/.test(String(p.value)); }
 
-function parseBinding(b, ht, lower){
+function parseBinding(b, ht, lower, nLayers){
   const v = b && b.value ? String(b.value) : '&none';
   const P = (b && b.params) || [];
   const k = { beh: v, tap: null, hold: null, label: '' };
@@ -102,7 +102,9 @@ function parseBinding(b, ht, lower){
   else if (v === '&lt') { k.hold = { layer: +P[0].value }; k.tap = tapInfo(parseParam(P[1])); }
   else if (v === '&mo') { k.hold = { layer: +P[0].value }; }
   // MoErgo's built-in &lower (hold for Lower, double-tap to lock it) isn't defined in the file, so find Lower by name.
-  else if (v === '&lower' && lower > 0) k.hold = { layer: lower, lower: true };
+  // &layer N is the same tap-dance for any layer. Both are slower to hold than &mo/&lt, hence tapDance.
+  else if (v === '&lower' && lower > 0) k.hold = { layer: lower, tapDance: true };
+  else if (v === '&layer' && isNum(P[0]) && +P[0].value < nLayers) k.hold = { layer: +P[0].value, tapDance: true };
   else if (v === '&sk') { const m = MODS[parseParam(P[0]).code]; if (m) k.hold = { mod: m, sticky: true }; k.label = m ? 'Sticky ' + MOD_SYM[m] : 'Sticky'; }
   else if (v === '&trans') k.trans = true;
   else if (v === '&none') k.none = true;
@@ -285,7 +287,7 @@ function buildLayout(text, opts){
   (raw.holdTaps || []).forEach(h => { ht[h.name] = h; });
   const names = Array.isArray(raw.layer_names) ? raw.layer_names : [];
   const lower = names.findIndex(x => typeof x === 'string' && x.toLowerCase() === 'lower');
-  const layers = raw.layers.map(l => l.map(b => parseBinding(b, ht, lower)));
+  const layers = raw.layers.map(l => l.map(b => parseBinding(b, ht, lower, raw.layers.length)));
   // resolve &trans to base
   layers.forEach((l, li) => { if (li) l.forEach((k, p) => { if (k.trans) l[p] = Object.assign({}, layers[0][p], { inherited: true }); }); });
   // A file can parse but type nothing (an empty or placeholder export); refuse it rather than build an empty course.
@@ -339,9 +341,9 @@ function pickHolder(L, list, p, pref){
     let c = keyCost(L, h, pref);
     if (g && hg.hand === g.hand) c += g.thumb ? 0.5 : 3;
     if (hg.thumb) c -= 0.3;
-    // &lower is a tap-dance, so holding it waits out the tapping term; a plain layer key is quicker.
+    // &lower and &layer are tap-dances, so holding one waits out the tapping term; a plain layer key is quicker.
     const hk = L.layers[0][h];
-    if (hk && hk.hold && hk.hold.lower) c += 1;
+    if (hk && hk.hold && hk.hold.tapDance) c += 1;
     if (c < bc) { bc = c; best = h; }
   }
   return best == null ? null : { pos: best, cost: bc };
@@ -361,9 +363,11 @@ function modifierKeys(L){
   return Object.assign(kinds, { both });
 }
 
-/* A layer only &lower reaches is MoErgo's numpad. Most owners type digits on the number row, so the numpad
-   teaches them only with numPref 'numpad', and anything else on it is a last resort: its symbols and keys
-   don't pull lessons away from where the layout already types them. */
+/* A layer reached only by a tap-dance (&lower, &layer N) is one MoErgo's layouts keep for occasional use:
+   Glove80's Lower and Go60's Keypad are number pads, Go60's SymbolNav and other layers hold symbols, arrows
+   and shortcuts. Anything on such a layer is a last resort, so it teaches only what the layout types nowhere
+   else and doesn't pull lessons away from where it already types them. The exception is the number pad:
+   the tap-dance-only layer with the most digits (the first, on a tie) teaches them with numPref 'numpad'. */
 function buildRoutes(L, pref, modPref, numPref){
   const base = L.layers[0];
   const mk = modifierKeys(L), modHolders = {}, layerActs = {};
@@ -375,8 +379,11 @@ function buildRoutes(L, pref, modPref, numPref){
   base.forEach((k, p) => {
     if (k.hold && k.hold.layer != null) (layerActs[k.hold.layer] = layerActs[k.hold.layer] || []).push(p);
   });
-  const lowerOnly = li => (layerActs[li] || []).every(p => base[p].hold.lower);
-  const numpadDigits = {}, otherDigits = new Set();
+  const tapDanceOnly = li => li > 0 && !!layerActs[li] && layerActs[li].every(p => base[p].hold.tapDance);
+  const digitsOn = li => L.layers[li].filter(k => k && k.tap && !k.inherited && /^[0-9]$/.test(k.tap.ch || '')).length;
+  let padLayer = -1;
+  L.layers.forEach((_, li) => { if (tapDanceOnly(li) && digitsOn(li) > (padLayer < 0 ? 0 : digitsOn(padLayer))) padLayer = li; });
+  const padDigits = new Set(), otherDigits = new Set();
   const chars = {}, keys = {};
   // Characters a layer key and a base-layer number-row or reach key both type: the only ones the routing preference changes.
   const viaLayer = new Set(), viaReach = new Set();
@@ -392,14 +399,15 @@ function buildRoutes(L, pref, modPref, numPref){
         holds = [{ pos: a.pos, kind: 'layer', layer: li }];
         c += 1;
       }
-      const numpad = li > 0 && lowerOnly(li), digit = /^[0-9]$/.test(t.ch || '');
-      if (digit) { if (numpad) numpadDigits[t.ch] = li; else otherDigits.add(t.ch); }
-      if (numpad && !(digit && numPref === 'numpad')) c += 8;
+      const rare = tapDanceOnly(li), digit = /^[0-9]$/.test(t.ch || ''), pad = digit && li === padLayer;
+      if (digit) { if (pad) padDigits.add(t.ch); else if (!rare) otherDigits.add(t.ch); }
+      if (rare && !(pad && numPref === 'numpad')) c += 8;
       // Only the digit itself steps aside for the numpad, not the symbol Shift makes on the same key.
-      const r = { layer: li, pos: p, holds, cost: c + (!numpad && digit && numPref === 'numpad' ? 8 : 0) };
+      const r = { layer: li, pos: p, holds, cost: c + (!rare && digit && numPref === 'numpad' && padLayer >= 0 ? 8 : 0) };
+      if (rare) r.lastResort = true;
       if (t.ch) {
         consider(chars, t.ch, r);
-        if (li > 0 && !numpad) viaLayer.add(t.ch); else if (reach) viaReach.add(t.ch);
+        if (li > 0 && !rare) viaLayer.add(t.ch); else if (reach) viaReach.add(t.ch);
         if (li === 0) {
           const sh = CH[t.code] && CH[t.code][1];
           if (sh && sh !== t.ch) {
@@ -414,7 +422,7 @@ function buildRoutes(L, pref, modPref, numPref){
   });
   return { chars, keys, modHolders, layerActs, bothModKinds: mk.both, bothRouteKinds: [...viaReach].some(c => viaLayer.has(c)),
     // The numpad layer, when digits can come from it or from somewhere else.
-    numpad: numpadDigits[[...otherDigits].find(c => c in numpadDigits)] || null };
+    numpad: [...otherDigits].some(c => padDigits.has(c)) ? padLayer : null };
 }
 function keyId(k){ return (k.mods || []).slice().sort().join('+') + (k.mods && k.mods.length ? '+' : '') + k.key; }
 
@@ -578,9 +586,11 @@ function buildCurriculum(L, pref, modPref, numPref){
 function routeFor(L, C, item, pref){
   if (item.t === 'c') return C.routes.chars[item.ch] || null;
   if (item.t === 'k') {
-    if (!item.mods.length || (item.mods.length === 1 && C.routes.keys[keyId(item)])) return C.routes.keys[keyId(item)] || null;
+    const own = C.routes.keys[keyId(item)] || null;
+    // A shortcut on a tap-dance-only layer (Go60's Keypad has Ctrl+C) is a last resort: hint the modifier chord while there is one.
+    if (!item.mods.length || (item.mods.length === 1 && own && !own.lastResort)) return own;
     const letter = item.key.length === 1 ? item.key : null;
-    return letter ? chordRoute(L, C.routes, item.mods, letter, pref) : (C.routes.keys[keyId(item)] || null);
+    return letter ? chordRoute(L, C.routes, item.mods, letter, pref) || (own && own.lastResort ? own : null) : own;
   }
   return null;
 }

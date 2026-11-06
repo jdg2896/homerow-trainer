@@ -101,6 +101,29 @@ for (const file of presets) {
   console.log(`ok  ${where}`);
 }
 
+// MoErgo's &layer N is the same tap-dance as &lower for any layer (issue #48). Go60's factory layout reaches
+// Keypad and SymbolNav only through it: Keypad is the numpad, and Keypad's Ctrl+C doesn't replace the chord.
+{
+  const where = 'layer numpad';
+  const L = E.buildLayout(fs.readFileSync(path.join(presetDir, 'go60-04-factory-default-layout.json'), 'utf8'));
+  const keypad = L.layerNames.indexOf('Keypad'), symnav = L.layerNames.indexOf('SymbolNav');
+  const holds = L.layers[0].filter(k => k.beh === '&layer').map(k => k.hold && k.hold.layer).sort();
+  if (holds.join() !== [keypad, symnav].join()) fail(where, `&layer keys should hold Keypad and SymbolNav, got ${holds}`);
+  const row = E.buildCurriculum(L, 'layers', 'auto', 'row'), pad = E.buildCurriculum(L, 'layers', 'auto', 'numpad');
+  if (row.routes.numpad !== keypad) fail(where, `routes should name Keypad (${keypad}) as the numpad, got ${row.routes.numpad}`);
+  for (const d of '0123456789') {
+    if (row.routes.chars[d].layer !== 0) fail(where, `${d} should stay on the number row by default`);
+    if (pad.routes.chars[d].layer !== keypad) fail(where, `${d} should come from Keypad with numPref numpad`);
+  }
+  if (row.units.some(u => /^layer-/.test(u.id))) fail(where, 'the default course should not gain a Keypad or SymbolNav unit');
+  if (!row.routes.keys.ArrowLeft) fail(where, 'arrows on the &layer layers should now be reachable');
+  const cc = E.routeFor(L, row, E.keyItem('ctrl+c'), 'layers');
+  if (!cc || cc.layer !== 0 || !cc.holds.some(h => h.mod === 'ctrl')) fail(where, 'Ctrl+C should still be hinted as a Ctrl chord, not Keypad');
+  const bad = E.buildLayout(JSON.stringify({ layers: [[{ value: '&kp', params: [{ value: 'A' }] }, { value: '&layer', params: [{ value: 7 }] }, { value: '&layer', params: [{ value: 'x' }] }]] }));
+  if (bad.layers[0].slice(1).some(k => k.hold)) fail(where, '&layer with a missing or non-numeric layer should not hold anything');
+  console.log(`ok  ${where}`);
+}
+
 // Drill text varies its numbers, punctuation and letter groups (issue #3). Sampled many
 // times so the random choices can't make this flaky.
 {

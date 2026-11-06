@@ -2,6 +2,11 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.23.0 — 2026-11-06
+
+- Layouts that switch layers with MoErgo's Layer key, like the Go60 factory layouts' Keypad and SymbolNav, can now reach those layers. On those layouts, arrows and Home/End get Navigation lessons.
+- On the Go60 factory layouts, Settings → Your layout's keys → Numbers can now teach digits on the Keypad layer's number pad instead of the number row.
+
 ## 0.22.0 — 2026-11-04
 
 - Glove80 and Go60 layouts that switch to the Lower layer with MoErgo's Lower key can now learn digits on its number pad. Pick "Number pad on the Lower layer" under Settings → Your layout's keys → Numbers. Lessons keep using the number row until you do.
