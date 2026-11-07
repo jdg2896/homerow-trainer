@@ -80,6 +80,19 @@ for (const file of presets) {
   console.log(`ok  ${where}`);
 }
 
+// "Number row and reach keys" means it: what the base layer types, bare or with Shift, doesn't come from a layer (issue #47).
+{
+  const where = 'reach routes';
+  for (const f of ['go60-07-miryoku-macos.json', 'go60-10-voyager-inspired-layout.json', 'glove80-01-advanced-layout-example.json']) {
+    const L = E.buildLayout(fs.readFileSync(path.join(presetDir, f), 'utf8')), R = E.buildRoutes(L, 'reach', 'auto');
+    for (const d of '0123456789') if (R.chars[d] && R.chars[d].layer) fail(where, `${f}: ${d} should come from the number row`);
+    for (const c of '!@#$%^&*()') if (R.chars[c] && R.chars[c].layer) fail(where, `${f}: ${c} should be Shift on the number row`);
+  }
+  const G = E.buildLayout(fs.readFileSync(path.join(presetDir, 'glove80-07-glove80-factory-default-layout.json'), 'utf8'));
+  if (E.buildRoutes(G, 'reach', 'auto', 'numpad').chars['5'].layer !== G.layerNames.indexOf('Lower')) fail(where, 'the number pad choice should still win over reach');
+  console.log(`ok  ${where}`);
+}
+
 // MoErgo's &lower reaches the Lower layer's number pad (issue #45). Digits stay on the number row
 // unless numPref asks for the numpad, and nothing else moves to Lower when another key types it.
 {

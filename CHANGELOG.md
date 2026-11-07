@@ -2,6 +2,10 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.26.0 — 2026-11-07
+
+- "Number row and reach keys" now teaches digits and Shift+number symbols on the number row on layouts that also have them on a layer. Before, 5, 6 and symbols like ! and @ still came from the layer. If you picked this option, those lessons change and their progress starts over.
+
 ## 0.25.0 — 2026-11-07
 
 - New "layer shortcuts" lessons teach the shortcuts your layers send, like Copy and Undo on TailorKey's Cursor layer or the Go60 Keypad layer. The hint shows which layer key to hold.
