@@ -217,6 +217,30 @@ for (const file of presets) {
   console.log(`ok  ${where}`);
 }
 
+// Off a Mac, Cmd is the Windows/Super key, so shortcuts use Ctrl and the macOS-only Ctrl line editing set goes (issue #49).
+{
+  const where = 'shortcuts by platform';
+  const chords = (file, opts) => {
+    const L = E.buildLayout(fs.readFileSync(path.join(presetDir, file), 'utf8')), C = E.buildCurriculum(L, 'layers', 'auto', 'row', opts);
+    const u = C.units.find(u => u.id === 'chords');
+    for (const l of u ? u.lessons : []) for (const id of l.items) if (!E.routeFor(L, C, E.keyItem(id), 'layers')) fail(where, `${file}: no route for ${id}`);
+    return u ? u.lessons.map(l => l.title + ': ' + l.items.join(' ')) : [];
+  };
+  const hrm = 'glove80-08-advanced-home-row-mods-hrm-example-v35.json';
+  const want = ['Copy, paste, cut: meta+c meta+v meta+x', 'Redo and formatting: meta+b meta+i meta+shift+z'];
+  const mac = chords(hrm, { mac: true }), win = chords(hrm, { mac: false });
+  if (JSON.stringify(mac) !== JSON.stringify(want)) fail(where, `Mac shortcuts changed: ${JSON.stringify(mac)}`);
+  if (JSON.stringify(chords(hrm)) !== JSON.stringify(want)) fail(where, 'no platform should mean a Mac');
+  if (JSON.stringify(win) !== JSON.stringify(want.map(s => s.replace(/meta\+/g, 'ctrl+')))) fail(where, `off-Mac shortcuts: ${JSON.stringify(win)}`);
+  const qw = 'glove80-04-qwerty-default.json';
+  if (!chords(qw, { mac: true }).some(s => s.startsWith('Control line editing'))) fail(where, 'Mac lost Control line editing');
+  const qwWin = chords(qw, { mac: false });
+  if (qwWin.some(s => /line editing|meta/.test(s)) || qwWin.length !== 3) fail(where, `off-Mac qwerty shortcuts: ${JSON.stringify(qwWin)}`);
+  if (E.keyItemLabel(E.keyItem('ctrl+shift+z'), { ctrl: 'Ctrl', alt: 'Alt', shift: 'Shift', meta: 'Win' }) !== 'Ctrl+Shift+Z' || E.keyItemLabel(E.keyItem('meta+shift+z')) !== '⇧⌘Z')
+    fail(where, 'shortcut labels');
+  console.log(`ok  ${where}`);
+}
+
 // Files that parse but can't build a course are refused with a reason, instead of becoming an empty "Untitled layout".
 {
   const where = 'empty layouts';

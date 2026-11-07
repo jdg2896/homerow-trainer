@@ -2,6 +2,11 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.24.0 — 2026-11-06
+
+- On Windows and Linux, shortcut lessons now teach Ctrl+C, Ctrl+Z and so on instead of the Windows key. The Control line editing lesson (Ctrl+A, E, K) is now only offered on a Mac.
+- Off a Mac, shortcuts, hints and keycaps now say Ctrl, Alt, Shift and Win instead of Mac symbols. If you finished the old shortcut lessons on Windows or Linux, they start over, since they taught the wrong key.
+
 ## 0.23.0 — 2026-11-06
 
 - Layouts that switch layers with MoErgo's Layer key, like the Go60 factory layouts' Keypad and SymbolNav, can now reach those layers. On those layouts, arrows and Home/End get Navigation lessons.
