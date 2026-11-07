@@ -397,7 +397,8 @@ function buildRoutes(L, pref, modPref, numPref){
         const a = pickHolder(L, layerActs[li] || [], p, pref);
         if (!a) return;
         holds = [{ pos: a.pos, kind: 'layer', layer: li }];
-        c += 1;
+        // Choosing the number row has to beat a layer even for stretch keys and Shift, not just stop penalizing the row.
+        c += 1 + (pref === 'reach' ? 4 : 0);
       }
       const rare = tapDanceOnly(li), digit = /^[0-9]$/.test(t.ch || ''), pad = digit && li === padLayer;
       if (digit) { if (pad) padDigits.add(t.ch); else if (!rare) otherDigits.add(t.ch); }

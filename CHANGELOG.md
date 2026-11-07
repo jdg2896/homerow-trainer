@@ -2,6 +2,10 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.26.0 — 2026-11-07
+
+- "Number row and reach keys" now teaches digits and Shift+number symbols on the number row on layouts that also have them on a layer. Before, 5, 6 and symbols like ! and @ still came from the layer. If you picked this option, those lessons change and their progress starts over.
+
 ## 0.24.0 — 2026-11-06
 
 - On Windows and Linux, shortcut lessons now teach Ctrl+C, Ctrl+Z and so on instead of the Windows key. The Control line editing lesson (Ctrl+A, E, K) is now only offered on a Mac.
