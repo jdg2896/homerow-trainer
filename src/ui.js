@@ -150,7 +150,7 @@ function activate(id){
   rebuild();
 }
 function rebuild(){
-  S.C = E.buildCurriculum(S.layout, S.settings.routePref, S.settings.modPref, S.settings.numPref, { mac: MAC });
+  S.C = E.buildCurriculum(S.layout, S.settings.routePref, S.settings.modPref, S.settings.numPref, { mac: MAC, names: MOD_PC });
   // Reviews used to be numbered by position; carry their progress over to the content-based ids.
   let moved = false;
   S.C.lessons.forEach(l => { const pr = S.stats.progress; if (l.legacyId && pr[l.legacyId]) { if (!pr[l.id]) pr[l.id] = pr[l.legacyId]; delete pr[l.legacyId]; moved = true; } });
@@ -229,6 +229,7 @@ function keyLabels(li, p){
   // The layout names modifier keys with Mac symbols; a shortcut hint says "Hold Ctrl", so the keycap should too.
   else if (!MAC && k.tap && k.tap.bareMod) main = MOD_PC[k.tap.bareMod];
   else if (!MAC && !k.tap && k.hold && k.hold.sticky) main = 'Sticky ' + MOD_PC[k.hold.mod];
+  else if (!MAC && k.tap && k.tap.key && k.tap.key.mods.length) main = keyLabel(k.tap.key);
   let sub = '';
   if (k.hold && k.hold.layer != null) sub = (S.layout.layerNames[k.hold.layer] || 'L' + k.hold.layer).slice(0, 3);
   else if (k.hold && k.hold.mod) sub = modSym(k.hold.mod);
@@ -350,7 +351,7 @@ function learnView(){
     u.lessons.filter(l => !locked.includes(l)).forEach(l => {
       const i = ls.indexOf(l), p = lessonProg(l), isNext = i === nxt;
       const verb = isDone(l) ? 'Redo' : resumeStage(l) ? 'Continue' : 'Start';
-      const segN = (p && p.stageCount) || (l.kind === 'review' ? 6 : l.kind === 'learn' ? 8 : 4);
+      const segN = (p && p.stageCount) || (l.kind === 'review' ? (l.reviewKind === 'chords' ? 3 : 6) : l.kind === 'learn' ? 8 : 4);
       const segDone = p ? (p.stars > 0 ? segN : (p.stagesDone || 0)) : 0;
       const keys = l.kind === 'review' ? '' : l.items.filter(c => c !== ' ' || l.items.length === 1).map(c => kc(c)).join('') + (l.items.includes(' ') ? kc(' ') : '');
       const title = l.kind === 'review' || l.title.startsWith('Capitals') || l.kind === 'keys' || l.kind === 'chords' ? esc(l.title) : '';
@@ -992,9 +993,13 @@ function onKey(e){
     if (dead) note = { err: false, html: 'That key is a dead key in your input source, so it waits for the next letter instead of typing. U.S. International does this to quotes, backticks, ~ and ^. Switch to U.S. or ABC to practise.' };
     if (misfire) { const t = misfire === 'meta' || misfire === 'ctrl' ? 'mod' : misfire === 'alt' ? 'alt' : 'shift'; r.misfires[t]++; S.stats.misfires[t] = (S.stats.misfires[t] || 0) + 1; }
   } else {
-    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    let k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    // Option on a Mac turns a letter into another character (⌥C types ç), so go by the physical key instead.
+    if (k !== it.key && e.altKey && /^(Key[A-Z]|Digit\d)$/.test(e.code)) k = e.code.slice(-1).toLowerCase();
     const want = new Set(it.mods);
-    const modsOk = ['ctrl', 'alt', 'meta', 'shift'].every(m => !!e[m + 'Key'] === want.has(m));
+    // A symbol such as ! already shows whether Shift was down, so Shift only has to match for letters, digits and named keys.
+    const anyShift = it.key.length === 1 && !/[a-z0-9]/.test(it.key);
+    const modsOk = ['ctrl', 'alt', 'meta', 'shift'].every(m => (m === 'shift' && anyShift) || !!e[m + 'Key'] === want.has(m));
     ok = k === it.key && modsOk;
     if (k === it.key && !modsOk) misfire = 'wrongmod';
   }

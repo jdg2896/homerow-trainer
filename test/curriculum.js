@@ -130,11 +130,70 @@ for (const file of presets) {
   }
   if (row.units.some(u => /^layer-/.test(u.id))) fail(where, 'the default course should not gain a Keypad or SymbolNav unit');
   if (!row.routes.keys.ArrowLeft) fail(where, 'arrows on the &layer layers should now be reachable');
-  const cc = E.routeFor(L, row, E.keyItem('ctrl+c'), 'layers');
-  if (!cc || cc.layer !== 0 || !cc.holds.some(h => h.mod === 'ctrl')) fail(where, 'Ctrl+C should still be hinted as a Ctrl chord, not Keypad');
+  // Keypad's own Ctrl+C is taught in its layer shortcuts unit (issue #50), so it's hinted there, and nowhere else.
+  const cc = E.routeFor(L, row, E.keyItem('ctrl+c'), 'layers'), ccIn = row.lessons.filter(l => l.kind === 'chords' && l.items.includes('ctrl+c'));
+  if (!cc || cc.layer !== keypad || ccIn.length !== 1 || ccIn[0].unit !== 'lkeys-' + keypad) fail(where, 'Ctrl+C should be taught and hinted on the Keypad layer, once');
   const bad = E.buildLayout(JSON.stringify({ layers: [[{ value: '&kp', params: [{ value: 'A' }] }, { value: '&layer', params: [{ value: 7 }] }, { value: '&layer', params: [{ value: 'x' }] }]] }));
   if (bad.layers[0].slice(1).some(k => k.hold)) fail(where, '&layer with a missing or non-numeric layer should not hold anything');
   console.log(`ok  ${where}`);
+}
+
+// Shortcuts a layer key sends get a unit per layer, hinted on that key, and aren't taught again with home row mods (issue #50).
+{
+  const where = 'layer shortcuts';
+  const raw = JSON.parse(fs.readFileSync(path.join(presetDir, 'glove80-01-advanced-layout-example.json'), 'utf8'));
+  // Shortcuts the browser or OS keeps for itself, on free Cursor layer keys. macOS keeps Ctrl+← for Spaces.
+  const cursor = raw.layer_names.indexOf('Cursor'), free = raw.layers[cursor].map((b, p) => b.value === '&none' || b.value === '&trans' ? p : -1).filter(p => p >= 0);
+  raw.layers[cursor][free[0]] = { value: '&kp', params: [{ value: 'LC', params: [{ value: 'W' }] }] };
+  raw.layers[cursor][free[1]] = { value: '&kp', params: [{ value: 'LC', params: [{ value: 'TAB' }] }] };
+  raw.layers[cursor][free[2]] = { value: '&kp', params: [{ value: 'LC', params: [{ value: 'LEFT' }] }] };
+  const L = E.buildLayout(JSON.stringify(raw));
+  const C = E.buildCurriculum(L, 'layers');
+  const unit = C.units.find(u => u.id === 'lkeys-' + cursor);
+  const order = C.units.map(u => u.id);
+  if (!unit || unit.title !== 'Cursor layer shortcuts') fail(where, `no "Cursor layer shortcuts" unit: ${order.join(' ')}`);
+  else {
+    const at = order.indexOf(unit.id);
+    if (at < order.indexOf('nav') || (order.includes('chords') && at > order.indexOf('chords'))) fail(where, `unit should sit between Navigation and Shortcuts: ${order.join(' ')}`);
+    const taught = unit.lessons.filter(l => l.kind === 'chords').flatMap(l => l.items);
+    // TailorKey's copy and paste are one-key macros (&cur_COPY_v1_TKZ), Ctrl+Shift+G is a plain &kp with two mods.
+    for (const id of ['ctrl+c', 'ctrl+v', 'ctrl+z', 'ctrl+e', 'ctrl+shift+g']) if (!taught.includes(id)) fail(where, `${id} missing from the Cursor unit`);
+    for (const id of ['ctrl+w', 'ctrl+Tab', 'ctrl+ArrowLeft']) {
+      if (!C.routes.keys[id]) fail(where, `${id} should still be routed`);
+      if (C.lessons.some(l => l.items.includes(id))) fail(where, `${id} can't reach the page, so no lesson should drill it`);
+    }
+    if (taught.some(id => !/ctrl|alt|meta/.test(id))) fail(where, `a shift-only or bare key in the unit: ${taught.join(' ')}`);
+    for (const id of taught) {
+      const r = E.routeFor(L, C, E.keyItem(id), 'layers');
+      if (!r || r.layer !== cursor || !r.holds.length || r.holds[0].kind !== 'layer' || r !== C.routes.keys[id]) fail(where, `${id} should hint the Cursor layer key, got ${JSON.stringify(r)}`);
+    }
+    if (!unit.lessons.some(l => l.kind === 'review' && l.reviewKind === 'chords')) fail(where, 'the unit has no review');
+    const rv = unit.lessons.find(l => l.kind === 'review');
+    if (rv && !E.makeStages(C, rv, W, 90, S).every(st => st.items.every(it => it.t === 'k'))) fail(where, 'a shortcuts review should drill shortcuts');
+  }
+  // Off a Mac the Windows key's shortcuts never reach the page, Ctrl+← does, and titles spell modifiers out.
+  const pc = E.buildCurriculum(L, 'layers', 'auto', 'row', { mac: false, names: { ctrl: 'Ctrl', alt: 'Alt', shift: 'Shift', meta: 'Win' } });
+  const pcUnit = pc.units.find(u => u.id === 'lkeys-' + cursor), pcTaught = pcUnit ? pcUnit.lessons.flatMap(l => l.items) : [];
+  if (!pcTaught.includes('ctrl+c') || !pcTaught.includes('ctrl+ArrowLeft') || pcTaught.some(id => /meta/.test(id))) fail(where, `off a Mac the Cursor unit should keep Ctrl shortcuts and drop Win ones: ${pcTaught.join(' ')}`);
+  if (!pcUnit || !pcUnit.lessons.some(l => /Ctrl\+/.test(l.title) && /copy/.test(l.title)) || pcUnit.lessons.some(l => /⌃/.test(l.title))) fail(where, `off a Mac titles should say Ctrl+ and name Copy: ${pcUnit && pcUnit.lessons.map(l => l.title).join(' / ')}`);
+  // Ctrl+E and Ctrl+K were in "Control line editing" too; each shortcut is drilled by one lesson only, across every preset, on a Mac or not.
+  for (const f of presets.concat('*glove80-01 + Ctrl+W')) for (const mac of [true, false]) {
+    const CC = f.startsWith('*') ? (mac ? C : pc) : E.buildCurriculum(E.buildLayout(fs.readFileSync(path.join(presetDir, f), 'utf8')), 'layers', 'auto', 'row', { mac });
+    const seen = {};
+    for (const l of CC.lessons) if (l.kind === 'keys' || l.kind === 'chords') for (const id of l.items) {
+      if (seen[id]) fail(where, `${f}: ${id} is in "${seen[id]}" and "${l.title}"`);
+      seen[id] = l.title;
+    }
+  }
+  // Miryoku's Navigation layer sends Ctrl+Shift+Z, which used to be built from home row mods.
+  const M = E.buildLayout(fs.readFileSync(path.join(presetDir, 'go60-08-miryoku-windows-linux.json'), 'utf8')), MC = E.buildCurriculum(M, 'layers');
+  const redo = E.routeFor(M, MC, E.keyItem('ctrl+shift+z'), 'layers');
+  if (!redo || redo.layer !== 1 || redo.holds.some(h => h.kind === 'mod')) fail(where, `Miryoku Ctrl+Shift+Z should be its Navigation key, got ${JSON.stringify(redo)}`);
+  // A layout whose layers send no shortcuts keeps the course it had.
+  const plain = E.buildCurriculum(E.buildLayout(fs.readFileSync(path.join(presetDir, 'glove80-07-glove80-factory-default-layout.json'), 'utf8')), 'layers');
+  if (plain.units.some(u => u.id.startsWith('lkeys-'))) fail(where, 'factory default should have no layer shortcuts unit');
+  if (!plain.lessons.some(l => l.id === 'chord:ctrl+a,ctrl+e,ctrl+k')) fail(where, 'factory default lost "Control line editing"');
+  console.log(`ok  ${where} (${unit ? unit.lessons.length : 0} Cursor lessons)`);
 }
 
 // Drill text varies its numbers, punctuation and letter groups (issue #3). Sampled many
@@ -271,6 +330,10 @@ for (const file of presets) {
   const L = E.buildLayout(JSON.stringify(Object.assign({}, base, { title: { a: 1 }, uuid: [1], layer_names: [7, null, '<b>'] })));
   if (typeof L.title !== 'string' || typeof L.id !== 'string' || L.uuid !== '') fail(where, `title ${typeof L.title}, id ${typeof L.id}, uuid ${JSON.stringify(L.uuid)}`);
   if (!L.layerNames.every(n => typeof n === 'string') || L.layerNames[0] !== 'Base' || L.layerNames[2] !== '<b>') fail(where, `layer names ${JSON.stringify(L.layerNames)}`);
+  try { E.buildLayout(JSON.stringify(Object.assign({}, base, { macros: [null, 7, { name: 5, bindings: [{ value: '&kp' }] }, { bindings: null }] }))); }
+  catch (e) { fail(where, `odd macros threw: ${e.message}`); }
+  // Stats keys come from backups, so any string has to survive being read as a key item.
+  for (const id of ['a\nb', '\n', 'ctrl+\n', 'ctrl++']) if (!E.keyItem(id).key) fail(where, `keyItem(${JSON.stringify(id)}) has no key`);
   console.log(`ok  ${where}`);
 }
 
