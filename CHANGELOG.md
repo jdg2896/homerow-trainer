@@ -2,6 +2,11 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.27.0 — 2026-11-07
+
+- Off a Mac, the "Redo and formatting" lesson now also teaches Ctrl+Y, the usual redo on Windows, alongside Ctrl+Shift+Z. Progress on that lesson starts over.
+- Remove, reset and update messages now count only lessons in your current course, not older ones that have since changed.
+
 ## 0.26.0 — 2026-11-07
 
 - "Number row and reach keys" now teaches digits and Shift+number symbols on the number row on layouts that also have them on a layer. Before, 5, 6 and symbols like ! and @ still came from the layer. If you picked this option, those lessons change and their progress starts over.

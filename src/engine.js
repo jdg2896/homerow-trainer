@@ -476,11 +476,12 @@ function chunk(items, size){
 }
 
 /* 'cmd' is Command on a Mac and Ctrl elsewhere, where the Windows/Super key (meta) is the OS's, not the app's.
-   Ctrl line editing (Emacs keys in macOS text fields) only exists on a Mac; elsewhere Ctrl+A is select all. */
+   Ctrl line editing (Emacs keys in macOS text fields) only exists on a Mac; elsewhere Ctrl+A is select all.
+   Off a Mac, redo is Ctrl+Y on Windows and usually Ctrl+Shift+Z on Linux, and the UI can't always tell them apart, so both are taught. */
 const CHORD_SETS = [
   { title: 'Copy, paste, cut', mods: ['cmd'], letters: ['c', 'v', 'x'] },
   { title: 'Undo, select all, save', mods: ['cmd'], letters: ['z', 'a', 's'] },
-  { title: 'Redo and formatting', mods: ['cmd'], letters: ['b', 'i', 'k'], extra: [{ mods: ['cmd', 'shift'], letter: 'z' }] },
+  { title: 'Redo and formatting', mods: ['cmd'], letters: ['b', 'i', 'k'], extra: [{ mods: ['cmd', 'shift'], letter: 'z' }, { mods: ['cmd'], letter: 'y', pcOnly: true }] },
   { title: 'Control line editing', mods: ['ctrl'], letters: ['a', 'e', 'k'], macOnly: true }
 ];
 
@@ -635,7 +636,7 @@ function buildCurriculum(L, pref, modPref, numPref, opts){
     let moved = false;
     const add = (mods, l) => { const id = keyId({ key: l, mods }); if (layerShortcuts.has(id)) moved = true; else if (chordRoute(L, R, mods, l, pref)) items.push(id); };
     s.letters.forEach(l => add(platMods(s.mods), l));
-    (s.extra || []).forEach(e => add(platMods(e.mods), e.letter));
+    (s.extra || []).forEach(e => { if (!e.pcOnly || !mac) add(platMods(e.mods), e.letter); });
     // Once a layer unit takes some, the set's title no longer fits ("Undo, select all, save" without Undo).
     if (items.length >= 2) chordLessons.push({ id: 'chord:' + items.join(','), title: moved ? namesTitle(items) : s.title, kind: 'chords', items });
   });
