@@ -2,6 +2,10 @@
 
 What changed in each version of Homerow Trainer. The newest section is also shown in the app as "What's new" the first time you open a new version.
 
+## 0.27.1 — 2026-11-07
+
+- Go60: the keyboard diagram now shows the right thumb keys in the right order. The innermost and outermost keys were swapped.
+
 ## 0.27.0 — 2026-11-07
 
 - Off a Mac, the "Redo and formatting" lesson now also teaches Ctrl+Y, the usual redo on Windows, alongside Ctrl+Shift+Z. Progress on that lesson starts over.
