@@ -6,7 +6,7 @@ What the curriculum and drills are based on, so changes to lessons, drill text o
 
 Typing courses (typing.com, GNU Typist, keybr) start on the home row and add a couple of keys per lesson, with reviews in between, so each new key builds on ones that are already automatic.
 
-**In the app:** `buildCurriculum` in `src/engine.js` orders home row → top row → bottom row → reach keys → capitals → shifted symbols → thumb layers → navigation → shortcuts, two keys per lesson, with review lessons along the way. Every drill only uses keys that are already unlocked.
+**In the app:** `buildCurriculum` in `src/engine.js` orders home row → top row → bottom row → reach keys → capitals → shifted symbols → thumb layers → navigation → shortcuts your layers send → shortcuts with home row mods, two keys per lesson (three shortcuts), with review lessons along the way. A shortcut a layer key sends is taught there and not again with home row mods. Every drill only uses keys that are already unlocked.
 
 ## 2. Accuracy before speed
 
