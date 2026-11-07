@@ -125,7 +125,16 @@ function savedMatch(L){
   return Object.keys(S.layouts).find(id => { const r = S.layouts[id];
     return L.uuid ? ('uuid' in r ? r.uuid : id) === L.uuid : r.name === L.title && r.keyboard === L.keyboard; });
 }
-function lessonsDone(id){ const p = (id === S.activeId ? S.stats : store.get('stats.' + id, {})).progress || {}; return Object.values(p).filter(x => x && x.stars > 0).length; }
+// Counts lessons in the layout's current course. Progress on lessons that changed stays stored, for rollbacks and backups, but shouldn't add to the count.
+function lessonsDone(id){
+  const p = (id === S.activeId ? S.stats : store.get('stats.' + id, {})).progress || {}, done = k => p[k] && p[k].stars > 0;
+  let C = S.C;
+  if (id !== S.activeId) {
+    try { C = E.buildCurriculum(E.buildLayout(S.layouts[id].text), S.settings.routePref, S.settings.modPref, S.settings.numPref, { mac: MAC, names: MOD_PC }); }
+    catch (e) { return Object.keys(p).filter(done).length; }
+  }
+  return C.lessons.filter(l => done(l.id) || (l.legacyId && done(l.legacyId))).length;
+}
 // Loading never silently starts a second copy of a saved layout at zero progress: a match waits in S.pending for the user to choose.
 function offerLoad(text, nameHint, from){
   S.msg = null; S.confirmDel = null; S.pending = null;

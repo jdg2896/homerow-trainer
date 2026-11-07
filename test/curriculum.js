@@ -303,7 +303,7 @@ for (const file of presets) {
   const mac = chords(hrm, { mac: true }), win = chords(hrm, { mac: false });
   if (JSON.stringify(mac) !== JSON.stringify(want)) fail(where, `Mac shortcuts changed: ${JSON.stringify(mac)}`);
   if (JSON.stringify(chords(hrm)) !== JSON.stringify(want)) fail(where, 'no platform should mean a Mac');
-  if (JSON.stringify(win) !== JSON.stringify(want.map(s => s.replace(/meta\+/g, 'ctrl+')))) fail(where, `off-Mac shortcuts: ${JSON.stringify(win)}`);
+  if (JSON.stringify(win) !== JSON.stringify(want.map(s => s.replace(/meta\+/g, 'ctrl+')).map(s => s.startsWith('Redo') ? s + ' ctrl+y' : s))) fail(where, `off-Mac shortcuts: ${JSON.stringify(win)}`);
   const qw = 'glove80-04-qwerty-default.json';
   if (!chords(qw, { mac: true }).some(s => s.startsWith('Control line editing'))) fail(where, 'Mac lost Control line editing');
   const qwWin = chords(qw, { mac: false });
