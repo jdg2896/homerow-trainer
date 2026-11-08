@@ -216,10 +216,11 @@ function buildGeometry(keyboard, n){
     [2, 3, 4].forEach((c, i) => G.push(gridKey(48 + i, 4, c, 12, gap)));
     [7, 8, 9].forEach((c, i) => G.push(gridKey(51 + i, 4, c, 12, gap)));
     // Thumb fan: one 3-key arc per hand, each key rotated about a pivot far below the board (ry = 9),
-    // outer key first (least rotated). Raw [x, y, r, rx, ry] from the MoErgo Go60 default geometry.
+    // numbered left to right, so outer -> inner on the left and inner -> outer on the right (like Glove80).
+    // Raw [x, y, r, rx, ry] from the MoErgo Go60 default geometry.
     const thumbs = [                                        // pos, x, y, r, rx, ry, hand
       [54, 4, 4.25, 15, 4.5, 9, 'L'], [55, 4, 4.25, 30, 4.5, 9, 'L'], [56, 4, 4.25, 45, 4.5, 9, 'L'],   // outer -> inner
-      [57, 12, 4.25, -15, 12.5, 9, 'R'], [58, 12, 4.25, -30, 12.5, 9, 'R'], [59, 12, 4.25, -45, 12.5, 9, 'R']
+      [57, 12, 4.25, -45, 12.5, 9, 'R'], [58, 12, 4.25, -30, 12.5, 9, 'R'], [59, 12, 4.25, -15, 12.5, 9, 'R']    // inner -> outer
     ];
     thumbs.forEach(t => G.push(pivotThumb(...t)));
     G.sort((a, b) => a.pos - b.pos);

@@ -114,6 +114,24 @@ for (const file of presets) {
   console.log(`ok  ${where}`);
 }
 
+// Key positions run left to right, so the right hand's thumb fan is numbered inner to outer: the mirror of the
+// left hand's. The raw MoErgo pivots leave pairs a hair apart, so level means within a tenth of a key.
+{
+  const where = 'thumb mirror';
+  for (const [file, pairs] of [
+    ['go60-04-factory-default-layout.json', [[54, 59], [55, 58], [56, 57]]],
+    ['glove80-07-glove80-factory-default-layout.json', [[52, 57], [53, 56], [54, 55], [69, 74], [70, 73], [71, 72]]]
+  ]) {
+    const L = E.buildLayout(fs.readFileSync(path.join(presetDir, file), 'utf8'));
+    for (const [l, r] of pairs) {
+      const a = L.keys[l], b = L.keys[r];
+      if (a.r !== -b.r) fail(where, `${file}: ${l} and ${r} should mirror, rotated ${a.r} and ${b.r}`);
+      if (Math.abs(a.y - b.y) > 0.1) fail(where, `${file}: ${l} and ${r} should sit level, y ${a.y} and ${b.y}`);
+    }
+  }
+  console.log(`ok  ${where}`);
+}
+
 // MoErgo's &layer N is the same tap-dance as &lower for any layer (issue #48). Go60's factory layout reaches
 // Keypad and SymbolNav only through it: Keypad is the numpad, and Keypad's Ctrl+C doesn't replace the chord.
 {
